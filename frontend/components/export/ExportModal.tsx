@@ -45,11 +45,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
       <div className="modal-dialog">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--synth-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--synth)' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--surface-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>
               <Download size={14} />
             </div>
             <div>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-title)' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 Export Synthetic Dataset
               </h3>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -63,18 +63,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
           </button>
         </div>
 
-        <div style={{ background: 'var(--bg-0)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xs)', padding: '10px 14px', marginBottom: '16px', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ background: 'var(--surface-muted)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xs)', padding: '10px 14px', marginBottom: '16px', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px', fontFamily: 'var(--font-mono)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-muted)' }}>Dataset:</span>
-            <span style={{ color: 'var(--text-title)' }}>{datasetName}</span>
+            <span style={{ color: 'var(--text-primary)' }}>{datasetName}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-muted)' }}>Synthetic Rows:</span>
-            <span style={{ color: 'var(--synth)', fontWeight: 600 }}>{generatedRowCount}</span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{generatedRowCount}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-muted)' }}>Columns:</span>
-            <span style={{ color: 'var(--text-title)' }}>{colCount}</span>
+            <span style={{ color: 'var(--text-primary)' }}>{colCount}</span>
           </div>
         </div>
 
@@ -87,19 +87,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '12px 14px',
-              background: 'var(--bg-2)',
+              background: 'var(--surface-muted)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-xs)',
               cursor: 'pointer',
-              color: 'var(--text-title)',
+              color: 'var(--text-primary)',
               textAlign: 'left',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--border-medium)')}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <FileSpreadsheet size={18} style={{ color: 'var(--synth)' }} />
+              <FileSpreadsheet size={18} style={{ color: 'var(--text-primary)' }} />
               <div>
                 <span style={{ fontSize: '12px', fontWeight: 600, display: 'block' }}>Export as CSV</span>
                 <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Standard comma-delimited table</span>
@@ -116,19 +116,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '12px 14px',
-              background: 'var(--bg-2)',
+              background: 'var(--surface-muted)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-xs)',
               cursor: 'pointer',
-              color: 'var(--text-title)',
+              color: 'var(--text-primary)',
               textAlign: 'left',
               transition: 'all 0.15s ease',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--border-medium)')}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <FileCode size={18} style={{ color: 'var(--blue)' }} />
+              <FileCode size={18} style={{ color: 'var(--text-primary)' }} />
               <div>
                 <span style={{ fontSize: '12px', fontWeight: 600, display: 'block' }}>Export as JSON</span>
                 <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>JSON record array format</span>
@@ -138,8 +138,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', marginTop: '16px', fontSize: '10px', color: 'var(--text-faint)' }}>
-          <ShieldCheck size={12} style={{ color: 'var(--synth)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', marginTop: '16px', fontSize: '10px', color: 'var(--text-muted)' }}>
+          <ShieldCheck size={12} style={{ color: 'var(--success)' }} />
           <span>Includes all applied column privacy rules</span>
         </div>
       </div>

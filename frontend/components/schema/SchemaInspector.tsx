@@ -47,7 +47,7 @@ export const SchemaInspector: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
         <div>
-          <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-title)' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
             Column Schema & Statistical Properties
           </h2>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -71,10 +71,10 @@ export const SchemaInspector: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   {col.constraints.unique && (
                     <span title="Unique Key">
-                      <Key size={13} style={{ color: 'var(--amber)' }} />
+                      <Key size={13} style={{ color: 'var(--warning)' }} />
                     </span>
                   )}
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '13px', color: 'var(--text-title)' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
                     {col.name}
                   </span>
                 </div>
@@ -143,7 +143,7 @@ export const SchemaInspector: React.FC = () => {
 
               {/* Privacy Transformation Control */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Shield size={13} style={{ color: privacyVal !== 'none' ? 'var(--synth)' : 'var(--text-faint)' }} />
+                <Shield size={13} style={{ color: privacyVal !== 'none' ? 'var(--success)' : 'var(--text-muted)' }} />
                 <select
                   value={privacyVal}
                   onChange={(e) => handlePrivacyChange(col.name, e.target.value)}

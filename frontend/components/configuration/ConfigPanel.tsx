@@ -53,12 +53,12 @@ export const ConfigPanel: React.FC = () => {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sliders size={14} style={{ color: 'var(--blue)' }} />
-            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-title)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            <Sliders size={14} style={{ color: 'var(--text-primary)' }} />
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
               Generation Settings
             </span>
           </div>
-          <span style={{ fontSize: '10px', color: 'var(--text-faint)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
             seed:{seed}
           </span>
         </div>
@@ -69,7 +69,7 @@ export const ConfigPanel: React.FC = () => {
             <label style={{ fontSize: '11px', color: 'var(--text-body)', fontWeight: 500 }}>
               Synthetic Rows
             </label>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600, color: 'var(--synth)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
               {rowCount.toLocaleString()}
             </span>
           </div>
@@ -82,7 +82,7 @@ export const ConfigPanel: React.FC = () => {
             onChange={(e) => updateGlobalConfig({ rowCount: Number(e.target.value) })}
             className="range-slider"
           />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-faint)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
             <span>50</span>
             <span>2,500</span>
             <span>5,000</span>
@@ -98,7 +98,7 @@ export const ConfigPanel: React.FC = () => {
             <button
               onClick={randomizeSeed}
               className="btn btn-ghost btn-sm"
-              style={{ padding: '2px 6px', fontSize: '11px', color: 'var(--blue)' }}
+              style={{ padding: '2px 6px', fontSize: '11px', color: 'var(--text-primary)' }}
               title="Pick random seed"
             >
               <Shuffle size={11} />
@@ -115,29 +115,29 @@ export const ConfigPanel: React.FC = () => {
         </div>
 
         {/* Setting 3: Privacy Controls Summary */}
-        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '12px' }}>
+        <div style={{ background: 'var(--surface-muted)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-            <Shield size={13} style={{ color: 'var(--synth)' }} />
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-title)' }}>
+            <Shield size={13} style={{ color: 'var(--text-primary)' }} />
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>
               Active Privacy Rules
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', textAlign: 'center' }}>
-            <div style={{ background: 'var(--bg-0)', padding: '6px', borderRadius: 'var(--radius-xs)' }}>
-              <span style={{ fontSize: '9px', color: 'var(--text-faint)', display: 'block' }}>MASK</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--text-title)' }}>
+            <div style={{ background: 'var(--surface)', padding: '6px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-subtle)' }}>
+              <span style={{ fontSize: '9px', color: 'var(--text-muted)', display: 'block' }}>MASK</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {privacyCounts.mask}
               </span>
             </div>
-            <div style={{ background: 'var(--bg-0)', padding: '6px', borderRadius: 'var(--radius-xs)' }}>
-              <span style={{ fontSize: '9px', color: 'var(--text-faint)', display: 'block' }}>HASH</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--text-title)' }}>
+            <div style={{ background: 'var(--surface)', padding: '6px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-subtle)' }}>
+              <span style={{ fontSize: '9px', color: 'var(--text-muted)', display: 'block' }}>HASH</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {privacyCounts.hash}
               </span>
             </div>
-            <div style={{ background: 'var(--bg-0)', padding: '6px', borderRadius: 'var(--radius-xs)' }}>
-              <span style={{ fontSize: '9px', color: 'var(--text-faint)', display: 'block' }}>NOISE</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--text-title)' }}>
+            <div style={{ background: 'var(--surface)', padding: '6px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-subtle)' }}>
+              <span style={{ fontSize: '9px', color: 'var(--text-muted)', display: 'block' }}>NOISE</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 {privacyCounts.noise}
               </span>
             </div>
@@ -157,7 +157,7 @@ export const ConfigPanel: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '8px 10px',
-              background: 'var(--bg-2)',
+              background: 'var(--surface-muted)',
               border: 'none',
               color: 'var(--text-muted)',
               fontSize: '11px',
@@ -172,7 +172,7 @@ export const ConfigPanel: React.FC = () => {
           </button>
 
           {techDetailsOpen && (
-            <div style={{ padding: '10px', background: 'var(--bg-0)', fontSize: '10px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ padding: '10px', background: 'var(--surface)', fontSize: '10px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div>• Copula: Gaussian Correlation matrix</div>
               <div>• Marginals: 101 Empirical Quantiles</div>
               <div>• Identity: Rule-based Faker synthesis</div>

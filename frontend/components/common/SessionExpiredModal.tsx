@@ -10,11 +10,11 @@ export const SessionExpiredModal: React.FC = () => {
   return (
     <div className="modal-backdrop">
       <div className="modal-dialog" style={{ textAlign: 'center' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--amber-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--amber)', margin: '0 auto 12px auto' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--warning-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--warning)', margin: '0 auto 12px auto' }}>
           <Clock size={20} />
         </div>
 
-        <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-title)', marginBottom: '6px' }}>
+        <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
           Dataset Session Expired
         </h3>
         <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '20px' }}>

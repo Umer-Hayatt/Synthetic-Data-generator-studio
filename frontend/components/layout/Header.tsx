@@ -3,12 +3,10 @@ import { useStudio } from '../../context/StudioContext';
 import {
   Database,
   Download,
-  RefreshCw,
   Plus,
   CheckCircle2,
   AlertTriangle,
   Clock,
-  Sparkles,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -17,16 +15,11 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
   const {
-    datasetName,
     referenceToken,
     generatedToken,
     backendOnline,
     tokenExpirySeconds,
     clearSession,
-    triggerGenerate,
-    isGenerating,
-    activeMode,
-    setActiveMode,
   } = useStudio();
 
   return (
@@ -39,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
               width: '28px',
               height: '28px',
               borderRadius: '6px',
-              background: 'linear-gradient(135deg, #2563eb, #4f46e5)',
+              background: 'var(--primary-btn-bg)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -48,46 +41,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
           >
             <Database size={16} />
           </div>
-          <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-title)', letterSpacing: '-0.3px' }}>
+          <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
             Synthetic Data Studio
           </span>
-          <span className="badge badge-slate" style={{ fontSize: '9px', padding: '1px 5px' }}>
-            HackDataV2
-          </span>
         </div>
-      </div>
-
-      {/* Center: Modality Switcher (Tabular active, Relational & Documents upcoming) */}
-      <div className="top-bar-center">
-        <button
-          onClick={() => setActiveMode('tabular')}
-          className={`modality-btn ${activeMode === 'tabular' ? 'active' : ''}`}
-        >
-          <span>Tabular</span>
-          <span className="badge badge-synth" style={{ fontSize: '8px', padding: '1px 4px' }}>
-            Active
-          </span>
-        </button>
-
-        <button
-          className="modality-btn upcoming"
-          title="Relational DAG multi-table generation is scheduled for Phase 4"
-        >
-          <span>Relational</span>
-          <span className="badge badge-slate" style={{ fontSize: '8px', padding: '1px 4px' }}>
-            Coming next
-          </span>
-        </button>
-
-        <button
-          className="modality-btn upcoming"
-          title="Document invoice and statement generator is scheduled for Phase 5"
-        >
-          <span>Documents</span>
-          <span className="badge badge-slate" style={{ fontSize: '8px', padding: '1px 4px' }}>
-            Coming next
-          </span>
-        </button>
       </div>
 
       {/* Right: Health, Session, Actions */}
@@ -118,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
             style={{ textTransform: 'none', fontSize: '11px', padding: '4px 8px' }}
             title="Ephemeral bounded session (~15 min cache)"
           >
-            <Clock size={12} style={{ color: 'var(--amber)' }} />
+            <Clock size={12} style={{ color: 'var(--warning)' }} />
             <span>
               Session: {tokenExpirySeconds ? `${Math.round(tokenExpirySeconds / 60)}m` : '15m'}
             </span>

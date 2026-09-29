@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Synthetic Data Studio — HackDataV2</title>
+        <title>Synthetic Data Studio</title>
         <meta
           name="description"
           content="General-purpose schema-aware synthetic structured data platform with statistical quality evaluation and TSTR ML utility benchmarking."

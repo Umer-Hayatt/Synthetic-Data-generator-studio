@@ -9,7 +9,6 @@ import React, {
 import {
   ColumnSpec,
   DatasetSpec,
-  DataTypeMode,
   QualityResponse,
   TSTRResponse,
   WorkspaceTab,
@@ -50,8 +49,6 @@ interface StudioContextType {
   // Navigation & UI States
   activeTab: WorkspaceTab;
   setActiveTab: (tab: WorkspaceTab) => void;
-  activeMode: DataTypeMode;
-  setActiveMode: (mode: DataTypeMode) => void;
   previewViewMode: 'generated' | 'reference';
   setPreviewViewMode: (mode: 'generated' | 'reference') => void;
 
@@ -114,7 +111,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [tstrResults, setTstrResults] = useState<TSTRResponse | null>(null);
 
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('preview');
-  const [activeMode, setActiveMode] = useState<DataTypeMode>('tabular');
   const [previewViewMode, setPreviewViewMode] = useState<
     'generated' | 'reference'
   >('generated');
@@ -460,8 +456,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         tstrResults,
         activeTab,
         setActiveTab,
-        activeMode,
-        setActiveMode,
         previewViewMode,
         setPreviewViewMode,
         backendOnline,

@@ -88,9 +88,9 @@ export const TSTRDashboard: React.FC = () => {
     let deltaColor = 'var(--text-muted)';
     if (delta !== null && delta !== undefined) {
       if (isHigherBetter) {
-        deltaColor = delta >= -0.05 ? 'var(--synth)' : 'var(--amber)';
+        deltaColor = delta >= -0.05 ? 'var(--success)' : 'var(--warning)';
       } else {
-        deltaColor = delta <= 0 ? 'var(--synth)' : 'var(--amber)';
+        deltaColor = delta <= 0 ? 'var(--success)' : 'var(--warning)';
       }
     }
 
@@ -112,14 +112,14 @@ export const TSTRDashboard: React.FC = () => {
         <div className="tstr-comparison-grid">
           <div className="tstr-metric-box">
             <span className="tstr-box-label">Real Train (TRTR)</span>
-            <span className="tstr-box-val" style={{ color: 'var(--real)' }}>
+            <span className="tstr-box-val" style={{ color: 'var(--text-muted)' }}>
               {comp.trtr !== null && comp.trtr !== undefined ? comp.trtr.toFixed(3) : 'N/A'}
             </span>
           </div>
 
           <div className="tstr-metric-box">
             <span className="tstr-box-label">Synthetic Train (TSTR)</span>
-            <span className="tstr-box-val" style={{ color: 'var(--synth)' }}>
+            <span className="tstr-box-val" style={{ color: 'var(--text-primary)' }}>
               {comp.tstr !== null && comp.tstr !== undefined ? comp.tstr.toFixed(3) : 'N/A'}
             </span>
           </div>
@@ -141,7 +141,7 @@ export const TSTRDashboard: React.FC = () => {
       <div className="tstr-hero">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-title)' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
               ML Utility
             </h2>
             <span className="badge badge-purple" style={{ fontSize: '10px' }}>
@@ -219,20 +219,20 @@ export const TSTRDashboard: React.FC = () => {
       </div>
 
       {/* 2. Core Explanation Banner for Non-ML Judges */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'var(--bg-1)', border: '1px solid var(--synth-border)', borderRadius: 'var(--radius-sm)' }}>
-        <CheckCircle2 size={18} style={{ color: 'var(--synth)', flexShrink: 0 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'var(--surface)', border: '1px solid var(--success-border)', borderRadius: 'var(--radius-sm)' }}>
+        <CheckCircle2 size={18} style={{ color: 'var(--success)', flexShrink: 0 }} />
         <div style={{ fontSize: '12px', color: 'var(--text-body)' }}>
-          <strong style={{ color: 'var(--text-title)' }}>Rigorous Test Invariant: </strong>
+          <strong style={{ color: 'var(--text-primary)' }}>Rigorous Test Invariant: </strong>
           Both models are evaluated against the{' '}
-          <strong style={{ color: 'var(--synth)' }}>same untouched real test set</strong>. The synthesizer learned strictly from Real Train data with zero test-set leakage.
+          <strong style={{ color: 'var(--success)' }}>same untouched real test set</strong>. The synthesizer learned strictly from Real Train data with zero test-set leakage.
         </div>
       </div>
 
       {/* 3. TSTR Status: Unavailable or Available Cards */}
       {tstrResults?.status === 'unavailable' ? (
-        <div className="panel" style={{ textAlign: 'center', padding: '32px 20px', borderColor: 'var(--amber-border)', background: 'var(--amber-soft)' }}>
-          <AlertTriangle size={24} style={{ color: 'var(--amber)', margin: '0 auto 8px auto' }} />
-          <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-title)' }}>
+        <div className="panel" style={{ textAlign: 'center', padding: '32px 20px', borderColor: 'var(--warning-border)', background: 'var(--warning-bg)' }}>
+          <AlertTriangle size={24} style={{ color: 'var(--warning)', margin: '0 auto 8px auto' }} />
+          <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
             TSTR Evaluation Unavailable
           </h4>
           <p style={{ fontSize: '12px', color: 'var(--text-body)', marginTop: '4px', maxWidth: '480px', margin: '4px auto 14px auto' }}>
@@ -247,8 +247,8 @@ export const TSTRDashboard: React.FC = () => {
         </div>
       ) : (
         <div className="panel" style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
-          <BrainCircuit size={28} style={{ color: 'var(--purple)', margin: '0 auto 8px auto', opacity: 0.7 }} />
-          <p style={{ fontSize: '13px', color: 'var(--text-title)', fontWeight: 500 }}>
+          <BrainCircuit size={28} style={{ color: 'var(--text-muted)', margin: '0 auto 8px auto', opacity: 0.7 }} />
+          <p style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 500 }}>
             No TSTR evaluation run yet.
           </p>
           <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -260,7 +260,7 @@ export const TSTRDashboard: React.FC = () => {
       {/* 4. Split Invariant & Pipeline Details */}
       <div className="panel" style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 600, color: 'var(--text-title)' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
             Evaluation Pipeline Specification
           </span>
           <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
@@ -268,34 +268,34 @@ export const TSTRDashboard: React.FC = () => {
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', background: 'var(--bg-0)', padding: '10px 14px', borderRadius: 'var(--radius-xs)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', background: 'var(--surface-muted)', padding: '10px 14px', borderRadius: 'var(--radius-xs)' }}>
           <div>
-            <span style={{ color: 'var(--text-faint)', display: 'block' }}>Real Train (80%)</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--real)' }}>
+            <span style={{ color: 'var(--text-muted)', display: 'block' }}>Real Train (80%)</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-muted)' }}>
               {tstrResults?.rows?.real_train !== undefined
                 ? `${tstrResults.rows.real_train} rows`
                 : '160 rows'}
             </span>
           </div>
           <div>
-            <span style={{ color: 'var(--text-faint)', display: 'block' }}>Synthetic Train</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--synth)' }}>
+            <span style={{ color: 'var(--text-muted)', display: 'block' }}>Synthetic Train</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-primary)' }}>
               {tstrResults?.rows?.synthetic_train !== undefined
                 ? `${tstrResults.rows.synthetic_train} rows`
                 : '160 rows'}
             </span>
           </div>
           <div>
-            <span style={{ color: 'var(--text-faint)', display: 'block' }}>Real Test (20%)</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--blue)' }}>
+            <span style={{ color: 'var(--text-muted)', display: 'block' }}>Real Test (20%)</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-muted)' }}>
               {tstrResults?.rows?.real_test !== undefined
                 ? `${tstrResults.rows.real_test} rows`
                 : '40 rows'}
             </span>
           </div>
           <div>
-            <span style={{ color: 'var(--text-faint)', display: 'block' }}>Model Architecture</span>
-            <span style={{ fontWeight: 500, color: 'var(--text-title)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ color: 'var(--text-muted)', display: 'block' }}>Model Architecture</span>
+            <span style={{ fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {tstrResults?.model || 'RandomForest'}
             </span>
           </div>

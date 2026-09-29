@@ -37,8 +37,8 @@ export const QualityDashboard: React.FC = () => {
   if (!qualityResults) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-        <Activity size={32} style={{ color: 'var(--synth)', margin: '0 auto 12px auto', opacity: 0.6 }} />
-        <h3 style={{ fontSize: '15px', color: 'var(--text-title)', fontWeight: 600 }}>
+        <Activity size={32} style={{ color: 'var(--text-primary)', margin: '0 auto 12px auto', opacity: 0.6 }} />
+        <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', fontWeight: 600 }}>
           Synthetic Data Quality
         </h3>
         <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', maxWidth: '400px', margin: '4px auto 16px auto' }}>
@@ -80,7 +80,7 @@ export const QualityDashboard: React.FC = () => {
 
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-title)' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
               Synthetic Data Quality
             </h2>
             <span className="badge badge-synth" style={{ fontSize: '10px' }}>
@@ -90,18 +90,18 @@ export const QualityDashboard: React.FC = () => {
 
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '640px', lineHeight: 1.5 }}>
             Composite statistical fidelity across{' '}
-            <strong style={{ color: 'var(--text-title)' }}>
+            <strong style={{ color: 'var(--text-primary)' }}>
               {distribution_columns_evaluated} of {distribution_columns_total} evaluated columns
             </strong>. Marginals, missing-value parity, and correlation structures match real benchmark data.
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '10px', fontSize: '11px', color: 'var(--text-muted)' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--real)' }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--border-medium)' }} />
               <span>Real Reference</span>
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--synth)' }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--text-primary)' }} />
               <span>Synthetic Output</span>
             </span>
           </div>
@@ -196,7 +196,7 @@ export const QualityDashboard: React.FC = () => {
               })}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-faint)', marginTop: '6px', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)', marginTop: '6px', fontFamily: 'var(--font-mono)' }}>
               <span>
                 Min: {activeNumericCol.histogram.edges[0]?.toFixed(1) ?? '—'}
               </span>
@@ -251,15 +251,15 @@ export const QualityDashboard: React.FC = () => {
                       {(cat.real * 100).toFixed(0)}% real / {(cat.synthetic * 100).toFixed(0)}% synth
                     </span>
                   </div>
-                  <div style={{ height: '6px', width: '100%', background: 'var(--bg-3)', borderRadius: '3px', overflow: 'hidden', display: 'flex', gap: '2px' }}>
-                    <div style={{ width: `${cat.real * 100}%`, background: 'var(--real)', borderRadius: '3px' }} />
-                    <div style={{ width: `${cat.synthetic * 100}%`, background: 'var(--synth)', borderRadius: '3px' }} />
+                  <div style={{ height: '6px', width: '100%', background: 'var(--surface-muted)', borderRadius: '3px', overflow: 'hidden', display: 'flex', gap: '2px' }}>
+                    <div style={{ width: `${cat.real * 100}%`, background: 'var(--border-medium)', borderRadius: '3px' }} />
+                    <div style={{ width: `${cat.synthetic * 100}%`, background: 'var(--text-primary)', borderRadius: '3px' }} />
                   </div>
                 </div>
               ))}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-faint)', marginTop: '10px', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)', marginTop: '10px', fontFamily: 'var(--font-mono)' }}>
               <span>TVD: {activeCatCol.total_variation_distance !== undefined ? activeCatCol.total_variation_distance.toFixed(3) : '—'}</span>
               <span>Classes: {activeCatCol.categories.length}</span>
             </div>
@@ -276,8 +276,8 @@ export const QualityDashboard: React.FC = () => {
         <div className="panel">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Layers size={14} style={{ color: 'var(--synth)' }} />
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-title)' }}>
+              <Layers size={14} style={{ color: 'var(--text-primary)' }} />
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 Correlation Matrix Preservation
               </span>
             </div>
@@ -300,7 +300,7 @@ export const QualityDashboard: React.FC = () => {
             <tbody>
               {correlation.columns.map((rCol, rIdx) => (
                 <tr key={rCol}>
-                  <td style={{ fontWeight: 600, color: 'var(--text-title)' }}>{rCol}</td>
+                  <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rCol}</td>
                   {correlation.columns.map((cCol, cIdx) => {
                     const rVal = correlation.real_matrix?.[rIdx]?.[cIdx];
                     const sVal = correlation.synthetic_matrix?.[rIdx]?.[cIdx];
@@ -308,10 +308,10 @@ export const QualityDashboard: React.FC = () => {
                     return (
                       <td key={cCol} style={{ textAlign: 'center' }}>
                         {rIdx === cIdx ? (
-                          <span style={{ color: 'var(--text-faint)' }}>1.00</span>
+                          <span style={{ color: 'var(--text-muted)' }}>1.00</span>
                         ) : (
                           <div>
-                            <span style={{ color: 'var(--synth)', fontWeight: 600 }}>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
                               {sVal !== null && sVal !== undefined ? sVal.toFixed(2) : '—'}
                             </span>
                             <span style={{ fontSize: '9px', color: 'var(--text-muted)', marginLeft: '4px' }}>

@@ -70,7 +70,7 @@ export const Workspace: React.FC = () => {
         {/* Canvas Header: Name, Status, and Tab Navigation */}
         <div className="canvas-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-title)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
               {datasetName || 'customer_churn'}
             </span>
             <span className="badge badge-synth" style={{ fontSize: '9px' }}>

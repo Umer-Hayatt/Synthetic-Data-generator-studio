@@ -53,7 +53,7 @@ export const DataPreviewCanvas: React.FC = () => {
     <div className="grid-container">
       {/* Toolbar: Switcher + Search + Pagination */}
       <div className="grid-toolbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-1)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--surface-muted)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
           <button
             onClick={() => {
               setPreviewViewMode('generated');
@@ -87,7 +87,7 @@ export const DataPreviewCanvas: React.FC = () => {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ position: 'relative' }}>
-            <Search size={12} style={{ position: 'absolute', left: '8px', top: '8px', color: 'var(--text-faint)' }} />
+            <Search size={12} style={{ position: 'absolute', left: '8px', top: '8px', color: 'var(--text-muted)' }} />
             <input
               type="text"
               placeholder="Filter preview rows..."
@@ -130,7 +130,7 @@ export const DataPreviewCanvas: React.FC = () => {
         <table className="data-table">
           <thead>
             <tr>
-              <th style={{ width: '40px', textAlign: 'center', color: 'var(--text-faint)' }}>#</th>
+              <th style={{ width: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>#</th>
               {columns.map((colName) => (
                 <th key={colName}>{colName}</th>
               ))}
@@ -148,7 +148,7 @@ export const DataPreviewCanvas: React.FC = () => {
                 const globalIdx = currentPage * pageSize + rIdx + 1;
                 return (
                   <tr key={rIdx}>
-                    <td style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: '10px' }}>
+                    <td style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '10px' }}>
                       {globalIdx}
                     </td>
                     {columns.map((colName) => {
@@ -184,7 +184,7 @@ export const DataPreviewCanvas: React.FC = () => {
       </div>
 
       {/* Footer Status */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-faint)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
         <span>
           Showing preview of {rawRows.length} cached rows ({totalCount.toLocaleString()} total in {isSynthetic ? 'synthetic output' : 'reference dataset'}).
         </span>
