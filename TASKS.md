@@ -16,56 +16,56 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 
 ## Phase 1: Backend Core (P0)
 
-### [TODO] BE-01: FastAPI Backend Skeleton & Health Endpoint
+### [DONE] BE-01: FastAPI Backend Skeleton & Health Endpoint
 - **Goal**: Initialize FastAPI application, CORS middleware, API router structure, and `/health` endpoint.
 - **Relevant Area**: `backend/app/main.py`, `backend/app/api/health.py`, `backend/requirements.txt`
 - **Dependencies**: SETUP-01
 - **Acceptance Criteria**: `GET /health` returns `{ "status": "ok" }`. Proper CORS configured for frontend.
 - **Verification**: Run `pytest` or curl `/health`.
 
-### [TODO] BE-02: Multi-format Ingestion Adapters (CSV / XLSX / JSON)
+### [DONE] BE-02: Multi-format Ingestion Adapters (CSV / XLSX / JSON)
 - **Goal**: Implement file upload parser supporting CSV, XLSX, and JSON into in-memory pandas DataFrames.
 - **Relevant Area**: `backend/app/adapters/ingestion.py`, `backend/app/api/ingest.py`
 - **Dependencies**: BE-01
 - **Acceptance Criteria**: Correctly parses valid CSV, XLSX, and JSON tables. Rejects invalid files with HTTP 400.
 - **Verification**: Unit tests with sample CSV, Excel sheet, and JSON record array.
 
-### [TODO] BE-03: Automated Schema & Type Inference
+### [DONE] BE-03: Automated Schema & Type Inference
 - **Goal**: Extract primitive dtypes, semantic types (email, id, currency, date), null rates, and summary stats.
 - **Relevant Area**: `backend/app/core/inference.py`
 - **Dependencies**: BE-02
 - **Acceptance Criteria**: Inferred column metadata matches test dataset structures accurately.
 - **Verification**: Run inference against standard benchmark tabular datasets.
 
-### [TODO] BE-04: Canonical DatasetSpec Models & Validation
+### [DONE] BE-04: Canonical DatasetSpec Models & Validation
 - **Goal**: Define Pydantic models for the canonical `DatasetSpec`, column constraints, and privacy rules.
 - **Relevant Area**: `backend/app/models/spec.py`
 - **Dependencies**: BE-03
 - **Acceptance Criteria**: Strongly typed models validate valid specs and reject malformed schemas.
 - **Verification**: Unit tests testing valid/invalid spec payloads.
 
-### [TODO] BE-05: Tabular Synthetic Generation Engine
+### [DONE] BE-05: Tabular Synthetic Generation Engine
 - **Goal**: Build CPU-safe synthesis engine combining distribution fitting, Faker semantics, random seed reproducibility, and column privacy controls (masking, hashing, configurable noise injection).
 - **Relevant Area**: `backend/app/engines/tabular.py`
 - **Dependencies**: BE-04
 - **Acceptance Criteria**: Generates synthetic rows matching target count and distributions. Identical seeds produce identical outputs.
 - **Verification**: Statistical similarity tests and deterministic reproducibility assertions.
 
-### [TODO] BE-06: Preview & Export API
+### [DONE] BE-06: Preview & Export API
 - **Goal**: Endpoints to preview first $N$ rows and export full synthetic datasets as CSV and JSON.
 - **Relevant Area**: `backend/app/api/generate.py`, `backend/app/api/export.py`
 - **Dependencies**: BE-05
 - **Acceptance Criteria**: `GET /api/v1/preview` returns paginated rows; `GET /api/v1/export/{format}` returns downloadable stream.
 - **Verification**: API tests verifying returned content types and row counts.
 
-### [TODO] BE-07: Statistical Quality Evaluation Module
+### [DONE] BE-07: Statistical Quality Evaluation Module
 - **Goal**: Compute statistical fidelity metrics (Kolmogorov-Smirnov, Wasserstein, Total Variation Distance, Correlation differences, overall quality score).
 - **Relevant Area**: `backend/app/eval/quality.py`, `backend/app/api/evaluate.py`
 - **Dependencies**: BE-05
 - **Acceptance Criteria**: Returns composite fidelity score (0-100%) and per-column similarity metrics formatted for UI charts.
 - **Verification**: Unit tests on known synthetic vs real distributions.
 
-### [TODO] BE-08: TSTR ML Utility Evaluation Engine
+### [DONE] BE-08: TSTR ML Utility Evaluation Engine
 - **Goal**: Implement Train on Synthetic, Test on Real pipeline comparing TRTR vs TSTR for classification/regression with raw metrics, metric-appropriate deltas (no forced universal ratio for lower-is-better/negative metrics), and strict leakage prevention.
 - **Relevant Area**: `backend/app/eval/tstr.py`
 - **Dependencies**: BE-05, BE-07
@@ -76,49 +76,49 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 
 ## Phase 2: Frontend Implementation (P0)
 
-### [TODO] FE-01: Next.js Frontend Shell & Layout
+### [DONE] FE-01: Next.js Frontend Shell & Layout
 - **Goal**: Initialize Next.js project with TypeScript, modern styling, and base layout shell.
 - **Relevant Area**: `frontend/`
 - **Dependencies**: SETUP-01
 - **Acceptance Criteria**: Modern, responsive layout shell running locally with client navigation.
 - **Verification**: `npm run build` succeeds without lint or type errors.
 
-### [TODO] FE-02: Source Ingestion & Sample Dataset UI
+### [DONE] FE-02: Source Ingestion & Sample Dataset UI
 - **Goal**: Build file dropzone (CSV/XLSX/JSON) and one-click demo dataset loaders.
 - **Relevant Area**: `frontend/components/ingestion/`
 - **Dependencies**: FE-01, BE-02
 - **Acceptance Criteria**: Users can drop files or click sample datasets to trigger intake.
 - **Verification**: Interactive UI test verifying file upload callbacks.
 
-### [TODO] FE-03: Schema & Configuration Inspector
+### [DONE] FE-03: Schema & Configuration Inspector
 - **Goal**: UI panel displaying inferred schema, editable row count, random seed, null/outlier knobs, and privacy controls.
 - **Relevant Area**: `frontend/components/configuration/`
 - **Dependencies**: FE-01, BE-04
 - **Acceptance Criteria**: Reactive controls allow updating generation parameters and column privacy settings.
 - **Verification**: Component tests verifying configuration state updates.
 
-### [TODO] FE-04: Generated Data Preview Canvas
+### [DONE] FE-04: Generated Data Preview Canvas
 - **Goal**: Interactive virtualized table displaying synthetic data rows with semantic chips and quick stats.
 - **Relevant Area**: `frontend/components/preview/`
 - **Dependencies**: FE-01, BE-06
 - **Acceptance Criteria**: Smooth rendering of sample rows with column sorting and filtering.
 - **Verification**: Visual rendering check on 1,000 preview rows.
 
-### [TODO] FE-05: Statistical Quality Dashboard
+### [DONE] FE-05: Statistical Quality Dashboard
 - **Goal**: Visual dashboard rendering real vs synthetic distribution histograms, correlation heatmaps, and quality scores.
 - **Relevant Area**: `frontend/components/quality/`
 - **Dependencies**: FE-01, BE-07
 - **Acceptance Criteria**: Charts visually present column fidelity and composite score clearly.
 - **Verification**: Render dashboard with mock and live quality payloads.
 
-### [TODO] FE-06: TSTR ML Utility Dashboard
+### [DONE] FE-06: TSTR ML Utility Dashboard
 - **Goal**: Dedicated card/dashboard showing side-by-side raw TRTR vs TSTR metrics, metric-appropriate deltas/comparisons, and target selector.
 - **Relevant Area**: `frontend/components/tstr/`
 - **Dependencies**: FE-01, BE-08
 - **Acceptance Criteria**: Clearly conveys utility retention without forcing invalid percentage ratios; handles no-target datasets gracefully.
 - **Verification**: Render comparison cards for classification and regression states.
 
-### [TODO] FE-07: Export & Error State Management
+### [DONE] FE-07: Export & Error State Management
 - **Goal**: Export trigger (CSV/JSON), loading skeletons, and error boundary toasts.
 - **Relevant Area**: `frontend/components/common/`
 - **Dependencies**: FE-01
@@ -129,7 +129,7 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 
 ## Phase 3: Integration, Deployment & QA (P0)
 
-### [TODO] INT-01: End-to-End Frontend & Backend Integration
+### [DONE] INT-01: End-to-End Frontend & Backend Integration
 - **Goal**: Wire all frontend services to live backend endpoints with reactive state management.
 - **Relevant Area**: `frontend/services/api.ts`
 - **Dependencies**: BE-01 through BE-08, FE-01 through FE-07
