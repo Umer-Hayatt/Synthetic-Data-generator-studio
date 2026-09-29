@@ -10,6 +10,9 @@ class BodyLimitMiddleware:
     async def __call__(self, scope, receive, send):
         if scope['type'] != 'http' or scope['method'] not in ('POST', 'PUT', 'PATCH'):
             return await self.app(scope, receive, send)
+        if scope['path'] == '/api/v1/jobs/ingest':
+            # This endpoint enforces the larger limit while streaming directly to disk.
+            return await self.app(scope, receive, send)
         limit = settings.max_upload_bytes + 64 * 1024  # multipart envelope allowance
         chunks = []
         size = 0

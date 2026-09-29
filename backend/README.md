@@ -2,6 +2,10 @@
 
 Python 3.12 recommended. From `backend/`:
 
+Local configuration loads from the repository-root `.env`, regardless of the
+server's working directory. Existing process environment variables take precedence.
+Production can use environment variables alone; no `.env` file is required.
+
 ```powershell
 python -m venv .venv
 .venv/Scripts/python -m pip install -r requirements-dev.txt
@@ -177,3 +181,25 @@ quality, TSTR, and export. Do not send full datasets back for these operations.
 Treat 400 as an actionable input/capacity error, 404 as an expired/invalid token,
 and 422 as structured request/spec validation errors. TSTR availability is a
 payload state, not an HTTP error. Consult `/docs` for request schemas.
+
+## V2 backend additions (integration verification pending)
+
+P0 synchronous endpoints retain their bounded behavior. New routes:
+- POST `/api/v1/jobs/ingest?filename=data.csv`: raw file bytes (not multipart), disk staging and background profile. Supports CSV/JSON/JSONL/XLSX/Parquet.
+- POST `/api/v1/jobs/generate`: `{spec, engine, accepted: true, batch_rows?, source_artifact?}`. Review required. Statistical mode streams JSONL; relational/documents use a bounded local cell budget. Source-fitted engines require a source artifact and have narrower limits.
+- POST `/api/v1/jobs/compare`: `{source_artifact, target?, seed?}`. Sequential bounded engineering benchmark with reviewed recommendation; no automatic deep selection.
+- GET `/api/v1/jobs/{id}`; POST `/api/v1/jobs/{id}/cancel` (cooperative).
+- GET `/api/v1/artifacts/{id}?preview_rows=10`; GET `/api/v1/artifacts/{id}/download`.
+- GET `/api/v1/engines`; POST `/api/v1/ai/spec` with `{prompt}`; POST `/api/v1/ai/suggestions` with `{spec, ambiguous_columns}`. AI proposals do not execute generation.
+
+Version 1 retains P0 row limits; version 2 supports larger reviewed job counts. Unsupported free-text business rules must be translated into typed reconciliation rules, not silently executed. N:N is represented by junction tables. Documents reuse the same generated entities; Decimal arithmetic uses half-up cents.
+
+Defaults are documented in root `.env.example`. Artifacts default to ignored `backend/generated/artifacts`, have opaque IDs, quotas and retention. Job metadata is in memory and is lost on restart; use one backend process. This local adapter is not a shared multi-tenant deployment. Storage/metadata/worker adapters and production access controls remain future integration work.
+
+PyArrow handles CSV/Parquet batches; ijson handles record-array JSON; JSONL limits individual records. XLSX has an expanded-size cap and conversion guidance. Profiles use seeded reservoirs with exact row/null counts; distributions are sampled. Local relational execution is bounded in memory, not larger-than-memory. Parquet oversized row groups and CSV type drift require source normalization. Per-record allocation limits still need hardening before untrusted large-file production use.
+
+Gemini uses official google-genai, one SDK attempt per router attempt, validated Pydantic results, invalid-key disabling and shared-pool 429 cooldown. Additional provider implementations are not included. Keys in one pool are not treated as extra quota. Live Gemini credentials/model were not verified in this run.
+
+Optional `requirements-deep.txt` is separate from normal dependencies. Deep engines remain disabled unless explicitly installed and ENABLE_DEEP_SYNTHESIS=true. CPU training is isolated and time/row/cell/epoch bounded; do not run it concurrently with full tests/builds. No deep benchmarks have run.
+
+Verification stopped on 2026-09-30 due OS memory exhaustion/OpenBLAS failure. Latest full backend result: 71 passed before final integration edits; later focused deep gate 1 passed/1 skipped and comparison 1 passed. Final regressions/pip check/frontend build/browser verification remain required. See PROJECT_STATE.md and TASKS.md.

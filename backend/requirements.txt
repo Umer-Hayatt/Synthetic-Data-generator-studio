@@ -1,4 +1,10 @@
 fastapi>=0.115,<1
+python-dotenv>=1,<2
+google-genai>=1,<2
+pyarrow>=19,<26
+ijson>=3.3,<4
+pyarrow>=19,<26
+ijson>=3.3,<4
 pydantic>=2.10,<3
 uvicorn>=0.34,<1
 pandas>=2.2,<3

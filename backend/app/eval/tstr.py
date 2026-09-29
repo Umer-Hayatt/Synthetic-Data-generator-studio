@@ -53,7 +53,8 @@ def prepare_features(frame, numeric, categorical):
 
 
 def evaluate_tstr(frame: pd.DataFrame, target: str | None = None,
-                  task: Literal['auto', 'classification', 'regression'] = 'auto', seed: int = 42) -> dict:
+                  task: Literal['auto', 'classification', 'regression'] = 'auto', seed: int = 42,
+                  synthesizer_factory=None) -> dict:
     candidates = target_candidates(frame)
     def disabled(reason):
         return {'status':'unavailable', 'reason':reason, 'target_candidates':candidates}
@@ -97,7 +98,9 @@ def evaluate_tstr(frame: pd.DataFrame, target: str | None = None,
         # This is the only profiling call. No full-data/client spec enters TSTR.
         spec = fit_spec(real_train[features+[target]], seed=seed,
                         categorical_columns=(target,) if task == 'classification' else ())
-        synthetic_train = generate(spec)
+        synthetic_train = (generate(spec) if synthesizer_factory is None else
+                           synthesizer_factory().fit(real_train[features+[target]],
+                               target=target if task == 'classification' else None, seed=seed).generate(len(real_train)))
         synthetic_train = synthetic_train.dropna(subset=[target])
         if len(synthetic_train) < 2 or synthetic_train[target].nunique() < 2:
             return disabled('Synthetic training target lacks sufficient variation; try another seed or more data.')

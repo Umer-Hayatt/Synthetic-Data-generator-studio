@@ -1,4 +1,4 @@
-"""Canonical P0 schema. Tables are extensible; relational execution is deferred."""
+"""Canonical schema. Version 1 retains P0 bounds; version 2 adds reviewed plans."""
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.core.config import settings
@@ -99,17 +99,58 @@ class ColumnSpec(Model):
         return self
 
 
+class ForeignKey(Model):
+    column: str
+    reference_table: str
+    reference_column: str
+    cardinality: Literal['1:1', '1:N'] = '1:N'
+    min_children: int = Field(default=0, ge=0)
+    max_children: int | None = Field(default=None, ge=1)
+
+
+class Reconciliation(Model):
+    parent_table: str
+    parent_column: str
+    child_table: str
+    foreign_key: str
+    factors: list[str] = Field(min_length=1, max_length=3)
+
+
+class DocumentRequest(Model):
+    kind: Literal['invoice', 'bank_statement']
+    parent_table: str
+    child_table: str
+    foreign_key: str
+    amount_column: str | None = None
+    quantity_column: str | None = None
+    price_column: str | None = None
+    date_column: str | None = None
+    credit_column: str | None = None
+    debit_column: str | None = None
+    opening_balance_column: str | None = None
+    tax_rate: float = Field(default=0, ge=0, le=1)
+    discount_rate: float = Field(default=0, ge=0, le=1)
+    date_from: str | None = None
+    date_to: str | None = None
+
+
 class TableSpec(Model):
     name: str = Field(min_length=1, max_length=128)
-    row_count: int = Field(ge=1, le=settings.max_rows)
+    row_count: int = Field(ge=1, le=settings.job_max_rows)
     columns: list[ColumnSpec] = Field(min_length=1, max_length=settings.max_columns)
     primary_key: str | None = None
+    foreign_keys: list[ForeignKey] = Field(default_factory=list)
+    target_column: str | None = None
     correlation_columns: list[str] = Field(default_factory=list)
     correlation_matrix: list[list[float]] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def consistent(self):
         names = [column.name for column in self.columns]
+        if self.target_column is not None and self.target_column not in names:
+            raise ValueError('target column must exist')
+        if len({fk.column for fk in self.foreign_keys}) != len(self.foreign_keys):
+            raise ValueError('duplicate foreign key columns')
         if len(names) != len(set(names)):
             raise ValueError('duplicate column names')
         if self.primary_key is not None:
@@ -133,13 +174,72 @@ class TableSpec(Model):
 
 class DatasetSpec(Model):
     name: str = Field(min_length=1, max_length=128)
-    version: Literal['1.0'] = '1.0'
+    version: Literal['1.0', '2.0'] = '1.0'
     locale: str = 'en_US'
     seed: int = Field(default=42, ge=0, le=2**32 - 1)
     tables: list[TableSpec] = Field(min_length=1, max_length=20)
+    reconciliations: list[Reconciliation] = Field(default_factory=list, max_length=20)
+    documents: list[DocumentRequest] = Field(default_factory=list, max_length=20)
+    edge_cases: list[str] = Field(default_factory=list, max_length=30)
+    business_rules: list[str] = Field(default_factory=list, max_length=30)
 
     @model_validator(mode='after')
     def unique_tables(self):
         if len({table.name for table in self.tables}) != len(self.tables):
             raise ValueError('duplicate table names')
+        if self.version == '1.0' and any(t.row_count > settings.max_rows for t in self.tables):
+            raise ValueError('Version 1 row limit exceeded; use a version 2 job.')
+        tables = {t.name: t for t in self.tables}
+        graph = {t.name: set() for t in self.tables}
+        for table in self.tables:
+            columns = {c.name: c for c in table.columns}
+            for fk in table.foreign_keys:
+                parent = tables.get(fk.reference_table)
+                if parent is None or fk.reference_column != parent.primary_key or fk.column not in columns:
+                    raise ValueError('Foreign keys must reference existing primary keys and columns.')
+                parent_column = next(c for c in parent.columns if c.name == parent.primary_key)
+                if columns[fk.column].dtype != parent_column.dtype:
+                    raise ValueError('Foreign key types must match.')
+                if columns[fk.column].privacy_rule or parent_column.privacy_rule or columns[fk.column].null_rate:
+                    raise ValueError('Relational keys cannot have privacy transforms or nulls.')
+                if fk.max_children is not None and fk.min_children > fk.max_children:
+                    raise ValueError('Invalid cardinality bounds.')
+                if fk.cardinality == '1:1' and table.row_count > parent.row_count:
+                    raise ValueError('One-to-one child count exceeds parent count.')
+                if table.row_count < parent.row_count * fk.min_children or (fk.max_children and table.row_count > parent.row_count * fk.max_children):
+                    raise ValueError('Row counts cannot satisfy cardinality bounds.')
+                graph[table.name].add(parent.name)
+        from graphlib import TopologicalSorter, CycleError
+        try:
+            tuple(TopologicalSorter(graph).static_order())
+        except CycleError:
+            raise ValueError('Relationship graph must be acyclic.') from None
+        for rule in self.reconciliations:
+            parent, child = tables.get(rule.parent_table), tables.get(rule.child_table)
+            if not parent or not child or rule.parent_column not in {c.name for c in parent.columns}:
+                raise ValueError('Invalid reconciliation tables/column.')
+            if not any(f.column == rule.foreign_key and f.reference_table == parent.name for f in child.foreign_keys):
+                raise ValueError('Reconciliation requires a declared foreign key.')
+            numeric = {c.name for c in child.columns if c.dtype in ('integer','float')}
+            if not set(rule.factors) <= numeric:
+                raise ValueError('Reconciliation factors must be numeric columns.')
+            destination = next(c for c in parent.columns if c.name == rule.parent_column)
+            if destination.dtype != 'float' or destination.privacy_rule or destination.constraints.unique:
+                raise ValueError('Reconciliation destination must be an untransformed non-unique float column.')
+        if len({(r.parent_table,r.parent_column) for r in self.reconciliations}) != len(self.reconciliations):
+            raise ValueError('Duplicate reconciliation destinations.')
+        for document in self.documents:
+            parent, child = tables.get(document.parent_table), tables.get(document.child_table)
+            if not parent or not child or not any(f.column == document.foreign_key and f.reference_table == parent.name for f in child.foreign_keys):
+                raise ValueError('Document requires related parent and child tables.')
+            columns = {c.name:c for c in child.columns}
+            required = ([document.quantity_column,document.price_column] if document.kind == 'invoice'
+                        else [document.date_column,document.credit_column,document.debit_column])
+            if any(name not in columns for name in required):
+                raise ValueError('Document column mappings are required and must exist.')
+            for name in required:
+                if name != document.date_column and (columns[name].dtype not in ('integer','float') or columns[name].null_rate or columns[name].privacy_rule):
+                    raise ValueError('Document arithmetic requires non-null numeric untransformed columns.')
+            if document.opening_balance_column and document.opening_balance_column not in {c.name for c in parent.columns}:
+                raise ValueError('Opening balance column must exist.')
         return self

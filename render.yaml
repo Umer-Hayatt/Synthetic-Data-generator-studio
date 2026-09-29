@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: synthetic-data-studio-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt -c requirements-lock.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: CORS_ORIGINS
+        sync: false
+      - key: CACHE_TTL_SECONDS
+        value: '900'
+      - key: CACHE_MAX_BYTES
+        value: '134217728'
+      - key: MAX_UPLOAD_BYTES
+        value: '15728640'
+      - key: MAX_ROWS
+        value: '50000'
+      - key: MAX_COLUMNS
+        value: '200'
+      - key: MAX_CELLS
+        value: '1000000'
+      - key: OPENBLAS_NUM_THREADS
+        value: '1'
+      - key: OMP_NUM_THREADS
+        value: '1'
+      - key: MKL_NUM_THREADS
+        value: '1'

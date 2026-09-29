@@ -13,6 +13,8 @@ from app.api.generate import router as generate_router
 from app.api.export import router as export_router
 from app.core.store import store
 from app.api.evaluate import router as evaluate_router
+from app.api.jobs import router as jobs_router, artifacts, jobs
+from app.api.intelligence import router as intelligence_router
 
 @asynccontextmanager
 async def lifespan(app):
@@ -20,6 +22,8 @@ async def lifespan(app):
         while True:
             await asyncio.sleep(30)
             store.cleanup()
+            await asyncio.to_thread(artifacts.cleanup)
+            jobs.cleanup()
     task = asyncio.create_task(sweep())
     yield
     task.cancel()
@@ -43,3 +47,5 @@ app.include_router(spec_router)
 app.include_router(generate_router)
 app.include_router(export_router)
 app.include_router(evaluate_router)
+app.include_router(jobs_router)
+app.include_router(intelligence_router)

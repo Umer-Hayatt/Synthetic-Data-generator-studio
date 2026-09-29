@@ -1,0 +1,4 @@
+# Optional, separately evaluated environment; not part of the default install.
+# Install CPU torch appropriate to the platform before enabling this capability.
+sdv>=1.38,<2
+ctgan>=0.11,<1
