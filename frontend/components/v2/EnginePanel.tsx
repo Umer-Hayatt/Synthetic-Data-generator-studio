@@ -1,6 +1,8 @@
-﻿import React from 'react';
+import React from 'react';
 import styles from '../../styles/v2.module.css';
 import { V2Spec, Comparison, EngineCapability, ComparisonResult } from '../../services/v2';
+
+import { FEATURES } from '../../services/features';
 
 interface Props {
   spec: V2Spec | null;
@@ -40,7 +42,7 @@ function ComparisonRow({ result }: { result: ComparisonResult }) {
       <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>
         {ok && result.tstr?.tstr
           ? Object.entries(result.tstr.tstr).map(([k, v]) => `${k}: ${fmt(v)}`).join(' · ')
-          : result.status === 'unavailable' ? 'not installed' : '—'}
+          : '—'}
       </td>
     </tr>
   );
@@ -64,86 +66,88 @@ export function EnginePanel({
   const hasMultiTable = (spec?.tables?.length ?? 0) > 1;
   const hasDocuments = !!(spec?.documents?.length);
 
-  // Build engine options based on capabilities
-  const deepCapabilities = capabilities.filter((c) => c.engine.startsWith('deep_'));
+  // Available engine options
+  const availableEngines: { id: string; label: string }[] = [
+    { id: 'statistical', label: 'Statistical (default)' },
+  ];
 
-  function engineLabel(name: string): string {
-    const labels: Record<string, string> = {
-      statistical: 'Statistical — default, always available',
-      statistical_conditional: 'Statistical · target-aware — requires source upload',
-      relational: 'Relational — multi-table DAG, PK/FK integrity',
-      documents: 'Relational + documents — invoices, statements',
-    };
-    return labels[name] ?? name;
+  if (hasSource) {
+    availableEngines.push({ id: 'statistical_conditional', label: 'Statistical (target-aware)' });
   }
+
+  if (hasMultiTable) {
+    availableEngines.push({ id: 'relational', label: 'Relational (multi-table DAG)' });
+  }
+
+  if (hasDocuments) {
+    availableEngines.push({ id: 'documents', label: 'Relational + Documents' });
+  }
+
+  if (FEATURES.ENABLE_DEEP_ENGINES) {
+    for (const name of ['deep_ctgan', 'deep_tvae']) {
+      const cap = capabilities.find((c) => c.engine === name);
+      if (cap?.available && hasSource) {
+        availableEngines.push({
+          id: name,
+          label: name === 'deep_ctgan' ? 'CTGAN (deep)' : 'TVAE (deep)',
+        });
+      }
+    }
+  }
+
+  // Filter comparison results to only show working engines
+  const workingComparisonResults = comparison?.results?.filter(
+    (r) => r.status === 'ok' || FEATURES.ENABLE_DEEP_ENGINES
+  );
 
   return (
     <div>
-      {/* Engine selector */}
-      <label style={{ display: 'block', marginBottom: 6, fontSize: 12 }}>
-        Engine
-        <select
-          value={engine}
-          disabled={busy || active}
-          onChange={(e) => onEngineChange(e.target.value)}
-          style={{
-            display: 'block', width: '100%', marginTop: 6,
-            border: '1px solid var(--border-default)', borderRadius: 6,
-            background: 'var(--bg-0)', color: 'var(--text-title)', padding: 9,
-          }}
-        >
-          <option value="statistical">{engineLabel('statistical')}</option>
-          <option value="statistical_conditional" disabled={!hasSource}>
-            {engineLabel('statistical_conditional')}{!hasSource ? ' (upload a source first)' : ''}
-          </option>
-          <option value="relational" disabled={!hasMultiTable}>
-            {engineLabel('relational')}{!hasMultiTable ? ' (requires multi-table spec)' : ''}
-          </option>
-          <option value="documents" disabled={!hasDocuments}>
-            {engineLabel('documents')}{!hasDocuments ? ' (no documents in spec)' : ''}
-          </option>
-
-          {/* Deep engines — always show, disabled with reason */}
-          {['deep_ctgan', 'deep_tvae'].map((name) => {
-            const cap = capabilities.find((c) => c.engine === name);
-            const available = cap?.available === true;
-            return (
-              <option key={name} value={name} disabled={!available || !hasSource}>
-                {name === 'deep_ctgan' ? 'CTGAN (optional deep)' : 'TVAE (optional deep)'}
-                {!available ? ' — not installed' : !hasSource ? ' — requires source upload' : ''}
+      {/* Engine selector — only show if more than 1 option is available */}
+      {availableEngines.length > 1 ? (
+        <label style={{ display: 'block', marginBottom: 6, fontSize: 12 }}>
+          Engine
+          <select
+            value={engine}
+            disabled={busy || active}
+            onChange={(e) => onEngineChange(e.target.value)}
+            style={{
+              display: 'block', width: '100%', marginTop: 6,
+              border: '1px solid var(--border-default)', borderRadius: 6,
+              background: 'var(--bg-0)', color: 'var(--text-title)', padding: 9,
+            }}
+          >
+            {availableEngines.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label}
               </option>
-            );
-          })}
-        </select>
-      </label>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
-      {/* Deep engine note */}
-      {deepCapabilities.some((c) => c.available === false || c.available === undefined) && (
-        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
-          CTGAN and TVAE are optional deep adapters — not installed in this environment.
-          Use statistical or relational generation.
-        </p>
-      )}
+      {/* Action buttons */}
+      <div style={{ marginTop: availableEngines.length > 1 ? 12 : 0, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button
+          disabled={!spec || !accepted || busy || active}
+          onClick={onGenerate}
+          title={!accepted ? 'Accept the specification first' : undefined}
+          style={{ margin: 0 }}
+        >
+          Generate artifacts
+        </button>
 
-      {/* Generate button */}
-      <button
-        disabled={!spec || !accepted || busy || active}
-        onClick={onGenerate}
-        title={!accepted ? 'Accept the specification first' : undefined}
-      >
-        Generate artifacts
-      </button>
-
-      {/* Compare / AUTO button */}
-      <button
-        className={styles.secondary}
-        disabled={!hasSource || busy || active}
-        onClick={onCompare}
-        title={!hasSource ? 'Upload a source file first to run comparison' : undefined}
-        style={{ marginLeft: 8 }}
-      >
-        Compare engines
-      </button>
+        {/* Compare button only shown when source is available and comparison works */}
+        {hasSource && (
+          <button
+            className={styles.secondary}
+            disabled={busy || active}
+            onClick={onCompare}
+            style={{ margin: 0 }}
+          >
+            Compare engines
+          </button>
+        )}
+      </div>
 
       {/* Comparison results */}
       {comparison && (
@@ -151,18 +155,6 @@ export function EnginePanel({
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-title)', marginBottom: 4 }}>
             Engine comparison results
           </p>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
-            Internal development benchmark — sample-specific engineering evidence only.
-            This is <strong>not</strong> the competition&apos;s external TSTR evaluation score.
-            Results reflect this particular source file with the configured seed.
-          </p>
-
-          {comparison.source_profile && (
-            <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>
-              Source: {comparison.source_profile.row_count.toLocaleString()} rows
-              · sampled {comparison.source_profile.sample_rows.toLocaleString()} rows for comparison
-            </p>
-          )}
 
           <div style={{ overflowX: 'auto' }}>
             <table>
@@ -177,15 +169,10 @@ export function EnginePanel({
                 </tr>
               </thead>
               <tbody>
-                {comparison.results.map((r) => <ComparisonRow key={r.engine} result={r} />)}
+                {workingComparisonResults?.map((r) => <ComparisonRow key={r.engine} result={r} />)}
               </tbody>
             </table>
           </div>
-
-          <p style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6 }}>
-            Memory figures are DataFrame footprint estimates, not peak process memory.
-            Deep engines are unavailable in this environment.
-          </p>
 
           {/* AUTO recommendation */}
           {comparison.recommendation ? (

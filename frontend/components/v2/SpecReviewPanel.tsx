@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../../styles/v2.module.css';
 import { V2Spec, V2Table, v2Request, jsonBody } from '../../services/v2';
+import { FEATURES } from '../../services/features';
 
 interface Props {
   spec: V2Spec;
@@ -289,37 +290,39 @@ export function SpecReviewPanel({ spec, accepted, busy, onSpecChange, onAcceptCh
         </p>
       )}
 
-      {/* Advanced JSON editor */}
-      <details style={{ marginTop: 16 }}>
-        <summary style={{ cursor: 'pointer', color: 'var(--text-title)', fontWeight: 600, fontSize: 12 }}>
-          Advanced — full specification JSON
-        </summary>
-        <textarea
-          aria-label="Full specification JSON"
-          rows={14}
-          value={rawJson}
-          disabled={busy}
-          onChange={(e) => { setRawJson(e.target.value); setRawEdited(true); onAcceptChange(false); }}
-          style={{
-            display: 'block', width: '100%', marginTop: 8,
-            border: '1px solid var(--border-default)', borderRadius: 6,
-            background: 'var(--bg-0)', color: 'var(--text-title)',
-            padding: 9, fontFamily: 'var(--font-mono)', fontSize: 11, resize: 'vertical',
-          }}
-        />
-        {rawEdited && (
-          <p style={{ fontSize: 11, color: 'var(--amber)', marginTop: 4 }}>
-            Validate your edits before accepting.
-          </p>
-        )}
-        <button
-          disabled={busy || validating}
-          onClick={validateRaw}
-          style={{ marginTop: 8, fontSize: 12 }}
-        >
-          {validating ? 'Validating…' : 'Validate & apply edits'}
-        </button>
-      </details>
+      {/* Advanced JSON editor (hidden by default via feature flag) */}
+      {FEATURES.ENABLE_RAW_JSON_EDITOR && (
+        <details style={{ marginTop: 16 }}>
+          <summary style={{ cursor: 'pointer', color: 'var(--text-title)', fontWeight: 600, fontSize: 12 }}>
+            Advanced — full specification JSON
+          </summary>
+          <textarea
+            aria-label="Full specification JSON"
+            rows={14}
+            value={rawJson}
+            disabled={busy}
+            onChange={(e) => { setRawJson(e.target.value); setRawEdited(true); onAcceptChange(false); }}
+            style={{
+              display: 'block', width: '100%', marginTop: 8,
+              border: '1px solid var(--border-default)', borderRadius: 6,
+              background: 'var(--bg-0)', color: 'var(--text-title)',
+              padding: 9, fontFamily: 'var(--font-mono)', fontSize: 11, resize: 'vertical',
+            }}
+          />
+          {rawEdited && (
+            <p style={{ fontSize: 11, color: 'var(--amber)', marginTop: 4 }}>
+              Validate your edits before accepting.
+            </p>
+          )}
+          <button
+            disabled={busy || validating}
+            onClick={validateRaw}
+            style={{ marginTop: 8, fontSize: 12 }}
+          >
+            {validating ? 'Validating…' : 'Validate & apply edits'}
+          </button>
+        </details>
+      )}
 
       {/* Accept gate */}
       <label className={styles.check} style={{ marginTop: 16 }}>

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import styles from '../../styles/v2.module.css';
 import { V2Spec, Artifact, v2Origin } from '../../services/v2';
 
@@ -53,7 +53,6 @@ function BankStatementInfo({ doc }: { doc: DocumentSpec }) {
       <p style={{ marginTop: 6, fontSize: 11, color: 'var(--text-faint)' }}>
         Running balance: balance[t] = balance[t−1] + credit[t] − debit[t].
         Opening, running and closing balances are all included in the artifact.
-        PDF is not implemented; structured JSON output only.
       </p>
     </div>
   );
@@ -65,7 +64,7 @@ export function DocumentView({ spec, artifacts, tableArtifacts }: Props) {
   if (docs.length === 0) {
     return (
       <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-        No document mappings in this specification. Add an invoice or bank_statement entry to the documents array in the Advanced JSON editor.
+        No document mappings in this specification. Use "+ Add invoice" or "+ Add bank statement" in the review panel to configure documents.
       </p>
     );
   }
@@ -77,8 +76,7 @@ export function DocumentView({ spec, artifacts, tableArtifacts }: Props) {
   return (
     <div>
       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
-        Structured documents generated from the same relational entities.
-        PDF is not implemented — download JSON artifacts below.
+        Structured documents generated from relational entities. Download JSON artifacts below.
       </p>
 
       {docs.map((doc, i) => (
@@ -119,7 +117,12 @@ export function DocumentView({ spec, artifacts, tableArtifacts }: Props) {
                     Download JSON
                   </a>
                 )}
-                <small>Expires {expiresAt.toLocaleString()}</small>
+                <details style={{ marginTop: 6, fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer' }}>
+                  <summary>Details</summary>
+                  <p style={{ margin: '4px 0 0', fontFamily: 'var(--font-mono)', color: 'var(--text-faint)' }}>
+                    ID: {artifact.id} · Expires: {expiresAt.toLocaleTimeString()}
+                  </p>
+                </details>
               </div>
             );
           })}

@@ -206,12 +206,41 @@ _MEDIA_TYPES = {
 
 
 @router.get('/artifacts/{artifact_id}/download')
-def download_artifact(artifact_id: str):
+def download_artifact(artifact_id: str, format: str | None = None):
     artifact = artifacts.get(artifact_id)  # raises KeyError -> 404 via get_artifact call below
     get_artifact(artifact_id, 0)
-    fmt = artifact.format
-    media_type = _MEDIA_TYPES.get(fmt, 'application/octet-stream')
-    filename = f'artifact_{artifact_id[:8]}.{fmt}'
+    target_fmt = (format or artifact.format).lower()
+    if target_fmt not in _MEDIA_TYPES:
+        target_fmt = artifact.format
+    media_type = _MEDIA_TYPES.get(target_fmt, 'application/octet-stream')
+    filename = f'artifact_{artifact_id[:8]}.{target_fmt}'
+
+    if target_fmt == 'csv' and artifact.format == 'jsonl':
+        import io
+        import pandas as pd
+        def stream_csv():
+            buffer = []
+            header_written = False
+            with artifacts.open(artifact_id) as stream:
+                for line in stream:
+                    line_str = line.decode('utf-8').strip()
+                    if line_str:
+                        buffer.append(json.loads(line_str))
+                    if len(buffer) >= 1000:
+                        df = pd.DataFrame(buffer)
+                        buf = io.StringIO()
+                        df.to_csv(buf, index=False, header=not header_written)
+                        header_written = True
+                        buffer = []
+                        yield buf.getvalue().encode('utf-8')
+            if buffer:
+                df = pd.DataFrame(buffer)
+                buf = io.StringIO()
+                df.to_csv(buf, index=False, header=not header_written)
+                yield buf.getvalue().encode('utf-8')
+        return StreamingResponse(stream_csv(), media_type=media_type,
+                                 headers={'Content-Disposition': f'attachment; filename="{filename}"'})
+
     def chunks():
         with artifacts.open(artifact_id) as stream:
             while chunk := stream.read(64 * 1024):

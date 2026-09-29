@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import styles from '../../styles/v2.module.css';
 import { Artifact, v2Origin, v2Request } from '../../services/v2';
 
@@ -49,13 +49,13 @@ export function ArtifactList({ artifacts, busy, onPreview, onError }: Props) {
                   </span>
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
                 {!expired && artifact.format !== 'json' && (
                   <button
                     className={styles.secondary}
                     disabled={busy}
                     onClick={() => loadPreview(artifact)}
-                    style={{ fontSize: 11, padding: '4px 10px', margin: 0 }}
+                    style={{ fontSize: 11, padding: '4px 8px', margin: 0 }}
                   >
                     Preview
                   </button>
@@ -63,19 +63,33 @@ export function ArtifactList({ artifacts, busy, onPreview, onError }: Props) {
                 {expired ? (
                   <p style={{ color: 'var(--rose)', fontSize: 11, margin: 0 }}>Expired</p>
                 ) : (
-                  <a
-                    href={`${v2Origin}/api/v1/artifacts/${artifact.id}/download`}
-                    download
-                    style={{ fontSize: 11, color: 'var(--synth)', padding: '4px 10px', border: '1px solid var(--synth-border)', borderRadius: 6, textDecoration: 'none' }}
-                  >
-                    Download
-                  </a>
+                  <>
+                    {artifact.format === 'jsonl' && (
+                      <a
+                        href={`${v2Origin}/api/v1/artifacts/${artifact.id}/download?format=csv`}
+                        download
+                        style={{ fontSize: 11, color: 'var(--synth)', padding: '4px 8px', border: '1px solid var(--synth-border)', borderRadius: 6, textDecoration: 'none' }}
+                      >
+                        Download CSV
+                      </a>
+                    )}
+                    <a
+                      href={`${v2Origin}/api/v1/artifacts/${artifact.id}/download`}
+                      download
+                      style={{ fontSize: 11, color: 'var(--text-body)', padding: '4px 8px', border: '1px solid var(--border-default)', borderRadius: 6, textDecoration: 'none' }}
+                    >
+                      Download {artifact.format.toUpperCase()}
+                    </a>
+                  </>
                 )}
               </div>
             </div>
-            <small style={{ display: 'block', color: 'var(--text-faint)', marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 10 }}>
-              {artifact.id} · Expires {expiresAt.toLocaleString()}
-            </small>
+            <details style={{ marginTop: 6, fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <summary>Details</summary>
+              <p style={{ margin: '4px 0 0', fontFamily: 'var(--font-mono)', color: 'var(--text-faint)' }}>
+                ID: {artifact.id} · Expires: {expiresAt.toLocaleTimeString()}
+              </p>
+            </details>
           </div>
         );
       })}

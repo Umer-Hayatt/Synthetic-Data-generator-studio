@@ -1,4 +1,4 @@
-﻿import React, { useRef } from 'react';
+import React, { useRef } from 'react';
 import styles from '../../styles/v2.module.css';
 import { ACCEPTED_FORMATS, ACCEPTED_FORMATS_LABEL, UPLOAD_LIMIT_LABEL } from '../../services/v2';
 
@@ -52,12 +52,17 @@ export function UploadPanel({ disabled, onFile }: Props) {
           Click or drag a file to upload
         </p>
         <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-          {ACCEPTED_FORMATS_LABEL} · max {UPLOAD_LIMIT_LABEL} per file
+          CSV, JSON, JSONL, XLSX, Parquet
         </p>
-        <p style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>
-          Large Excel files: convert to CSV or Parquet first.
-          Large sources are profiled in batches — exact row counts require a full pass.
-        </p>
+        <details
+          onClick={(e) => e.stopPropagation()}
+          style={{ marginTop: 6, fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer' }}
+        >
+          <summary>Details</summary>
+          <p style={{ margin: '4px 0 0', color: 'var(--text-faint)' }}>
+            Max 512 MiB. Large Excel files: convert to CSV or Parquet for best performance.
+          </p>
+        </details>
       </div>
       <input
         ref={inputRef}

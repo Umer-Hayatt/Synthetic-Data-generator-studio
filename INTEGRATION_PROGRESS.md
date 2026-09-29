@@ -74,6 +74,18 @@ V2-INTEGRATION is DONE for all 7 frontend features. tsc and browser verified.
 3. [x] **TypeScript check**: `npx tsc --noEmit` clean (0 errors).
 4. [x] **Item 4: Role and relationship inference**: Automatic PK detection, candidate benchmark target assignment (`returned`), and FK relationship inference with fallback if AI suggestions are unavailable. User can edit meaning dropdown and PK radio selector in review panel.
 5. [x] **Item 5: Document mapping UI**: Removed reliance on Advanced JSON editor for documents; added "+ Add invoice" and "+ Add bank statement" one-click buttons with remove capability in `SpecReviewPanel.tsx`.
+6. [x] **Item 6: Hide unavailable features**: Controlled by `frontend/services/features.ts` flags and `/api/v1/engines` capabilities. Uninstalled deep engines (CTGAN/TVAE), PDF, SQL dump, XML, and Build Schema are cleanly omitted from the UI.
+7. [x] **Item 7: Declutter UI**: Expiry timers, file limit sizes, and batch profiling jargon moved to compact `<details>` disclosures or displayed only in real errors.
+8. [x] **Item 8: Streamed CSV and JSON downloads**: Backend `GET /artifacts/{id}/download?format=csv` added for on-the-fly streaming conversion of JSONL artifacts to CSV with proper content-type and filename. Frontend `ArtifactList.tsx` provides both CSV and format-native download links.
+9. [x] **Final Walkthrough**: E2E pipeline verified for upload dummy_orders.csv → review → generate → preview → download CSV/JSONL → load example → documents. `npx tsc --noEmit` clean.
+
+### Feature Flags (`frontend/services/features.ts`)
+- `ENABLE_PDF_EXPORT`: `false` (PDF generation disabled; structured JSON outputs only)
+- `ENABLE_SQL_DUMP`: `false` (SQL dump export omitted)
+- `ENABLE_XML_FORMAT`: `false` (XML ingestion/export omitted)
+- `ENABLE_BUILD_SCHEMA`: `false` (Interactive schema builder omitted)
+- `ENABLE_DEEP_ENGINES`: `false` (CTGAN / TVAE synthesis UI entry points omitted)
+- `ENABLE_RAW_JSON_EDITOR`: `false` (Advanced JSON specification textarea hidden by default)
 
 **To test live**:
 ```
