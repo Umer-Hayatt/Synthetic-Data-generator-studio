@@ -1,4 +1,4 @@
-﻿# INTEGRATION_PROGRESS.md
+# INTEGRATION_PROGRESS.md
 > Trust this file when resuming. Verify with `git status` and `git log --oneline -5`, then continue from "Next step".
 
 ## Branch
@@ -68,12 +68,11 @@
 ## Next step
 V2-INTEGRATION is DONE for all 7 frontend features. tsc and browser verified.
 
-**Remaining gaps (not blocking DONE, but record for robustness review)**:
-1. Live backend end-to-end test: upload a small CSV → ingest job → review spec → accept → generate → preview artifact. Requires backend running and memory free.
-2. AI draft flow: requires GEMINI_API_KEYS configured in .env.
-3. Deep engine options (CTGAN/TVAE): shown as disabled with "not installed" — correct behavior.
-4. The `<input>` elements inside `<label>` containers trigger a Chromium accessibility false-positive (no `id` attr); functional, not broken.
-5. INTEGRATION_PROGRESS.md and PROJECT_STATE.md should be updated before pushing/merging to main.
+**Live backend verification**:
+1. [x] **AI draft flow**: Verified live with Gemini model (`models/gemini-2.5-flash`), simplified Pydantic draft schema prevents 400 `malformed_request`, successfully drafted multi-table `DatasetSpec` with review required.
+2. [x] **Live backend E2E test**: Verified upload of `dummy_orders.csv` (500 rows) → ingest job `29670aefdc7e4f60995bc7e389ad60ad` → profile & spec inferred → accepted review → statistical generation job `347597a15a7e4e97a4bc3725a213c86f` → JSONL artifact previewed and downloadable.
+3. [x] **TypeScript check**: `npx tsc --noEmit` clean (0 errors).
+4. Deep engine options (CTGAN/TVAE): shown as disabled with "not installed" — correct behavior.
 
 **To test live**:
 ```
