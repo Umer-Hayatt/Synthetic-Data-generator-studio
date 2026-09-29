@@ -4,8 +4,8 @@
 INTEGRATION — V2 backend milestones implemented; final integration blocked by local memory exhaustion.
 
 ## Active Task
-V2-INTEGRATION (BLOCKED): final backend/API checks, frontend type/build/browser verification.
-Next: V2-INTELLIGENCE → V2-QUALITY → V2-RELATIONAL → V2-DOCUMENTS → V2-DEEP → V2-COMPARE → V2-INTEGRATION.
+V2-INTEGRATION (IN PROGRESS on branch v2-integration): see INTEGRATION_PROGRESS.md for feature checklist, next steps, and endpoint map.
+Do not resume from here — read INTEGRATION_PROGRESS.md first.
 
 ## Baseline
 - P0 BE-01..08, FE-01..07 and INT-01 complete. Stable pushed fallback: a51edae5bd073e0b3f752c39eb6994f753baf4ce.
@@ -23,6 +23,7 @@ Next: V2-INTELLIGENCE → V2-QUALITY → V2-RELATIONAL → V2-DOCUMENTS → V2-D
 ## Blockers / verification gaps
 - 2026-09-30: OpenBLAS failed to allocate memory while importing the demo in a verification subprocess. OS check: ~768 MiB free physical memory, only ~116 MiB free committed memory. Stopped further tests/builds/training; did not terminate user applications. Free resources before resuming.
 - 2026-09-30: Gemini live connectivity probe (via configured_router, one call): root .env exists, key_set=yes, model=models/gemini-2.5-flash. validation_passed=true, latency≈3812 ms, error_category=null. RESOLVED: GEMINI_MODEL corrected from non-existent gemini-2.0-flash to models/gemini-2.5-flash in root .env. Pydantic validation passed; AI router is live and functional.
+- 2026-09-30: Paused rebase resolved onto faa8be3 (commit 4cc0a66) and cleanly pushed to origin/main. Frontend changes combined (including /v2 draft), backend preserved intact. `npx tsc --noEmit` passed with 0 errors. Backup branch backup-my-work retained. Root .env, .env.example, and frontend/.env.example verified ignored and uncommitted.
 - Public deployment/live QA still await hosting access; prepared Render/Vercel configuration is not a deployed baseline.
 - Browser automation previously failed initialization; recheck when frontend integration starts.
 

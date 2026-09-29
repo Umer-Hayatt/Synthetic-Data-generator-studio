@@ -1,137 +1,504 @@
-import { useEffect, useRef, useState } from 'react';
+/**
+ * V2 Studio — wires all 7 integration features.
+ * F1: Entry (upload, AI draft, sample)
+ * F2: Spec review + accept gate
+ * F3: Generation job panel (bounded poll, cancel)
+ * F4: Relational view (table switcher, PK/FK, preview)
+ * F5: Document view (invoice/bank-statement info + artifacts)
+ * F6: Engine & comparison panel (AUTO suggestion only)
+ * F7: Artifact downloads (expired state, download links)
+ *
+ * P0 flows (pages/index.tsx) are untouched.
+ * All API calls use NEXT_PUBLIC_API_BASE_URL via v2Origin.
+ * No secrets are ever sent to or from the frontend.
+ */
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
-import { Artifact, Comparison, Job, V2Spec, jsonBody, v2Origin, v2Request } from '../services/v2';
-import example from '../services/v2-example.json';
 import styles from '../styles/v2.module.css';
 
+import {
+  Artifact,
+  Comparison,
+  EngineCapability,
+  IngestProfile,
+  Job,
+  TableArtifactMap,
+  V2Spec,
+  isTerminal,
+  jsonBody,
+  usePollJob,
+  v2Origin,
+  v2Request,
+} from '../services/v2';
+import example from '../services/v2-example.json';
+
+import { UploadPanel } from '../components/v2/UploadPanel';
+import { AIPromptPanel } from '../components/v2/AIPromptPanel';
+import { SpecReviewPanel } from '../components/v2/SpecReviewPanel';
+import { JobPanel } from '../components/v2/JobPanel';
+import { RelationalView } from '../components/v2/RelationalView';
+import { DocumentView } from '../components/v2/DocumentView';
+import { EnginePanel } from '../components/v2/EnginePanel';
+import { ArtifactList } from '../components/v2/ArtifactList';
+
+/* ------------------------------------------------------------------ types */
 type Operation = 'ingest' | 'generate' | 'compare';
+type RightPanel = 'generate' | 'relational' | 'documents';
+
+interface AIUnavailable {
+  reason: string;
+  retryDelay?: number;
+}
+
+/* ===================================================================== page */
 export default function V2Studio() {
+  /* -- spec/session state */
   const [spec, setSpec] = useState<V2Spec | null>(null);
-  const [prompt, setPrompt] = useState('Create a Pakistani e-commerce company with customers, products, orders, payments and invoices.');
-  const [source, setSource] = useState('');
-  const [engine, setEngine] = useState('statistical');
-  const [capabilities, setCapabilities] = useState<{engine:string;available?:boolean}[]>([]);
   const [accepted, setAccepted] = useState(false);
+  const [sourceArtifactId, setSourceArtifactId] = useState('');
+  const [engine, setEngine] = useState('statistical');
+
+  /* -- job tracking */
   const [job, setJob] = useState<Job | null>(null);
   const [operation, setOperation] = useState<Operation>('ingest');
+
+  /* -- capabilities */
+  const [capabilities, setCapabilities] = useState<EngineCapability[]>([]);
+
+  /* -- artifacts & results */
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
-  const [preview, setPreview] = useState<Record<string, unknown>[]>([]);
+  const [tableArtifacts, setTableArtifacts] = useState<Record<string, string>>({});
   const [comparison, setComparison] = useState<Comparison | null>(null);
+  const [previewRows, setPreviewRows] = useState<Record<string, unknown>[]>([]);
+
+  /* -- UI state */
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [advanced, setAdvanced] = useState('');
-  const handled = useRef('');
-  const active = !!job && !['complete','failed','cancelled'].includes(job.status);
-  const pendingSchemaEdits = !!spec && advanced !== JSON.stringify(spec, null, 2);
+  const [aiUnavailable, setAiUnavailable] = useState<AIUnavailable | null>(null);
+  const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
+  const [rightPanel, setRightPanel] = useState<RightPanel>('generate');
 
-  function review(value: V2Spec) { setSpec(value); setAccepted(false); setAdvanced(JSON.stringify(value, null, 2)); }
-  async function perform(action: () => Promise<void>) {
-    setBusy(true); setMessage('');
-    try { await action(); } catch (error) { setMessage(error instanceof Error ? error.message : 'Operation failed.'); }
-    finally { setBusy(false); }
-  }
+  const handledJob = useRef('');
+  const active = !!job && !isTerminal(job.status);
+
+  /* -- bounded polling */
+  const handleJobUpdate = useCallback((updated: Job) => setJob(updated), []);
+  const handlePollError = useCallback((msg: string) => setMessage(msg), []);
+  usePollJob(job, handleJobUpdate, handlePollError);
+
+  /* -- health check: /health is NOT under /api/v1 */
   useEffect(() => {
-    let disposed = false;
-    v2Request<{engine:string;available?:boolean}[]>('/engines').then(value => { if (!disposed) setCapabilities(value); }).catch(() => {});
-    return () => { disposed = true; };
+    fetch(`${v2Origin}/health`)
+      .then((r) => setBackendOnline(r.ok))
+      .catch(() => setBackendOnline(false));
   }, []);
-  useEffect(() => {
-    if (!job || !active) return;
-    let disposed = false;
-    const timer = setTimeout(() => {
-      v2Request<Job>(`/jobs/${job.job_id}`).then(value => { if (!disposed) setJob(value); })
-        .catch(error => { if (!disposed) setMessage(error.message); });
-    }, 1000);
-    return () => { disposed = true; clearTimeout(timer); };
-  }, [job, active]);
-  useEffect(() => {
-    if (!job || job.status !== 'complete' || handled.current === job.job_id) return;
-    handled.current = job.job_id;
-    const current = job;
-    perform(async () => {
-      const list = await Promise.all(current.artifacts.map(id => v2Request<Artifact>(`/artifacts/${id}`)));
-      setArtifacts(list);
-      if (operation === 'ingest' || operation === 'compare') {
-        const last = list[list.length - 1];
-        if (!last || last.size > 4 * 1024 * 1024) throw new Error('Report is too large to display; download it below.');
-        const response = await fetch(`${v2Origin}/api/v1/artifacts/${last.id}/download`);
-        if (!response.ok) throw new Error('Report expired; run the operation again.');
-        const data = await response.json();
-        if (operation === 'ingest') {
-          setSource(current.artifacts[0]); review(data.spec);
-          setMessage(`Profiled ${data.row_count.toLocaleString()} rows using ${data.sample_rows.toLocaleString()} sampled rows. Review generation counts.`);
-          setEngine('statistical');
-        } else setComparison(data);
-      }
-    });
-    // A completed job is handled exactly once; edits to the review must not reload it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [job, operation]);
 
-  async function launch(kind: Operation, path: string, body: RequestInit) {
-    setOperation(kind); setArtifacts([]); setPreview([]);
-    setJob(await v2Request<Job>(path, body));
+  /* -- load engine capabilities */
+  useEffect(() => {
+    v2Request<EngineCapability[]>('/engines')
+      .then((caps) => setCapabilities(caps))
+      .catch(() => {}); // non-fatal
+  }, []);
+
+  /* -- handle completed job (exactly once) */
+  useEffect(() => {
+    if (!job || job.status !== 'complete' || handledJob.current === job.job_id) return;
+    handledJob.current = job.job_id;
+    const finishedJob = job;
+    const finishedOperation = operation;
+
+    (async () => {
+      setBusy(true);
+      try {
+        const list = await Promise.all(
+          finishedJob.artifacts.map((id) => v2Request<Artifact>(`/artifacts/${id}`))
+        );
+        setArtifacts(list);
+
+        if (finishedOperation === 'ingest') {
+          // Last artifact is the profile JSON
+          const profileArtifact = list[list.length - 1];
+          if (!profileArtifact || profileArtifact.size > 4 * 1024 * 1024) {
+            setMessage('Profile report is too large to display; download it below.');
+            return;
+          }
+          const resp = await fetch(
+            `${(await import('../services/v2')).v2Origin}/api/v1/artifacts/${profileArtifact.id}/download`
+          );
+          if (!resp.ok) throw new Error('Profile artifact expired; upload again.');
+          const profile = await resp.json() as IngestProfile;
+          setSourceArtifactId(finishedJob.artifacts[0]); // raw source is first artifact
+          if (profile.spec) {
+            setSpec(profile.spec);
+            setAccepted(false);
+            // Auto-select engine based on spec shape
+            const hasMulti = (profile.spec.tables?.length ?? 0) > 1;
+            const hasDocs = !!(profile.spec.documents?.length);
+            setEngine(hasDocs ? 'documents' : hasMulti ? 'relational' : 'statistical');
+          }
+          const rowCount = profile.row_count?.toLocaleString() ?? '?';
+          const sampleRows = profile.sample_rows?.toLocaleString() ?? '?';
+          setMessage(
+            `Profiled ${rowCount} rows (${sampleRows} sampled). ` +
+            (profile.spec ? 'Spec inferred — review before accepting.' : 'No spec inferred; describe your dataset with AI.')
+          );
+        } else if (finishedOperation === 'compare') {
+          const reportArtifact = list[list.length - 1];
+          if (!reportArtifact) throw new Error('Comparison report artifact missing.');
+          const resp = await fetch(
+            `${(await import('../services/v2')).v2Origin}/api/v1/artifacts/${reportArtifact.id}/download`
+          );
+          if (!resp.ok) throw new Error('Comparison report expired.');
+          const result = await resp.json() as Comparison;
+          setComparison(result);
+          setMessage('Engine comparison complete. Review the results below.');
+        } else if (finishedOperation === 'generate') {
+          // Check if last JSON artifact is a table manifest (relational/documents)
+          const last = list[list.length - 1];
+          if (last?.format === 'json') {
+            try {
+              const resp = await fetch(
+                `${(await import('../services/v2')).v2Origin}/api/v1/artifacts/${last.id}/download`
+              );
+              if (resp.ok) {
+                const manifest = await resp.json() as TableArtifactMap;
+                if (manifest.tables) {
+                  setTableArtifacts(manifest.tables);
+                  const tableCount = Object.keys(manifest.tables).length;
+                  setMessage(`Generated ${tableCount} table artifact(s). Review in the Relational/Documents panels.`);
+                  if ((spec?.documents?.length ?? 0) > 0) setRightPanel('documents');
+                  else setRightPanel('relational');
+                  return;
+                }
+              }
+            } catch {
+              // not a manifest — fall through to simple message
+            }
+          }
+          setMessage('Generation complete. Download artifacts or load a preview below.');
+        }
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : 'Failed to load job results.');
+      } finally {
+        setBusy(false);
+      }
+    })();
+    // Job completion is handled exactly once; spec changes must not re-run this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.job_id, job?.status]);
+
+  /* ---------------------------------------------------------------- helpers */
+  async function perform(action: () => Promise<void>) {
+    setBusy(true);
+    setMessage('');
+    try {
+      await action();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Operation failed.');
+    } finally {
+      setBusy(false);
+    }
   }
-  return <main className={styles.page}>
-    <Head><title>Synthetic Data Studio · V2</title></Head>
-    <header className={styles.header}><div><p className={styles.eyebrow}>SYNTHETIC DATA PLATFORM</p><h1>Create, review, generate</h1>
-      <p>AI-assisted specifications, relational entities and reconciled documents.</p></div><Link href="/">Classic studio →</Link></header>
-    <div className={styles.grid}>
-      <section className={styles.card}><h2>1. Start with a source</h2>
-        <label htmlFor="source-file">Upload CSV, JSON, JSONL, XLSX or Parquet</label>
-        <input id="source-file" type="file" accept=".csv,.json,.jsonl,.xlsx,.parquet" disabled={busy || active}
-          onChange={event => { const file = event.target.files?.[0]; if (file) perform(() => launch('ingest', `/jobs/ingest?filename=${encodeURIComponent(file.name)}`, {method:'POST',body:file})); }} />
-        <p className={styles.muted}>Large sources are profiled in batches. Limits depend on the deployment. For large Excel files, use CSV or Parquet.</p>
-        <label htmlFor="prompt">Describe your dataset</label><textarea id="prompt" value={prompt} onChange={e => setPrompt(e.target.value)} rows={5} maxLength={12000} />
-        <button disabled={busy || active || !prompt.trim()} onClick={() => perform(async () => {
-          const result = await v2Request<{status:string;spec?:V2Spec;reason?:string}>('/ai/spec',jsonBody({prompt}));
-          if (!result.spec) throw new Error(`AI unavailable (${result.reason || 'provider unavailable'}). Upload a source or use the example.`);
-          review(result.spec); setSource(''); setEngine(result.spec.documents?.length ? 'documents' : result.spec.tables.length > 1 ? 'relational' : 'statistical');
-        })}>Draft with AI</button>
-        <button className={styles.secondary} disabled={busy || active} onClick={() => { review(example as V2Spec); setSource(''); setEngine('documents'); }}>Try commerce + invoices</button>
-      </section>
-      <section className={styles.card}><h2>2. Review the specification</h2>
-        {!spec ? <p className={styles.muted}>Upload, describe, or choose an example to review fields and relationships.</p> : <>
-          <div className={styles.fields}><label>Name<input value={spec.name} onChange={e => review({...spec,name:e.target.value})} /></label>
-            <label>Locale<input value={spec.locale} onChange={e => review({...spec,locale:e.target.value})} /></label>
-            <label>Seed<input type="number" min={0} max={4294967295} value={spec.seed} onChange={e => review({...spec,seed:Number(e.target.value)})} /></label></div>
-          {spec.tables.map((table,index) => <details key={table.name} open={index===0} className={styles.tableSection}>
-            <summary>{table.name} · {table.columns.length} fields</summary>
-            <label>Rows<input type="number" min={1} value={table.row_count} onChange={e => review({...spec,version:'2.0',tables:spec.tables.map((t,i) => i===index ? {...t,row_count:Number(e.target.value)} : t)})} /></label>
-            <label>Benchmark target<select value={table.target_column || ''} onChange={e => review({...spec,tables:spec.tables.map((t,i) => i===index ? {...t,target_column:e.target.value || null} : t)})}>
-              <option value="">None</option>{table.columns.map(c => <option key={c.name}>{c.name}</option>)}</select></label>
-            <table><thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead><tbody>{table.columns.map(c => <tr key={c.name}><td>{c.name}{c.name===table.primary_key ? ' (PK)' : ''}</td><td>{c.dtype}</td><td>{c.semantic_type}</td></tr>)}</tbody></table>
-            {table.foreign_keys?.map(f => <p key={f.column} className={styles.muted}>{f.column} → {f.reference_table}.{f.reference_column} · {f.cardinality}</p>)}
-          </details>)}
-          {!!spec.business_rules?.length && <p className={styles.warning}>Suggested rules require review: {spec.business_rules.join('; ')}. Translate these into supported reconciliation rules before generation.</p>}
-          {!!spec.edge_cases?.length && <p>Suggested edge cases: {spec.edge_cases.join('; ')}</p>}
-          <details><summary>Advanced schema and document mappings</summary><textarea aria-label="Full specification" rows={12} value={advanced} onChange={e => {setAdvanced(e.target.value);setAccepted(false);}} />
-            <button onClick={() => perform(async () => { const validated = await v2Request<V2Spec>('/spec',jsonBody(JSON.parse(advanced))); review(validated); })}>Validate edits</button></details>
-          {pendingSchemaEdits && <p className={styles.warning}>Validate your schema edits before accepting.</p>}
-          <label className={styles.check}><input type="checkbox" disabled={pendingSchemaEdits} checked={accepted} onChange={e => setAccepted(e.target.checked)} />I have reviewed and accepted this specification.</label>
-        </>}
-      </section>
-      <section className={styles.card}><h2>3. Generate and inspect</h2>
-        <label>Engine<select value={engine} onChange={e => setEngine(e.target.value)}>
-          <option value="statistical">Statistical · default</option><option value="statistical_conditional" disabled={!source}>Statistical · target-aware</option>
-          <option value="relational">Relational</option><option value="documents">Relational + documents</option>
-          {['deep_ctgan','deep_tvae'].map(name => <option key={name} value={name} disabled={!source || !capabilities.find(c => c.engine===name)?.available}>{name === 'deep_ctgan' ? 'CTGAN' : 'TVAE'} · optional</option>)}
-        </select></label>
-        <button disabled={!spec || !accepted || busy || active} onClick={() => perform(() => launch('generate','/jobs/generate',jsonBody({spec,engine,accepted:true,
-          source_artifact:engine==='statistical_conditional' || engine.startsWith('deep_') ? source : null}))) }>Generate artifacts</button>
-        <button className={styles.secondary} disabled={!source || busy || active} onClick={() => perform(() => launch('compare','/jobs/compare',jsonBody({source_artifact:source,target:spec?.tables[0]?.target_column || null,seed:spec?.seed || 42})))}>Compare engines / AUTO recommendation</button>
-        {job && <div aria-live="polite" className={styles.job}><strong>{job.status} · {job.stage}</strong><progress value={job.progress} max={1} /><p>Stage progress estimate · {Math.round(job.progress*100)}%</p><small>Job {job.job_id}</small>
-          {job.error && <p role="alert">{job.error}</p>}{active && <button className={styles.secondary} onClick={() => perform(async () => {await v2Request(`/jobs/${job.job_id}/cancel`,{method:'POST'});setMessage('Cancellation requested; waiting for the current bounded step.');})}>Cancel job</button>}</div>}
-        {comparison && <div><h3>Internal benchmark</h3><p>Recommended: {comparison.recommendation || 'No recommendation'}</p><p className={styles.muted}>Sample-specific engineering evidence. This is not the competition’s external TSTR score.</p>
-          {comparison.results.map(result => <div key={result.engine} className={styles.job}><strong>{result.engine}: {result.status}</strong>{result.status==='ok' && <p>Quality {result.quality_score?.toFixed(1)} · {result.runtime_seconds?.toFixed(2)}s · DataFrame memory estimate {Math.round((result.memory_estimate_bytes || 0)/1024)} KiB<br />TSTR {JSON.stringify(result.tstr?.tstr || {})}</p>}</div>)}
-          {comparison.recommendation && <button className={styles.secondary} onClick={() => setEngine(comparison.recommendation!)}>Use recommendation</button>}</div>}
-        {artifacts.map((artifact,index) => <div key={artifact.id} className={styles.artifact}><p>Artifact {index+1} · {artifact.format} · {(artifact.size/1024).toFixed(1)} KiB</p><a href={`${v2Origin}/api/v1/artifacts/${artifact.id}/download`}>Download</a>
-          {artifact.format!=='json' && <button className={styles.secondary} onClick={() => perform(async () => {const data=await v2Request<Artifact>(`/artifacts/${artifact.id}?preview_rows=10`);setPreview(data.preview || []);})}>Preview</button>}
-          <small>Expires {new Date(artifact.expires_at*1000).toLocaleString()}</small></div>)}
-      </section>
-    </div>
-    {message && <p role="status" className={styles.notice}>{message}</p>}
-    {!!preview.length && <section className={styles.card}><h2>Artifact preview · first {preview.length} rows</h2><div className={styles.preview}><table><thead><tr>{Object.keys(preview[0]).map(key => <th key={key}>{key}</th>)}</tr></thead><tbody>{preview.map((row,index) => <tr key={index}>{Object.keys(preview[0]).map(key => <td key={key}>{typeof row[key]==='object' ? JSON.stringify(row[key]) : String(row[key] ?? '')}</td>)}</tr>)}</tbody></table></div></section>}
-  </main>;
+
+  async function launchJob(kind: Operation, path: string, init: RequestInit) {
+    setOperation(kind);
+    setArtifacts([]);
+    setPreviewRows([]);
+    setComparison(kind === 'compare' ? null : comparison);
+    if (kind !== 'compare' && kind !== 'ingest') setTableArtifacts({});
+    const newJob = await v2Request<Job>(path, init);
+    handledJob.current = ''; // allow next completion to fire
+    setJob(newJob);
+  }
+
+  async function handleUpload(file: File) {
+    await perform(() => launchJob(
+      'ingest',
+      `/jobs/ingest?filename=${encodeURIComponent(file.name)}`,
+      { method: 'POST', body: file }
+    ));
+  }
+
+  async function handleAIDraft(prompt: string) {
+    await perform(async () => {
+      setAiUnavailable(null);
+      const result = await v2Request<{ status: string; spec?: V2Spec; reason?: string }>(
+        '/ai/spec',
+        jsonBody({ prompt })
+      );
+      if (!result.spec) {
+        setAiUnavailable({ reason: result.reason ?? 'unavailable' });
+        throw new Error('AI unavailable. Upload a source file or use the example instead.');
+      }
+      setSpec(result.spec);
+      setAccepted(false);
+      setSourceArtifactId('');
+      const hasDocs = !!(result.spec.documents?.length);
+      const hasMulti = (result.spec.tables?.length ?? 0) > 1;
+      setEngine(hasDocs ? 'documents' : hasMulti ? 'relational' : 'statistical');
+      setMessage('Spec drafted by AI. Review all fields and relationships before accepting.');
+    });
+  }
+
+  function handleExample() {
+    const ex = example as V2Spec;
+    setSpec(ex);
+    setAccepted(false);
+    setSourceArtifactId('');
+    setEngine('documents');
+    setMessage('Example spec loaded. Review before accepting.');
+  }
+
+  async function handleGenerate() {
+    if (!spec || !accepted) return;
+    const needsSource = engine === 'statistical_conditional' || engine.startsWith('deep_');
+    await perform(() => launchJob(
+      'generate',
+      '/jobs/generate',
+      jsonBody({
+        spec,
+        engine,
+        accepted: true,
+        source_artifact: needsSource ? sourceArtifactId : null,
+      })
+    ));
+  }
+
+  async function handleCompare() {
+    if (!sourceArtifactId) return;
+    await perform(() => launchJob(
+      'compare',
+      '/jobs/compare',
+      jsonBody({
+        source_artifact: sourceArtifactId,
+        target: spec?.tables[0]?.target_column ?? null,
+        seed: spec?.seed ?? 42,
+      })
+    ));
+  }
+
+  async function handleCancel() {
+    if (!job) return;
+    await perform(async () => {
+      await v2Request(`/jobs/${job.job_id}/cancel`, { method: 'POST' });
+      setMessage('Cancellation requested; the current bounded step will finish first.');
+    });
+  }
+
+  /* ============================================================= render */
+  return (
+    <main className={styles.page}>
+      <Head>
+        <title>Synthetic Data Studio · V2</title>
+        <meta name="description" content="AI-assisted synthetic data generation: relational schemas, PK/FK integrity, invoice and bank statement documents." />
+      </Head>
+
+      {/* Header */}
+      <header className={styles.header}>
+        <div>
+          <p className={styles.eyebrow}>SYNTHETIC DATA PLATFORM</p>
+          <h1>Create, review, generate</h1>
+          <p>AI-assisted specifications · relational entities · reconciled documents</p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <Link href="/">Classic studio →</Link>
+          {backendOnline === false && (
+            <span style={{ fontSize: 11, color: 'var(--rose)', background: 'var(--rose-soft)', padding: '3px 8px', borderRadius: 4 }}>
+              Backend offline — start the backend server
+            </span>
+          )}
+          {backendOnline === true && (
+            <span style={{ fontSize: 11, color: 'var(--synth)' }}>● Backend connected</span>
+          )}
+        </div>
+      </header>
+
+      {/* Three-column grid */}
+      <div className={styles.grid}>
+
+        {/* ---- LEFT: Entry (F1) ---- */}
+        <section className={styles.card}>
+          <h2>1. Start with a source</h2>
+
+          <UploadPanel disabled={busy || active} onFile={handleUpload} />
+
+          <div style={{ margin: '20px 0', borderTop: '1px solid var(--border-subtle)' }} />
+
+          <AIPromptPanel
+            disabled={busy || active}
+            onSubmit={handleAIDraft}
+            aiUnavailable={aiUnavailable}
+          />
+
+          <button
+            className={styles.secondary}
+            disabled={busy || active}
+            onClick={handleExample}
+            style={{ marginTop: 10, width: '100%' }}
+          >
+            Load commerce + invoices example
+          </button>
+
+          {/* Active job summary in entry panel */}
+          {job && (
+            <div style={{ marginTop: 20 }}>
+              <JobPanel job={job} onCancel={handleCancel} busy={busy} />
+            </div>
+          )}
+        </section>
+
+        {/* ---- MIDDLE: Spec Review (F2) ---- */}
+        <section className={styles.card}>
+          <h2>2. Review the specification</h2>
+          {!spec ? (
+            <p className={styles.muted}>
+              Upload a source, describe your dataset with AI, or load the example to see the schema here.
+            </p>
+          ) : (
+            <SpecReviewPanel
+              spec={spec}
+              accepted={accepted}
+              busy={busy || active}
+              onSpecChange={(s) => setSpec(s)}
+              onAcceptChange={setAccepted}
+              onError={(msg) => setMessage(msg)}
+            />
+          )}
+        </section>
+
+        {/* ---- RIGHT: Generate / Relational / Documents ---- */}
+        <section className={styles.card}>
+          {/* Tab strip */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 12 }}>
+            {([
+              { key: 'generate', label: '3. Generate' },
+              { key: 'relational', label: '4. Relational' },
+              { key: 'documents', label: '5. Documents' },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setRightPanel(key)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 6,
+                  border: `1px solid ${key === rightPanel ? 'var(--synth)' : 'var(--border-default)'}`,
+                  background: key === rightPanel ? 'var(--synth-soft)' : 'transparent',
+                  color: key === rightPanel ? 'var(--synth)' : 'var(--text-body)',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: key === rightPanel ? 600 : 400,
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {rightPanel === 'generate' && (
+            <EnginePanel
+              spec={spec}
+              accepted={accepted}
+              engine={engine}
+              capabilities={capabilities}
+              sourceArtifactId={sourceArtifactId}
+              comparison={comparison}
+              busy={busy}
+              active={active}
+              onEngineChange={setEngine}
+              onGenerate={handleGenerate}
+              onCompare={handleCompare}
+              onUseRecommendation={(rec) => { setEngine(rec); setMessage(`Engine set to ${rec}. Review spec and accept to generate.`); }}
+            />
+          )}
+
+          {rightPanel === 'relational' && spec && (
+            <RelationalView
+              spec={spec}
+              tableArtifacts={tableArtifacts}
+              busy={busy}
+              onError={(msg) => setMessage(msg)}
+            />
+          )}
+
+          {rightPanel === 'relational' && !spec && (
+            <p className={styles.muted}>Load or draft a spec first.</p>
+          )}
+
+          {rightPanel === 'documents' && spec && (
+            <DocumentView
+              spec={spec}
+              artifacts={artifacts}
+              tableArtifacts={tableArtifacts}
+            />
+          )}
+
+          {rightPanel === 'documents' && !spec && (
+            <p className={styles.muted}>Load or draft a spec first.</p>
+          )}
+        </section>
+      </div>
+
+      {/* Status message */}
+      {message && (
+        <div
+          role="status"
+          className={styles.notice}
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}
+        >
+          <span>{message}</span>
+          <button
+            onClick={() => setMessage('')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, lineHeight: 1, padding: 0, flexShrink: 0 }}
+            aria-label="Dismiss message"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Artifacts (F7) */}
+      {artifacts.length > 0 && (
+        <section className={styles.card} style={{ maxWidth: 1500, margin: '0 auto 20px' }}>
+          <h2>Artifacts</h2>
+          <ArtifactList
+            artifacts={artifacts}
+            busy={busy}
+            onPreview={(rows) => setPreviewRows(rows)}
+            onError={(msg) => setMessage(msg)}
+          />
+        </section>
+      )}
+
+      {/* Preview table (F4/F7) */}
+      {previewRows.length > 0 && (
+        <section className={styles.card} style={{ maxWidth: 1500, margin: '0 auto 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h2 style={{ margin: 0 }}>Preview · first {previewRows.length} rows</h2>
+            <button className={styles.secondary} onClick={() => setPreviewRows([])} style={{ fontSize: 11 }}>
+              Dismiss
+            </button>
+          </div>
+          <div className={styles.preview}>
+            <table>
+              <thead>
+                <tr>{Object.keys(previewRows[0]).map((k) => <th key={k}>{k}</th>)}</tr>
+              </thead>
+              <tbody>
+                {previewRows.map((row, i) => (
+                  <tr key={i}>
+                    {Object.keys(previewRows[0]).map((k) => (
+                      <td key={k}>
+                        {typeof row[k] === 'object' ? JSON.stringify(row[k]) : String(row[k] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+    </main>
+  );
 }
