@@ -112,8 +112,11 @@ def generate_job(plan: GenerationPlan):
         return executor.submit(operation, inputs=[source.id] if source else [])
     except KeyError:
         raise HTTPException(404, 'Source artifact not found.') from None
-    except ValueError:
-        raise HTTPException(400, 'Engine unavailable or plan invalid.') from None
+    except ValueError as exc:
+        msg = str(exc)
+        if 'columns differ' in msg:
+            raise HTTPException(400, 'Uploaded source columns do not match accepted schema columns. Re-upload or edit the spec.') from None
+        raise HTTPException(400, f'Generation plan invalid: {msg}') from None
 
 
 @router.post('/jobs/ingest', status_code=202)
@@ -193,12 +196,25 @@ def get_artifact(artifact_id: str, preview_rows: int = Query(default=0, ge=0, le
         raise HTTPException(400, 'Preview unavailable for this artifact; use download.') from None
 
 
+_MEDIA_TYPES = {
+    'csv': 'text/csv',
+    'json': 'application/json',
+    'jsonl': 'application/x-ndjson',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'parquet': 'application/octet-stream',
+}
+
+
 @router.get('/artifacts/{artifact_id}/download')
 def download_artifact(artifact_id: str):
+    artifact = artifacts.get(artifact_id)  # raises KeyError -> 404 via get_artifact call below
     get_artifact(artifact_id, 0)
+    fmt = artifact.format
+    media_type = _MEDIA_TYPES.get(fmt, 'application/octet-stream')
+    filename = f'artifact_{artifact_id[:8]}.{fmt}'
     def chunks():
         with artifacts.open(artifact_id) as stream:
             while chunk := stream.read(64 * 1024):
                 yield chunk
-    return StreamingResponse(chunks(), media_type='application/octet-stream',
-                             headers={'Content-Disposition': f'attachment; filename="{artifact_id}.bin"'})
+    return StreamingResponse(chunks(), media_type=media_type,
+                             headers={'Content-Disposition': f'attachment; filename="{filename}"'})
