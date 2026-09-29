@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import styles from '../../styles/v2.module.css';
 import { V2Spec, Artifact, v2Request } from '../../services/v2';
 
@@ -76,7 +76,7 @@ export function RelationalView({ spec, tableArtifacts, busy, onError }: Props) {
             }}
           >
             {t.name}
-            {tableArtifacts[t.name] ? '' : ' ·no artifact'}
+            {tableArtifacts[t.name] ? '' : ' · no artifact'}
           </button>
         ))}
       </div>

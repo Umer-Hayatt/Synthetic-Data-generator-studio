@@ -4,8 +4,8 @@
 INTEGRATION — V2 backend milestones implemented; final integration blocked by local memory exhaustion.
 
 ## Active Task
-V2-INTEGRATION (IN PROGRESS on branch v2-integration): see INTEGRATION_PROGRESS.md for feature checklist, next steps, and endpoint map.
-Do not resume from here — read INTEGRATION_PROGRESS.md first.
+V2-INTEGRATION FRONTEND WIRING COMPLETE (branch v2-integration, commit 36c4542).
+All 7 features wired, tsc clean, browser-verified (offline state). Remaining: live backend end-to-end test (upload→ingest→review→generate→preview). See INTEGRATION_PROGRESS.md.
 
 ## Baseline
 - P0 BE-01..08, FE-01..07 and INT-01 complete. Stable pushed fallback: a51edae5bd073e0b3f752c39eb6994f753baf4ce.
