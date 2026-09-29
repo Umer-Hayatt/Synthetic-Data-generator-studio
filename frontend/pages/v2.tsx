@@ -25,6 +25,7 @@ import {
   Job,
   TableArtifactMap,
   V2Spec,
+  enrichSpec,
   isTerminal,
   jsonBody,
   usePollJob,
@@ -130,18 +131,35 @@ export default function V2Studio() {
           const profile = await resp.json() as IngestProfile;
           setSourceArtifactId(finishedJob.artifacts[0]); // raw source is first artifact
           if (profile.spec) {
-            setSpec(profile.spec);
+            let enriched = enrichSpec(profile.spec);
+            // Optionally enhance with AI suggestions if available; fall back gracefully to deterministic result
+            try {
+              const ambCols = enriched.tables.flatMap((t) => t.columns.filter((c) => c.semantic_type === 'generic_text' || c.semantic_type === 'categorical').map((c) => c.name));
+              if (ambCols.length > 0) {
+                const aiResp = await v2Request<{ status: string; suggestions?: { table: string; target_column?: string; primary_key?: string }[] }>('/ai/suggestions', jsonBody({ spec: enriched, ambiguous_columns: ambCols }));
+                if (aiResp.suggestions?.length) {
+                  const tables = enriched.tables.map((tbl) => {
+                    const match = aiResp.suggestions?.find((s) => s.table === tbl.name);
+                    return match ? { ...tbl, target_column: tbl.target_column || match.target_column || null, primary_key: tbl.primary_key || match.primary_key || null } : tbl;
+                  });
+                  enriched = { ...enriched, tables };
+                }
+              }
+            } catch {
+              // AI suggestions unavailable — keep deterministic result
+            }
+            setSpec(enriched);
             setAccepted(false);
             // Auto-select engine based on spec shape
-            const hasMulti = (profile.spec.tables?.length ?? 0) > 1;
-            const hasDocs = !!(profile.spec.documents?.length);
+            const hasMulti = (enriched.tables?.length ?? 0) > 1;
+            const hasDocs = !!(enriched.documents?.length);
             setEngine(hasDocs ? 'documents' : hasMulti ? 'relational' : 'statistical');
           }
           const rowCount = profile.row_count?.toLocaleString() ?? '?';
           const sampleRows = profile.sample_rows?.toLocaleString() ?? '?';
           setMessage(
             `Profiled ${rowCount} rows (${sampleRows} sampled). ` +
-            (profile.spec ? 'Spec inferred — review before accepting.' : 'No spec inferred; describe your dataset with AI.')
+            (profile.spec ? 'Roles and relationships inferred — review before accepting.' : 'No spec inferred; describe your dataset with AI.')
           );
         } else if (finishedOperation === 'compare') {
           const reportArtifact = list[list.length - 1];

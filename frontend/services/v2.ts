@@ -27,16 +27,89 @@ export interface V2Table {
   }[];
 }
 
+export interface DocumentRequest {
+  kind: 'invoice' | 'bank_statement';
+  parent_table: string;
+  child_table: string;
+  foreign_key: string;
+  amount_column?: string | null;
+  quantity_column?: string | null;
+  price_column?: string | null;
+  date_column?: string | null;
+  credit_column?: string | null;
+  debit_column?: string | null;
+  opening_balance_column?: string | null;
+  tax_rate?: number;
+  discount_rate?: number;
+  date_from?: string | null;
+  date_to?: string | null;
+}
+
 export interface V2Spec {
   name: string;
   version: '1.0' | '2.0';
   locale: string;
   seed: number;
   tables: V2Table[];
-  documents?: unknown[];
+  documents?: DocumentRequest[];
   reconciliations?: unknown[];
   business_rules?: string[];
   edge_cases?: string[];
+}
+
+/**
+ * Deterministically enriches an ingested spec:
+ * - Identifies primary keys (id semantic type or auto_increment or unique)
+ * - Identifies foreign keys by naming convention (e.g. *_id referencing parent tables)
+ * - Assigns benchmark target candidate (returned, label, target, churn, default, etc.)
+ */
+export function enrichSpec(raw: V2Spec): V2Spec {
+  const tableNames = new Set(raw.tables.map((t) => t.name.toLowerCase()));
+  const tables = raw.tables.map((table) => {
+    let pk = table.primary_key;
+    if (!pk) {
+      const pkCol = table.columns.find((c) => c.semantic_type === 'id' || c.constraints?.unique || c.name.toLowerCase() === 'id' || c.name.toLowerCase() === `${table.name.toLowerCase()}_id`);
+      if (pkCol) pk = pkCol.name;
+    }
+
+    let target = table.target_column;
+    if (!target) {
+      const targetCol = table.columns.find((c) => {
+        const n = c.name.toLowerCase();
+        return n === 'returned' || n === 'target' || n === 'label' || n === 'churn' || n === 'is_fraud' || n === 'default';
+      });
+      if (targetCol) target = targetCol.name;
+    }
+
+    const fks = [...(table.foreign_keys ?? [])];
+    if (fks.length === 0 && raw.tables.length > 1) {
+      for (const col of table.columns) {
+        if (col.name === pk) continue;
+        const colLower = col.name.toLowerCase();
+        if (colLower.endsWith('_id') || colLower.endsWith('id')) {
+          const stem = colLower.replace(/_?id$/, '');
+          const match = raw.tables.find((other) => other.name.toLowerCase() === stem || other.name.toLowerCase() === `${stem}s`);
+          if (match && match.name !== table.name) {
+            fks.push({
+              column: col.name,
+              reference_table: match.name,
+              reference_column: match.primary_key || match.columns[0]?.name || 'id',
+              cardinality: '1:N',
+            });
+          }
+        }
+      }
+    }
+
+    return {
+      ...table,
+      primary_key: pk ?? null,
+      target_column: target ?? null,
+      foreign_keys: fks,
+    };
+  });
+
+  return { ...raw, tables };
 }
 
 export interface Job {

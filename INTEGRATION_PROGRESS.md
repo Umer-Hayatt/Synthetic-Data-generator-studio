@@ -72,7 +72,8 @@ V2-INTEGRATION is DONE for all 7 frontend features. tsc and browser verified.
 1. [x] **AI draft flow**: Verified live with Gemini model (`models/gemini-2.5-flash`), simplified Pydantic draft schema prevents 400 `malformed_request`, successfully drafted multi-table `DatasetSpec` with review required.
 2. [x] **Live backend E2E test**: Verified upload of `dummy_orders.csv` (500 rows) → ingest job `29670aefdc7e4f60995bc7e389ad60ad` → profile & spec inferred → accepted review → statistical generation job `347597a15a7e4e97a4bc3725a213c86f` → JSONL artifact previewed and downloadable.
 3. [x] **TypeScript check**: `npx tsc --noEmit` clean (0 errors).
-4. Deep engine options (CTGAN/TVAE): shown as disabled with "not installed" — correct behavior.
+4. [x] **Item 4: Role and relationship inference**: Automatic PK detection, candidate benchmark target assignment (`returned`), and FK relationship inference with fallback if AI suggestions are unavailable. User can edit meaning dropdown and PK radio selector in review panel.
+5. [x] **Item 5: Document mapping UI**: Removed reliance on Advanced JSON editor for documents; added "+ Add invoice" and "+ Add bank statement" one-click buttons with remove capability in `SpecReviewPanel.tsx`.
 
 **To test live**:
 ```

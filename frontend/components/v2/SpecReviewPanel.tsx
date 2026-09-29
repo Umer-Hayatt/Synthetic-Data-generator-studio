@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../styles/v2.module.css';
 import { V2Spec, V2Table, v2Request, jsonBody } from '../../services/v2';
 
@@ -123,16 +123,49 @@ export function SpecReviewPanel({ spec, accepted, busy, onSpecChange, onAcceptCh
               </tr>
             </thead>
             <tbody>
-              {table.columns.map((col) => (
+              {table.columns.map((col, ci) => (
                 <tr key={col.name}>
                   <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>{col.name}</td>
                   <td>{col.dtype}</td>
-                  <td>{col.semantic_type}</td>
                   <td>
-                    {col.name === table.primary_key && <span style={{ color: 'var(--blue)', fontSize: 10 }}>PK</span>}
-                    {table.foreign_keys?.find((fk) => fk.column === col.name) && (
-                      <span style={{ color: 'var(--purple)', fontSize: 10, marginLeft: 4 }}>FK</span>
-                    )}
+                    <select
+                      value={col.semantic_type}
+                      disabled={busy}
+                      onChange={(e) => {
+                        const newCols = [...table.columns];
+                        newCols[ci] = { ...col, semantic_type: e.target.value as any };
+                        updateTable(ti, { columns: newCols });
+                      }}
+                      style={{ fontSize: 11, padding: '2px 4px', margin: 0, width: 'auto' }}
+                    >
+                      <option value="generic_text">generic_text</option>
+                      <option value="id">id</option>
+                      <option value="categorical">categorical</option>
+                      <option value="numeric">numeric</option>
+                      <option value="money">money</option>
+                      <option value="datetime">datetime</option>
+                      <option value="email">email</option>
+                      <option value="phone">phone</option>
+                      <option value="person_name">person_name</option>
+                    </select>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <label style={{ margin: 0, fontSize: 11, display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <input
+                          type="radio"
+                          name={`pk_${table.name}`}
+                          checked={col.name === table.primary_key}
+                          disabled={busy}
+                          onChange={() => updateTable(ti, { primary_key: col.name })}
+                          style={{ margin: 0, width: 'auto' }}
+                        />
+                        PK
+                      </label>
+                      {table.foreign_keys?.find((fk) => fk.column === col.name) && (
+                        <span style={{ color: 'var(--purple)', fontSize: 10 }}>FK</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -140,10 +173,10 @@ export function SpecReviewPanel({ spec, accepted, busy, onSpecChange, onAcceptCh
           </table>
 
           {/* FK relationships */}
-          {table.foreign_keys && table.foreign_keys.length > 0 && (
-            <div style={{ marginTop: 10 }}>
-              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Relationships</p>
-              {table.foreign_keys.map((fk) => (
+          <div style={{ marginTop: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Relationships</p>
+            {table.foreign_keys && table.foreign_keys.length > 0 ? (
+              table.foreign_keys.map((fk) => (
                 <p key={fk.column} className={styles.muted} style={{ fontSize: 11 }}>
                   <span style={{ fontFamily: 'var(--font-mono)' }}>{table.name}.{fk.column}</span>
                   {' '}→{' '}
@@ -151,11 +184,94 @@ export function SpecReviewPanel({ spec, accepted, busy, onSpecChange, onAcceptCh
                   {' '}· {fk.cardinality}
                   {fk.min_children != null && fk.min_children > 0 && ` · min ${fk.min_children}`}
                 </p>
-              ))}
-            </div>
-          )}
+              ))
+            ) : (
+              <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>None inferred.</p>
+            )}
+          </div>
         </details>
       ))}
+
+      {/* Document Mappings (Item 5: Add Invoice / Add Bank statement without JSON editor) */}
+      <div style={{ marginTop: 16, borderTop: '1px solid var(--border-default)', paddingTop: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-title)', margin: 0 }}>
+            Documents ({(spec.documents ?? []).length})
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className={styles.secondary}
+              disabled={busy || spec.tables.length === 0}
+              onClick={() => {
+                onAcceptChange(false);
+                const parent = spec.tables[0]?.name ?? 'Orders';
+                const child = spec.tables[1]?.name ?? spec.tables[0]?.name ?? 'OrderItems';
+                const newDoc: any = {
+                  kind: 'invoice',
+                  parent_table: parent,
+                  child_table: child,
+                  foreign_key: 'order_id',
+                  quantity_column: 'quantity',
+                  price_column: 'unit_price_pkr',
+                  tax_rate: 0.17,
+                  discount_rate: 0,
+                };
+                onSpecChange({ ...spec, documents: [...(spec.documents ?? []), newDoc] });
+              }}
+              style={{ fontSize: 11, padding: '4px 8px', margin: 0 }}
+            >
+              + Add invoice
+            </button>
+            <button
+              type="button"
+              className={styles.secondary}
+              disabled={busy || spec.tables.length === 0}
+              onClick={() => {
+                onAcceptChange(false);
+                const parent = spec.tables[0]?.name ?? 'Accounts';
+                const child = spec.tables[1]?.name ?? spec.tables[0]?.name ?? 'Transactions';
+                const newDoc: any = {
+                  kind: 'bank_statement',
+                  parent_table: parent,
+                  child_table: child,
+                  foreign_key: 'account_id',
+                  date_column: 'order_date',
+                  credit_column: 'order_total_pkr',
+                  debit_column: 'discount_pct',
+                  opening_balance_column: 'order_total_pkr',
+                };
+                onSpecChange({ ...spec, documents: [...(spec.documents ?? []), newDoc] });
+              }}
+              style={{ fontSize: 11, padding: '4px 8px', margin: 0 }}
+            >
+              + Add bank statement
+            </button>
+          </div>
+        </div>
+
+        {(spec.documents ?? []).map((doc: any, di: number) => (
+          <div key={di} style={{ background: 'var(--bg-0)', border: '1px solid var(--border-default)', borderRadius: 6, padding: '8px 10px', marginTop: 6, fontSize: 11, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <strong>{doc.kind === 'invoice' ? '🧾 Invoice' : '🏦 Bank Statement'}</strong>: {doc.parent_table} → {doc.child_table} via {doc.foreign_key}
+            </div>
+            <button
+              type="button"
+              className={styles.secondary}
+              disabled={busy}
+              onClick={() => {
+                onAcceptChange(false);
+                const docs = [...(spec.documents ?? [])];
+                docs.splice(di, 1);
+                onSpecChange({ ...spec, documents: docs });
+              }}
+              style={{ fontSize: 10, padding: '2px 6px', margin: 0, color: 'var(--rose)' }}
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
 
       {/* Business rules / edge cases review notes */}
       {hasBusinessRules && (
