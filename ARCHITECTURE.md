@@ -117,14 +117,16 @@ To satisfy the official hackathon requirement that tabular, relational, and docu
    - Frequency-weighted random sampling for categorical columns.
    - Semantic generators (Faker) for identities, emails, dates, and locations.
    - Seeded NumPy/Python random states for strict deterministic reproducibility.
-   - Column privacy transformations applied post-generation (masking, SHA-256 hashing, Laplace/differential noise).
+    - Column privacy transformations applied post-generation (masking, SHA-256 hashing, configurable numerical noise injection; formal $\epsilon$-differential privacy remains an optional stretch feature).
 
-2. **Relational Synthesizer (P1)**:
+2. **Relational Synthesizer (Official Challenge Area — P1)**:
+   - *Official challenge feature area; targeted immediately after P0 stability.*
    - Resolves dependencies as a Directed Acyclic Graph (DAG) (Parent tables first, then Child tables).
    - Generates parent PKs, then samples child FKs preserving cardinality rules (1:1, 1:N, N:N).
    - Validates zero orphan records before returning.
 
-3. **Document Synthesizer (P2)**:
+3. **Document Synthesizer (Official Challenge Area — P2)**:
+   - *Official challenge feature area; targeted before submission as time permits.*
    - Operates on relational schema projections (Invoices = Header $\to$ Line Items; Bank Statements = Account $\to$ Ordered Transactions).
    - Enforces mathematical balance invariants:
      $$\text{Invoice Total} = \sum (\text{Qty} \times \text{Price}) + \text{Tax} - \text{Discount}$$
@@ -146,7 +148,7 @@ To satisfy the official hackathon requirement that tabular, relational, and docu
 2. **Synthesize**: Fit synthesizer **only** on $D_{real}^{train}$; generate $D_{synth}^{train}$.
 3. **TRTR Benchmark**: Train scikit-learn model (LightGBM/RandomForest/LogisticRegression) on $D_{real}^{train}$, evaluate on $D_{real}^{test}$.
 4. **TSTR Run**: Train the identical pipeline on $D_{synth}^{train}$, evaluate on untouched $D_{real}^{test}$.
-5. **Output**: Tabulated comparison showing TRTR, TSTR, absolute delta, and Retention Score.
+5. **Output**: Tabulated comparison returning raw TRTR and TSTR metrics alongside clearly defined, metric-appropriate deltas (e.g. TSTR/TRTR ratio for higher-is-better metrics like Accuracy/F1; absolute delta or error difference for lower-is-better metrics like MAE/RMSE; raw delta for R² without forced percentage retention).
 
 ---
 
@@ -165,4 +167,4 @@ To satisfy the official hackathon requirement that tabular, relational, and docu
 
 - **Stateless Backend**: Ingested and generated datasets reside in memory or transient temp files tied to session tokens; cleaned up automatically.
 - **No Heavy Infrastructure**: No external relational database, Redis, or GPU instances required for MVP.
-- **Free-Tier Target**: Backend runs on standard Python 3.10+ Linux/Windows instances; frontend deploys directly to Vercel or Node.js containers.
+- **Free-Tier Deployment**: Backend runs on standard platform-native Python 3.10+ hosting (e.g., Render, Railway, Hugging Face Spaces); frontend deploys to Vercel or standard Node.js hosting. Docker/containerization is completely optional.

@@ -48,7 +48,7 @@ A high-efficiency 3-column data engineering workspace:
 |  Datasets / Tables|  | - Distribution Histograms             |  |  • Privacy Controls:  |
 |  • customers      |  | - Correlation Heatmaps                |  |    - Masking          |
 |  • orders (P1)    |  | - TSTR Model Comparison Chart         |  |    - Hashing          |
-|                   |  +---------------------------------------+  |    - Differential Noise
+|                   |  +---------------------------------------+  |    - Configurable Noise
 |                   |                                             |                       |
 |                   |  [ Export CSV / JSON ]                      |  [ Regenerate Data ]  |
 +-------------------+---------------------------------------------+-----------------------+
@@ -62,7 +62,7 @@ A high-efficiency 3-column data engineering workspace:
 - **Data Preview Tab**: Virtualized, sortable grid rendering the first $N$ generated rows with semantic type badges.
 - **Schema Tab**: Column-by-column breakdown of primitive types, semantic roles, constraints, and distributions.
 - **Quality Tab**: Visual statistical fidelity charts (real vs synthetic overlays, TVD metrics, correlation delta matrix).
-- **TSTR Tab**: Side-by-side performance cards (TRTR vs TSTR Accuracy, F1, MAE/RMSE, Retention Percentage) and target selector.
+- **TSTR Tab**: Side-by-side performance cards (raw TRTR vs TSTR Accuracy, F1, MAE/RMSE, and metric-appropriate deltas/retention) and target selector.
 
 #### Right Column: Configuration & Privacy Sidebar
 - Direct knobs for Row Count, Seed, Null/Outlier Injection.

@@ -45,7 +45,7 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 - **Verification**: Unit tests testing valid/invalid spec payloads.
 
 ### [TODO] BE-05: Tabular Synthetic Generation Engine
-- **Goal**: Build CPU-safe synthesis engine combining distribution fitting, Faker semantics, random seed reproducibility, and column privacy controls (masking, hashing, noise).
+- **Goal**: Build CPU-safe synthesis engine combining distribution fitting, Faker semantics, random seed reproducibility, and column privacy controls (masking, hashing, configurable noise injection).
 - **Relevant Area**: `backend/app/engines/tabular.py`
 - **Dependencies**: BE-04
 - **Acceptance Criteria**: Generates synthetic rows matching target count and distributions. Identical seeds produce identical outputs.
@@ -66,10 +66,10 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 - **Verification**: Unit tests on known synthetic vs real distributions.
 
 ### [TODO] BE-08: TSTR ML Utility Evaluation Engine
-- **Goal**: Implement Train on Synthetic, Test on Real pipeline comparing TRTR vs TSTR for classification/regression with retention score and leakage prevention.
+- **Goal**: Implement Train on Synthetic, Test on Real pipeline comparing TRTR vs TSTR for classification/regression with raw metrics, metric-appropriate deltas (no forced universal ratio for lower-is-better/negative metrics), and strict leakage prevention.
 - **Relevant Area**: `backend/app/eval/tstr.py`
 - **Dependencies**: BE-05, BE-07
-- **Acceptance Criteria**: Computes Accuracy/F1/ROC-AUC or MAE/RMSE/R²; gracefully reports when no supervised target exists.
+- **Acceptance Criteria**: Returns raw TRTR and TSTR for Accuracy/F1/ROC-AUC or MAE/RMSE/R² alongside clear delta/comparison; gracefully reports when no supervised target exists.
 - **Verification**: Evaluation test with churn (classification) and pricing (regression) benchmark data.
 
 ---
@@ -112,10 +112,10 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 - **Verification**: Render dashboard with mock and live quality payloads.
 
 ### [TODO] FE-06: TSTR ML Utility Dashboard
-- **Goal**: Dedicated card/dashboard showing side-by-side TRTR vs TSTR metrics, retention gauge, and target selector.
+- **Goal**: Dedicated card/dashboard showing side-by-side raw TRTR vs TSTR metrics, metric-appropriate deltas/comparisons, and target selector.
 - **Relevant Area**: `frontend/components/tstr/`
 - **Dependencies**: FE-01, BE-08
-- **Acceptance Criteria**: Clearly conveys utility retention; handles no-target datasets gracefully.
+- **Acceptance Criteria**: Clearly conveys utility retention without forcing invalid percentage ratios; handles no-target datasets gracefully.
 - **Verification**: Render comparison cards for classification and regression states.
 
 ### [TODO] FE-07: Export & Error State Management
@@ -137,11 +137,11 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 - **Verification**: End-to-end browser execution test.
 
 ### [TODO] DEP-01: Deployment Configuration
-- **Goal**: Production build configs, Dockerfile or Procfile for cloud hosting (e.g. Render / Hugging Face / Vercel).
-- **Relevant Area**: `backend/Dockerfile`, `frontend/next.config.js`
+- **Goal**: Production build configurations and free-tier-compatible deployment using platform-native configuration where possible (Docker/containerization is optional).
+- **Relevant Area**: `backend/` platform config/Procfile, `frontend/next.config.js` (optional Dockerfile)
 - **Dependencies**: INT-01
-- **Acceptance Criteria**: Both backend and frontend build successfully in production mode.
-- **Verification**: Local container run and production build check.
+- **Acceptance Criteria**: Both backend and frontend build and run successfully in production mode.
+- **Verification**: Production build execution test and local runtime check.
 
 ### [TODO] QA-01: Final P0 Verification against Judging Criteria
 - **Goal**: End-to-end verification of all P0 requirements and official judging criteria.
@@ -152,7 +152,8 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 
 ---
 
-## Phase 4: Extended Capabilities (P1)
+## Phase 4: Relational Data & AI Capabilities (P1)
+> *Note: Relational generation is an official hackathon challenge feature area. Scheduled in Phase 4 to protect the P0 tabular baseline, targeting completion before final submission as time permits.*
 
 ### [TODO] AI-01: Natural Language Prompt to DatasetSpec
 - **Goal**: Gemini AI adapter translating free-form prompts into validated `DatasetSpec`.
@@ -192,6 +193,7 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 ---
 
 ## Phase 5: Document Generation & Extensions (P2)
+> *Note: Document generation is an official hackathon challenge feature area. Targeted after relational features before final submission as time permits.*
 
 ### [TODO] DOC-01: Synthetic Invoice Generator
 - **Goal**: Reconciled invoice generation engine with regional line items, tax rules, and totals.

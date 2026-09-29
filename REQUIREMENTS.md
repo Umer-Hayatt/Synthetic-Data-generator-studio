@@ -25,7 +25,7 @@ This document is the compressed working specification for the Synthetic Data Pla
 ### 2.1 Tabular Generation (P0 Core)
 - **REQ-TAB-01 [OFFICIAL-PDF] Faithful Statistical Distributions**: Preserve numeric distributions, categorical frequencies, and correlation structures from ingested samples.
 - **REQ-TAB-02 [OFFICIAL-PDF] Generation Controls**: Configurable row count, random seed (reproducible output), and explicit null / outlier generation rates.
-- **REQ-TAB-03 [OFFICIAL-PDF] Privacy Controls**: Column-level privacy options including masking, hashing, and differential noise injection.
+- **REQ-TAB-03 [OFFICIAL-PDF] Privacy Controls**: Column-level privacy options including masking, hashing, and configurable noise injection (formal $\epsilon$-differential privacy is a stretch feature under REQ-STR-04).
 - **REQ-TAB-04 [PRODUCT-DECISION] Input Formats**: Support CSV, XLSX, and JSON file uploads.
 - **REQ-TAB-05 [PRODUCT-DECISION] Automated Schema Inference**: Detect primitive types, null percentages, numerical bounds, and semantic data categories without requiring manual tagging.
 - **REQ-TAB-06 [PRODUCT-DECISION] Built-in Demo Datasets**: Include pre-packaged datasets (Customer Churn, Loan Default, E-commerce) for immediate one-click testing.
@@ -48,9 +48,9 @@ This document is the compressed working specification for the Synthetic Data Pla
   4. Train reference baseline model on **Real Train** → evaluate on **Real Test** (TRTR).
   5. Train identical ML model architecture on **Synthetic Train** → evaluate on untouched **Real Test** (TSTR).
 - **REQ-TSTR-02 [ORGANIZER-PROVIDED] Metric Reporting**:
-  - Classification tasks: Report Accuracy, Macro F1, and ROC-AUC (when binary/probabilistic).
-  - Regression tasks: Report MAE, RMSE, and R².
-  - Retention Score: Report Relative Utility Retention: $\text{Retention} = \frac{\text{Metric}_{TSTR}}{\text{Metric}_{TRTR}} \times 100\%$.
+  - Always return raw TRTR and TSTR metrics alongside a clearly defined, metric-appropriate delta/comparison. Do not force one universal ratio formula across all metrics.
+  - Classification tasks: Report raw TRTR and TSTR for Accuracy, Macro F1, and ROC-AUC (when valid). Relative retention ($\frac{\text{TSTR}}{\text{TRTR}}$) may be displayed when TRTR $> 0$.
+  - Regression tasks: Report raw TRTR and TSTR for MAE, RMSE, and R². For MAE and RMSE (lower is better), report raw metrics and error delta; do not use the higher-is-better ratio. For R² (which may be negative), report absolute delta ($\text{R}^2_{TSTR} - \text{R}^2_{TRTR}$) without forcing percentage retention.
 - **REQ-TSTR-03 [PRODUCT-DECISION] Graceful Target Degradation**: Automatically detect supervised target column candidates. If no valid ML target is selected or present, disable TSTR gracefully with an informative message while keeping statistical metrics fully active.
 
 ### 2.4 Canonical DatasetSpec (P0 Foundation)
@@ -64,12 +64,14 @@ This document is the compressed working specification for the Synthetic Data Pla
 - **REQ-AI-04 [PRODUCT-DECISION] Natural Language to DatasetSpec**: Convert free-form prompts (e.g., *"5000 university students with GPA, semester, attendance, and fee status"*) into a valid canonical `DatasetSpec`.
 - **REQ-AI-05 [PRODUCT-DECISION] Graceful AI Fallback**: If LLM API is unavailable, unconfigured, or times out, the platform continues to operate fully using deterministic heuristics and Faker libraries. No LLM output may execute arbitrary server code.
 
-### 2.6 Relational Data Generation (P1)
+### 2.6 Relational Data Generation (Official Challenge Area — P1)
+> *Note: Relational generation is an official challenge feature area. To protect the working P0 tabular baseline, it is scheduled in Phase 4 and targeted before final submission as time permits.*
 - **REQ-REL-01 [OFFICIAL-PDF] Multi-Table Integrity**: Enforce Primary Key (PK) and Foreign Key (FK) referential integrity across all generated child tables (e.g., Customers $\to$ Orders $\to$ Order Items).
 - **REQ-REL-02 [OFFICIAL-PDF] Configurable Cardinalities**: Support explicit 1:1, 1:N, and N:N relationship distribution definitions.
 - **REQ-REL-03 [OFFICIAL-PDF] Cross-Table Consistency**: Enforce derived business constraints across parent-child records (e.g., `Order.total` strictly equals the sum of its associated `OrderItem.price * OrderItem.qty`).
 
-### 2.7 Document Generation (P2)
+### 2.7 Document Generation (Official Challenge Area — P2)
+> *Note: Document generation is an official challenge feature area. Scheduled in Phase 5 following relational stability, targeted before final submission as time permits.*
 - **REQ-DOC-01 [OFFICIAL-PDF] Invoice Generation**: Generate invoice records with realistic line items, regional tax rules, and reconciled subtotals/totals.
 - **REQ-DOC-02 [OFFICIAL-PDF] Bank Statements & Queries**: Generate sequential transaction histories with realistic merchant labels, chronological debits/credits, and mathematically continuous running balances.
 - **REQ-DOC-03 [OFFICIAL-PDF] Query-Style Statement Generation**: Support declarative filtering constraints (e.g., *"transactions for the last 90 days with ending balance > $500"*).
