@@ -423,6 +423,7 @@ export default function V2Studio() {
                   spec={spec}
                   tableArtifacts={tableArtifacts}
                   busy={busy}
+                  onSpecChange={(s) => setSpec(s)}
                   onGenerate={handleGenerate}
                   onError={(msg) => setMessage(msg)}
                 />

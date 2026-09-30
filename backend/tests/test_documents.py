@@ -39,3 +39,40 @@ def test_statement_continuity_and_filtered_opening():
         assert balance == Decimal(line['balance'])
         dates.append(line['date'])
     assert dates == sorted(dates) and balance == Decimal(statement['closing_balance']) == Decimal('117.80')
+
+
+def test_pdf_generation_invoice_and_statement():
+    from app.api.documents import _build_invoice_pdf, _build_statement_pdf
+    # Invoice PDF
+    invoice_doc = {
+        'entity_id': 101,
+        'entity': {'customer_id': 'CUST-001', 'name': 'Ahmed Ali'},
+        'lines': [
+            {'source': {'product_id': 'Widget A', 'quantity': 2, 'unit_price': 150.0}, 'line_total': '300.00'},
+            {'source': {'product_id': 'Gadget B', 'quantity': 1, 'unit_price': 250.0}, 'line_total': '250.00'},
+        ],
+        'subtotal': '550.00',
+        'tax': '93.50',
+        'discount': '0.00',
+        'total': '643.50',
+    }
+    pdf_bytes = _build_invoice_pdf(invoice_doc)
+    assert isinstance(pdf_bytes, bytes)
+    assert len(pdf_bytes) > 500
+    assert pdf_bytes.startswith(b'%PDF')
+
+    # Statement PDF
+    stmt_doc = {
+        'entity_id': 202,
+        'opening_balance': '1000.00',
+        'closing_balance': '1250.00',
+        'transactions': [
+            {'date': '2026-01-01', 'credit': '500.00', 'debit': '0.00', 'balance': '1500.00'},
+            {'date': '2026-01-02', 'credit': '0.00', 'debit': '250.00', 'balance': '1250.00'},
+        ],
+    }
+    stmt_pdf = _build_statement_pdf(stmt_doc)
+    assert isinstance(stmt_pdf, bytes)
+    assert len(stmt_pdf) > 500
+    assert stmt_pdf.startswith(b'%PDF')
+

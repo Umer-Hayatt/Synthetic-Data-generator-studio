@@ -1,13 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useStudio } from '../../context/StudioContext';
 import {
   Sliders,
   Shuffle,
-  Shield,
-  ChevronDown,
-  ChevronRight,
   RefreshCw,
-  Cpu,
 } from 'lucide-react';
 
 export const ConfigPanel: React.FC = () => {
@@ -18,8 +14,6 @@ export const ConfigPanel: React.FC = () => {
     isGenerating,
   } = useStudio();
 
-  const [techDetailsOpen, setTechDetailsOpen] = useState(false);
-
   if (!datasetSpec || !datasetSpec.tables.length) {
     return null;
   }
@@ -27,21 +21,6 @@ export const ConfigPanel: React.FC = () => {
   const table = datasetSpec.tables[0];
   const rowCount = table.row_count;
   const seed = datasetSpec.seed;
-
-  // Calculate privacy transformations count
-  const privacyCounts = table.columns.reduce(
-    (acc, col) => {
-      const method =
-        typeof col.privacy_rule === 'string'
-          ? col.privacy_rule
-          : col.privacy_rule?.method;
-      if (method === 'mask') acc.mask++;
-      if (method === 'hash') acc.hash++;
-      if (method === 'noise') acc.noise++;
-      return acc;
-    },
-    { mask: 0, hash: 0, noise: 0 }
-  );
 
   const randomizeSeed = () => {
     updateGlobalConfig({ seed: Math.floor(Math.random() * 90000) + 1000 });
@@ -114,72 +93,6 @@ export const ConfigPanel: React.FC = () => {
           />
         </div>
 
-        {/* Setting 3: Privacy Controls Summary */}
-        <div style={{ background: 'var(--surface-muted)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-            <Shield size={13} style={{ color: 'var(--text-primary)' }} />
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              Active Privacy Rules
-            </span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', textAlign: 'center' }}>
-            <div style={{ background: 'var(--surface)', padding: '6px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-subtle)' }}>
-              <span style={{ fontSize: '9px', color: 'var(--text-muted)', display: 'block' }}>MASK</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {privacyCounts.mask}
-              </span>
-            </div>
-            <div style={{ background: 'var(--surface)', padding: '6px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-subtle)' }}>
-              <span style={{ fontSize: '9px', color: 'var(--text-muted)', display: 'block' }}>HASH</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {privacyCounts.hash}
-              </span>
-            </div>
-            <div style={{ background: 'var(--surface)', padding: '6px', borderRadius: 'var(--radius-xs)', border: '1px solid var(--border-subtle)' }}>
-              <span style={{ fontSize: '9px', color: 'var(--text-muted)', display: 'block' }}>NOISE</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {privacyCounts.noise}
-              </span>
-            </div>
-          </div>
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginTop: '8px' }}>
-            Configure rules per column in the Schema tab.
-          </span>
-        </div>
-
-        {/* Collapsed Secondary Technical Details */}
-        <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-xs)', overflow: 'hidden' }}>
-          <button
-            onClick={() => setTechDetailsOpen(!techDetailsOpen)}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 10px',
-              background: 'var(--surface-muted)',
-              border: 'none',
-              color: 'var(--text-muted)',
-              fontSize: '11px',
-              cursor: 'pointer',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Cpu size={12} />
-              <span>Synthesis Engine Info</span>
-            </div>
-            {techDetailsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-          </button>
-
-          {techDetailsOpen && (
-            <div style={{ padding: '10px', background: 'var(--surface)', fontSize: '10px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div>• Copula: Gaussian Correlation matrix</div>
-              <div>• Marginals: 101 Empirical Quantiles</div>
-              <div>• Identity: Rule-based Faker synthesis</div>
-              <div>• Hardware: CPU-Safe, zero GPU dependency</div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Primary Action Button */}

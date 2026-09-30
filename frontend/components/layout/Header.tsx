@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { useStudio } from '../../context/StudioContext';
 import {
   Database,
@@ -47,6 +48,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
 
       {/* Right: Health, Actions */}
       <div className="top-bar-right">
+        <Link
+          href="/v2"
+          className="btn btn-secondary btn-sm"
+          style={{ textDecoration: 'none', fontSize: '11px', padding: '4px 10px' }}
+        >
+          V2 Studio →
+        </Link>
         {/* Backend health status badge */}
         <div
           className={`badge ${

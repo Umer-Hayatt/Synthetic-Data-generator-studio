@@ -75,12 +75,12 @@
   - **Fix 1**: `app/core/jobs.py` — split `except Exception` into `except ValueError` (surfaces message directly) + `except Exception` (keeps generic message for unexpected errors).
   - **Fix 2**: `app/api/jobs.py` — auto-upgrade `effective_engine`: if `statistical` + multi-table → use `relational` (FKs present) or `documents` (doc mappings present).
   - **Verified**: generation produces 7 artifacts (Customers 10, Products 8, Orders 30, OrderItems 90, Payments 30, document_0_invoice 30, manifest). Zero orphan FKs on all 4 FK links. All PKs unique. All 30 orders reconcile (total == sum of line items, Decimal arithmetic). ✅
-- [ ] **Item 2: Strong relational schema + AI draft + repair**
-- [ ] **Item 3: Realistic data content (Faker, Pakistani locale)**
-- [ ] **Item 4: Documents backend (PDF via reportlab)**
-- [ ] **Item 5: Frontend workspace tabs (Tabular, Relational, Documents)**
-- [ ] **Item 6: Remove Active Privacy Rules panel + Synthesis Engine Info row**
-- [ ] **Item 7: Full verify (tsc, backend tests, browser walkthrough)**
+- [x] **Item 2: Strong relational schema + AI draft + repair** (commit `2e6b6fd`)
+- [x] **Item 3: Realistic data content (Faker, Pakistani locale)** (commit `2e6b6fd`)
+- [x] **Item 4: Documents backend (PDF via reportlab)** (commit `2e6b6fd`)
+- [x] **Item 5: Frontend workspace tabs (Tabular, Relational, Documents)** — Relational tab (editable FK dropdowns, paginated preview, reconciliation badge); Documents tab (JSON, CSV, PDF, and ZIP download buttons). Verified `npx tsc --noEmit` clean.
+- [x] **Item 6: Remove Active Privacy Rules panel + Synthesis Engine Info row** — Removed from `ConfigPanel.tsx`, cleaned dev jargon in `ArtifactList.tsx`. Verified `npx tsc --noEmit` clean.
+- [~] **Item 7: Full verify (tsc, backend tests, browser walkthrough)** — PAUSED at user request. App running locally.
 
 **Live backend verification**:
 1. [x] **AI draft flow**: Verified live with Gemini model (`models/gemini-2.5-flash`), simplified Pydantic draft schema prevents 400 `malformed_request`, successfully drafted multi-table `DatasetSpec` with review required.

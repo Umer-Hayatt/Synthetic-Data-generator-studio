@@ -191,28 +191,9 @@ export function DocumentView({ spec, artifacts, tableArtifacts, onGenerate }: Pr
 
         {/* Structured Download Buttons */}
         {activeArtifactId && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <a
-              href={`${v2Origin}/api/v1/artifacts/${activeArtifactId}/download?format=csv`}
-              download
-              style={{
-                fontSize: 12,
-                padding: '5px 12px',
-                borderRadius: 6,
-                border: '1px solid var(--synth-border)',
-                background: 'var(--synth-soft)',
-                color: 'var(--synth)',
-                textDecoration: 'none',
-                fontWeight: 500,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
-            >
-              Download CSV
-            </a>
-            <a
-              href={`${v2Origin}/api/v1/artifacts/${activeArtifactId}/download`}
+              href={`${v2Origin}/api/v1/documents/${activeArtifactId}/${artifactKey}/json`}
               download
               style={{
                 fontSize: 12,
@@ -228,7 +209,65 @@ export function DocumentView({ spec, artifacts, tableArtifacts, onGenerate }: Pr
                 gap: 4,
               }}
             >
-              Download JSONL
+              Download JSON
+            </a>
+            <a
+              href={`${v2Origin}/api/v1/documents/${activeArtifactId}/${artifactKey}/csv`}
+              download
+              style={{
+                fontSize: 12,
+                padding: '5px 12px',
+                borderRadius: 6,
+                border: '1px solid var(--border-default)',
+                background: 'var(--bg-1)',
+                color: 'var(--text-body)',
+                textDecoration: 'none',
+                fontWeight: 500,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              Download CSV
+            </a>
+            <a
+              href={`${v2Origin}/api/v1/documents/${activeArtifactId}/${artifactKey}/pdf/${activeKind === 'invoice' ? invoiceIndex : statementIndex}`}
+              download
+              style={{
+                fontSize: 12,
+                padding: '5px 12px',
+                borderRadius: 6,
+                border: '1px solid var(--synth-border)',
+                background: 'var(--synth-soft)',
+                color: 'var(--synth)',
+                textDecoration: 'none',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              Download PDF
+            </a>
+            <a
+              href={`${v2Origin}/api/v1/documents/${activeArtifactId}/${artifactKey}/zip?format=pdf`}
+              download
+              style={{
+                fontSize: 12,
+                padding: '5px 12px',
+                borderRadius: 6,
+                border: '1px solid var(--border-default)',
+                background: 'var(--bg-1)',
+                color: 'var(--text-body)',
+                textDecoration: 'none',
+                fontWeight: 500,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+              title="Download all documents as a ZIP archive (capped at 100)"
+            >
+              Download all (ZIP)
             </a>
           </div>
         )}

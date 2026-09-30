@@ -6,6 +6,7 @@ interface Props {
   spec: V2Spec;
   tableArtifacts: Record<string, string>; // table name -> artifact id
   busy: boolean;
+  onSpecChange?: (spec: V2Spec) => void;
   onGenerate?: () => void;
   onError: (msg: string) => void;
 }
@@ -18,11 +19,13 @@ interface PagedPreview {
 }
 
 const PAGE_SIZE = 20;
+const PREVIEW_PAGE_SIZE = 10;
 
-export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError }: Props) {
+export function RelationalView({ spec, tableArtifacts, busy, onSpecChange, onGenerate, onError }: Props) {
   const [activeTable, setActiveTable] = useState<string>(spec.tables[0]?.name ?? '');
   const [previews, setPreviews] = useState<Record<string, PagedPreview>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [previewPage, setPreviewPage] = useState(0);
 
   const tables = spec.tables;
   const table = tables.find((t) => t.name === activeTable) ?? tables[0];
@@ -48,6 +51,7 @@ export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError
           pageSize: PAGE_SIZE,
         },
       }));
+      setPreviewPage(0);
     } catch (err) {
       onError(err instanceof Error ? err.message : `Preview failed for "${tableName}".`);
     } finally {
@@ -57,6 +61,14 @@ export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError
 
   const preview = table ? previews[table.name] : undefined;
   const isLoading = table ? loading[table.name] : false;
+
+  const previewRows = preview?.rows ?? [];
+  const totalPreviewRows = previewRows.length;
+  const totalPreviewPages = Math.max(1, Math.ceil(totalPreviewRows / PREVIEW_PAGE_SIZE));
+  const displayedPreviewRows = previewRows.slice(
+    previewPage * PREVIEW_PAGE_SIZE,
+    (previewPage + 1) * PREVIEW_PAGE_SIZE
+  );
 
   // Collect all relationships in spec
   const allRelationships = tables.flatMap((t) =>
@@ -69,6 +81,35 @@ export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError
       minChildren: fk.min_children,
     }))
   );
+
+  // Candidate FK targets (other tables' primary keys or columns)
+  const candidateFkTargets = tables
+    .filter((t) => t.name !== table?.name)
+    .flatMap((t) => {
+      const cols = t.primary_key ? [t.primary_key] : t.columns.map((c) => c.name);
+      return cols.map((c) => ({ table: t.name, column: c, label: `${t.name}.${c}` }));
+    });
+
+  function handleFkChange(childCol: string, targetValue: string) {
+    if (!onSpecChange || !table) return;
+    const currentFks = table.foreign_keys ? [...table.foreign_keys] : [];
+    const updatedFks = currentFks.filter((fk) => fk.column !== childCol);
+    if (targetValue) {
+      const [refTable, refCol] = targetValue.split('.');
+      if (refTable && refCol) {
+        updatedFks.push({
+          column: childCol,
+          reference_table: refTable,
+          reference_column: refCol,
+          cardinality: '1:N',
+        });
+      }
+    }
+    const updatedTables = tables.map((t) =>
+      t.name === table.name ? { ...t, foreign_keys: updatedFks } : t
+    );
+    onSpecChange({ ...spec, tables: updatedTables });
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -84,7 +125,10 @@ export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError
             return (
               <button
                 key={t.name}
-                onClick={() => setActiveTable(t.name)}
+                onClick={() => {
+                  setActiveTable(t.name);
+                  setPreviewPage(0);
+                }}
                 disabled={busy}
                 style={{
                   padding: '6px 14px',
@@ -175,6 +219,24 @@ export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError
               <span>{hasAnyGenerated ? '✓' : '○'}</span>
               <span>Zero orphan foreign keys: {hasAnyGenerated ? 'Pass' : 'Pending generation'}</span>
             </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '4px 10px',
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 500,
+                background: hasAnyGenerated ? 'var(--success-bg)' : 'var(--bg-1)',
+                border: `1px solid ${hasAnyGenerated ? 'var(--success-border)' : 'var(--border-subtle)'}`,
+                color: hasAnyGenerated ? 'var(--success)' : 'var(--text-muted)',
+              }}
+            >
+              <span>{hasAnyGenerated ? '✓' : '○'}</span>
+              <span>Reconciliation: {hasAnyGenerated ? 'Pass' : 'Pending generation'}</span>
+            </div>
           </div>
         </div>
 
@@ -256,7 +318,7 @@ export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError
             )}
           </div>
 
-          {/* Column schema pills */}
+          {/* Column schema pills with editable FK role per field */}
           <div style={{ overflowX: 'auto', marginBottom: 16 }}>
             <table style={{ margin: 0 }}>
               <thead>
@@ -265,7 +327,7 @@ export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError
                   <th>Data type</th>
                   <th>Semantic meaning</th>
                   <th>Role</th>
-                  <th>Relationship</th>
+                  <th>Foreign key reference</th>
                 </tr>
               </thead>
               <tbody>
@@ -287,15 +349,43 @@ export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError
                             PK
                           </span>
                         )}
-                        {fk && (
-                          <span style={{ background: 'var(--synth-soft)', color: 'var(--synth)', padding: '2px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, marginLeft: isPk ? 4 : 0 }}>
+                        {fk && !isPk && (
+                          <span style={{ background: 'var(--synth-soft)', color: 'var(--synth)', padding: '2px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>
                             FK
                           </span>
                         )}
                         {!isPk && !fk && <span style={{ color: 'var(--text-muted)' }}>—</span>}
                       </td>
-                      <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        {fk ? `→ ${fk.reference_table}.${fk.reference_column} (${fk.cardinality || '1:N'})` : '—'}
+                      <td>
+                        {isPk ? (
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Primary key</span>
+                        ) : onSpecChange ? (
+                          <select
+                            value={fk ? `${fk.reference_table}.${fk.reference_column}` : ''}
+                            disabled={busy}
+                            onChange={(e) => handleFkChange(col.name, e.target.value)}
+                            style={{
+                              fontSize: 11,
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                              border: '1px solid var(--border-default)',
+                              background: 'var(--bg-2)',
+                              color: fk ? 'var(--synth)' : 'var(--text-muted)',
+                              fontWeight: fk ? 600 : 400,
+                            }}
+                          >
+                            <option value="">None (no foreign key)</option>
+                            {candidateFkTargets.map((tgt) => (
+                              <option key={tgt.label} value={tgt.label}>
+                                → {tgt.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            {fk ? `→ ${fk.reference_table}.${fk.reference_column} (${fk.cardinality || '1:N'})` : '—'}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -307,13 +397,33 @@ export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError
           {/* 4. Table Preview or Friendly Empty State */}
           {artifactId ? (
             <div style={{ marginTop: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-title)', margin: 0 }}>
-                  Generated preview (first {PAGE_SIZE} rows)
+                  Generated preview ({totalPreviewRows} sampled rows)
                 </p>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  Bounded sample
-                </span>
+                {totalPreviewRows > PREVIEW_PAGE_SIZE && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      Page {previewPage + 1} of {totalPreviewPages}
+                    </span>
+                    <button
+                      className={styles.secondary}
+                      disabled={previewPage <= 0}
+                      onClick={() => setPreviewPage((p) => Math.max(0, p - 1))}
+                      style={{ fontSize: 11, padding: '2px 8px', margin: 0 }}
+                    >
+                      ← Previous
+                    </button>
+                    <button
+                      className={styles.secondary}
+                      disabled={previewPage >= totalPreviewPages - 1}
+                      onClick={() => setPreviewPage((p) => Math.min(totalPreviewPages - 1, p + 1))}
+                      style={{ fontSize: 11, padding: '2px 8px', margin: 0 }}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
               </div>
 
               {isLoading && (
@@ -322,20 +432,20 @@ export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError
                 </div>
               )}
 
-              {preview && preview.rows.length > 0 && !isLoading && (
+              {displayedPreviewRows.length > 0 && !isLoading && (
                 <div style={{ overflowX: 'auto', maxHeight: 360, border: '1px solid var(--border-subtle)', borderRadius: 6 }}>
                   <table style={{ margin: 0 }}>
                     <thead>
                       <tr>
-                        {Object.keys(preview.rows[0]).map((k) => (
+                        {Object.keys(displayedPreviewRows[0]).map((k) => (
                           <th key={k} style={{ position: 'sticky', top: 0, background: 'var(--bg-2)', zIndex: 1 }}>{k}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {preview.rows.map((row, i) => (
+                      {displayedPreviewRows.map((row, i) => (
                         <tr key={i}>
-                          {Object.keys(preview.rows[0]).map((k) => (
+                          {Object.keys(displayedPreviewRows[0]).map((k) => (
                             <td key={k} style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {typeof row[k] === 'object' ? JSON.stringify(row[k]) : String(row[k] ?? '')}
                             </td>
@@ -385,4 +495,3 @@ export function RelationalView({ spec, tableArtifacts, busy, onGenerate, onError
     </div>
   );
 }
-

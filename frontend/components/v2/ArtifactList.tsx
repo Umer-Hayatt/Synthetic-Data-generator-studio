@@ -14,7 +14,7 @@ export function ArtifactList({ artifacts, busy, onPreview, onError }: Props) {
 
   async function loadPreview(artifact: Artifact) {
     if (artifact.format === 'json') {
-      onError('JSON artifacts cannot be previewed row-by-row; download to inspect.');
+      onError('JSON files cannot be previewed row-by-row; download to inspect.');
       return;
     }
     try {
