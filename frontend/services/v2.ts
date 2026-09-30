@@ -169,11 +169,23 @@ export async function v2Request<T>(path: string, init?: RequestInit): Promise<T>
   const response = await fetch(`${v2Origin}/api/v1${path}`, init);
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(
-      typeof body.detail === 'string'
-        ? body.detail
-        : `Request failed (${response.status}). Check the specification and configured limits.`
-    );
+    let msg = '';
+    if (typeof body.detail === 'string') {
+      msg = body.detail;
+    } else if (Array.isArray(body.detail)) {
+      msg = body.detail
+        .map((d: any) => {
+          const loc = Array.isArray(d.loc) ? d.loc.filter((x: any) => x !== 'body').join('.') : '';
+          return loc ? `${loc}: ${d.msg}` : (d.msg || JSON.stringify(d));
+        })
+        .join('; ');
+    } else if (body.detail && typeof body.detail === 'object') {
+      msg = JSON.stringify(body.detail);
+    }
+    if (!msg) {
+      msg = `Request failed (${response.status}). Check the specification and configured limits.`;
+    }
+    throw new Error(msg);
   }
   return response.json();
 }
