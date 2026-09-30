@@ -10,7 +10,16 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.10
+      # Set to your Vercel frontend URL after deploying, e.g.:
+      # https://your-app.vercel.app,https://your-custom-domain.com
       - key: CORS_ORIGINS
+        sync: false
+      # Secret: set in Render dashboard → Environment → Secret Files / Env Vars
+      # Comma-separated Gemini API keys, e.g.: key1,key2
+      - key: GEMINI_API_KEYS
+        sync: false
+      # Optional: override default model, e.g.: models/gemini-2.5-flash
+      - key: GEMINI_MODEL
         sync: false
       - key: CACHE_TTL_SECONDS
         value: '900'

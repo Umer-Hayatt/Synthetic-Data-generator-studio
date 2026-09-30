@@ -85,13 +85,18 @@ V2-INTEGRATION is DONE for all 7 frontend features. tsc and browser verified.
 - [x] **Item 3: Layout — Relational & Documents top-level views**: Moved Relational and Documents out of narrow right panel into main content area with top-level tabs (Tabular, Relational, Documents). Relational view features table switcher chips with row counts, relationship map (parent -> child, key columns, cardinality), selected table preview (paginated, bounded), pass/fail integrity badges (unique PKs, zero orphan FKs), and a friendly empty state before generation with "Generate data" button. Right side panel is dedicated to generation settings (rows, seed, engine selector, generate & compare buttons, job status, results list). Verified `npx tsc --noEmit` clean.
 - [x] **Item 4: Documents view — real document styling (Invoices & Statements)**: Styled invoice and bank statement documents as realistic document cards. Invoices include document header, company brand, billed to/from, line-item ledger with quantity/unit price/line total, subtotal/tax/discount/total summary, multi-invoice navigator (previous/next), and arithmetic reconciliation badge. Bank statements include account header, opening/closing balance summary bar, date-range filter, running balance ledger, and multi-statement navigator. Toggle between Invoices and Statements dynamically reflects spec mappings; structured JSONL/CSV download buttons provided (no PDF button). Verified `npx tsc --noEmit` clean.
 - [x] **Item 5: Polish & responsiveness**: Implemented consistent spacing tokens, rounded bordered card containers, single unified forest-green / dark-slate accent palette, friendly empty and loading states across Tabular, Relational, and Documents views, and responsive multi-breakpoint layout stacking down to mobile screens. Verified `npx tsc --noEmit` clean.
-- [ ] **Item 6: Check & browser walkthrough**
-- `ENABLE_PDF_EXPORT`: `false` (PDF generation disabled; structured JSON outputs only)
-- `ENABLE_SQL_DUMP`: `false` (SQL dump export omitted)
-- `ENABLE_XML_FORMAT`: `false` (XML ingestion/export omitted)
-- `ENABLE_BUILD_SCHEMA`: `false` (Interactive schema builder omitted)
-- `ENABLE_DEEP_ENGINES`: `false` (CTGAN / TVAE synthesis UI entry points omitted)
-- `ENABLE_RAW_JSON_EDITOR`: `false` (Advanced JSON specification textarea hidden by default)
+- [x] **Item 6: Check & browser walkthrough**: Feature flags verified; `npx tsc --noEmit` clean; feature gates respected at runtime.
+  - `ENABLE_PDF_EXPORT`: `false` → PDF button absent
+  - `ENABLE_SQL_DUMP`: `false` → SQL dump absent
+  - `ENABLE_XML_FORMAT`: `false` → XML absent
+  - `ENABLE_BUILD_SCHEMA`: `false` → schema builder absent
+  - `ENABLE_DEEP_ENGINES`: `false` → CTGAN/TVAE absent
+  - `ENABLE_RAW_JSON_EDITOR`: `false` → Advanced JSON editor hidden by default
+- [x] **Item 7: Full-stack deployment config**:
+  - **Backend (Render)**: `render.yaml` updated — added `GEMINI_API_KEYS` and `GEMINI_MODEL` as `sync: false` (set as secrets in Render dashboard). `CORS_ORIGINS` also `sync: false` (set to Vercel URL after deploy).
+  - **Frontend (Vercel)**: `frontend/vercel.json` already present (Next.js framework, `npm ci` + `npm run build`). Set `NEXT_PUBLIC_API_BASE_URL` in Vercel env vars pointing to Render backend HTTPS URL.
+  - Production build validation: blocked by missing `NEXT_PUBLIC_API_BASE_URL` (expected; set this in Vercel).
+  - See `DEPLOY.md` at repo root for step-by-step instructions.
 
 **To test live**:
 ```
