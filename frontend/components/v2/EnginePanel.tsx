@@ -14,6 +14,7 @@ interface Props {
   busy: boolean;
   active: boolean;
   onEngineChange: (engine: string) => void;
+  onSeedChange?: (seed: number) => void;
   onGenerate: () => void;
   onCompare: () => void;
   onUseRecommendation: (engine: string) => void;
@@ -58,6 +59,7 @@ export function EnginePanel({
   busy,
   active,
   onEngineChange,
+  onSeedChange,
   onGenerate,
   onCompare,
   onUseRecommendation,
@@ -65,6 +67,8 @@ export function EnginePanel({
   const hasSource = !!sourceArtifactId;
   const hasMultiTable = (spec?.tables?.length ?? 0) > 1;
   const hasDocuments = !!(spec?.documents?.length);
+
+  const totalRows = spec?.tables?.reduce((sum, t) => sum + (t.row_count || 0), 0) ?? 0;
 
   // Available engine options
   const availableEngines: { id: string; label: string }[] = [
@@ -102,10 +106,49 @@ export function EnginePanel({
 
   return (
     <div>
-      {/* Engine selector — only show if more than 1 option is available */}
-      {availableEngines.length > 1 ? (
-        <label style={{ display: 'block', marginBottom: 6, fontSize: 12 }}>
-          Engine
+      {/* Overview summary */}
+      {spec && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+          <div style={{ padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 6 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Total rows</span>
+            <strong style={{ fontSize: 13, color: 'var(--text-title)' }}>
+              {totalRows.toLocaleString()}
+            </strong>
+          </div>
+          <div style={{ padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 6 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Random seed</span>
+            {onSeedChange ? (
+              <input
+                type="number"
+                min={0}
+                max={4294967295}
+                value={spec.seed ?? 42}
+                disabled={busy || active}
+                onChange={(e) => onSeedChange(Number(e.target.value))}
+                style={{
+                  fontSize: 12,
+                  padding: '2px 6px',
+                  margin: 0,
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  fontWeight: 600,
+                  color: 'var(--text-title)',
+                }}
+              />
+            ) : (
+              <strong style={{ fontSize: 13, color: 'var(--text-title)' }}>
+                {spec.seed ?? 42}
+              </strong>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Engine selector */}
+      {availableEngines.length > 1 && (
+        <label style={{ display: 'block', marginBottom: 12, fontSize: 12 }}>
+          Generation engine
           <select
             value={engine}
             disabled={busy || active}
@@ -113,7 +156,8 @@ export function EnginePanel({
             style={{
               display: 'block', width: '100%', marginTop: 6,
               border: '1px solid var(--border-default)', borderRadius: 6,
-              background: 'var(--bg-0)', color: 'var(--text-title)', padding: 9,
+              background: 'var(--bg-0)', color: 'var(--text-title)', padding: 8,
+              fontSize: 12,
             }}
           >
             {availableEngines.map((opt) => (
@@ -123,26 +167,32 @@ export function EnginePanel({
             ))}
           </select>
         </label>
-      ) : null}
+      )}
 
       {/* Action buttons */}
-      <div style={{ marginTop: availableEngines.length > 1 ? 12 : 0, display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button
           disabled={!spec || !accepted || busy || active}
           onClick={onGenerate}
-          title={!accepted ? 'Accept the specification first' : undefined}
-          style={{ margin: 0 }}
+          title={!accepted ? 'Review and accept the specification first' : undefined}
+          style={{ width: '100%', margin: 0, padding: '10px 14px', fontSize: 13 }}
         >
-          Generate artifacts
+          Generate data
         </button>
 
-        {/* Compare button only shown when source is available and comparison works */}
+        {!accepted && spec && (
+          <p style={{ fontSize: 11, color: 'var(--amber)', margin: '2px 0 0', textAlign: 'center' }}>
+            Review and check &quot;Accept specification&quot; to generate.
+          </p>
+        )}
+
+        {/* Compare button only shown when source is available */}
         {hasSource && (
           <button
             className={styles.secondary}
             disabled={busy || active}
             onClick={onCompare}
-            style={{ margin: 0 }}
+            style={{ width: '100%', margin: 0, fontSize: 12 }}
           >
             Compare engines
           </button>

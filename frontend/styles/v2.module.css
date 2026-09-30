@@ -32,11 +32,70 @@
 
 .grid {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(360px, 1.4fr) minmax(280px, 1fr);
-  gap: 20px;
-  max-width: 1500px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  max-width: 1560px;
   margin: auto;
   align-items: start;
+}
+
+.mainContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.sidePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  position: sticky;
+  top: 24px;
+}
+
+.viewNav {
+  display: flex;
+  gap: 8px;
+  background: var(--bg-1);
+  padding: 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  margin-bottom: 4px;
+}
+
+.viewTab {
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-body);
+  cursor: pointer;
+  font-size: var(--text-body-size);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  margin: 0 !important;
+}
+
+.viewTab:hover {
+  background: var(--bg-2);
+}
+
+.viewTabActive {
+  background: var(--synth-soft) !important;
+  border-color: var(--synth-border) !important;
+  color: var(--synth) !important;
+  font-weight: 600 !important;
+}
+
+.subGrid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(360px, 1.4fr);
+  gap: 20px;
 }
 
 .card {
@@ -45,7 +104,7 @@
   border-radius: var(--radius-lg);
   background: var(--bg-1);
   min-width: 0;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .card h2 {

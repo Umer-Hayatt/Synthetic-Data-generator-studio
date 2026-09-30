@@ -45,7 +45,7 @@ import { ArtifactList } from '../components/v2/ArtifactList';
 
 /* ------------------------------------------------------------------ types */
 type Operation = 'ingest' | 'generate' | 'compare';
-type RightPanel = 'generate' | 'relational' | 'documents';
+type MainView = 'tabular' | 'relational' | 'documents';
 
 interface AIUnavailable {
   reason: string;
@@ -78,7 +78,7 @@ export default function V2Studio() {
   const [busy, setBusy] = useState(false);
   const [aiUnavailable, setAiUnavailable] = useState<AIUnavailable | null>(null);
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
-  const [rightPanel, setRightPanel] = useState<RightPanel>('generate');
+  const [mainView, setMainView] = useState<MainView>('tabular');
 
   const handledJob = useRef('');
   const active = !!job && !isTerminal(job.status);
@@ -184,9 +184,9 @@ export default function V2Studio() {
                 if (manifest.tables) {
                   setTableArtifacts(manifest.tables);
                   const tableCount = Object.keys(manifest.tables).length;
-                  setMessage(`Generated ${tableCount} table artifact(s). Review in the Relational/Documents panels.`);
-                  if ((spec?.documents?.length ?? 0) > 0) setRightPanel('documents');
-                  else setRightPanel('relational');
+                  setMessage(`Generated ${tableCount} table results. Review in the Relational or Documents view.`);
+                  if ((spec?.documents?.length ?? 0) > 0) setMainView('documents');
+                  else setMainView('relational');
                   return;
                 }
               }
@@ -194,7 +194,7 @@ export default function V2Studio() {
               // not a manifest — fall through to simple message
             }
           }
-          setMessage('Generation complete. Download artifacts or load a preview below.');
+          setMessage('Generation complete. Download results or load a preview below.');
         }
       } catch (err) {
         setMessage(err instanceof Error ? err.message : 'Failed to load job results.');
@@ -315,7 +315,7 @@ export default function V2Studio() {
       {/* Header */}
       <header className={styles.header}>
         <div>
-          <p className={styles.eyebrow}>SYNTHETIC DATA PLATFORM</p>
+          <p className={styles.eyebrow}>Synthetic Data Platform</p>
           <h1>Create, review, generate</h1>
           <p>AI-assisted specifications · relational entities · reconciled documents</p>
         </div>
@@ -332,88 +332,171 @@ export default function V2Studio() {
         </div>
       </header>
 
-      {/* Three-column grid */}
+      {/* Workspace Grid */}
       <div className={styles.grid}>
 
-        {/* ---- LEFT: Entry (F1) ---- */}
-        <section className={styles.card}>
-          <h2>1. Start with a source</h2>
+        {/* ---- MAIN CONTENT AREA ---- */}
+        <div className={styles.mainContent}>
 
-          <UploadPanel disabled={busy || active} onFile={handleUpload} />
+          {/* Top-Level View Tabs */}
+          <nav className={styles.viewNav} aria-label="Views">
+            <button
+              className={`${styles.viewTab} ${mainView === 'tabular' ? styles.viewTabActive : ''}`}
+              onClick={() => setMainView('tabular')}
+            >
+              <span>📊 Tabular</span>
+            </button>
+            <button
+              className={`${styles.viewTab} ${mainView === 'relational' ? styles.viewTabActive : ''}`}
+              onClick={() => setMainView('relational')}
+            >
+              <span>🔗 Relational</span>
+              {spec?.tables && spec.tables.length > 0 && (
+                <span style={{ fontSize: 11, background: 'var(--bg-2)', padding: '1px 6px', borderRadius: 10, color: 'var(--text-muted)' }}>
+                  {spec.tables.length}
+                </span>
+              )}
+            </button>
+            <button
+              className={`${styles.viewTab} ${mainView === 'documents' ? styles.viewTabActive : ''}`}
+              onClick={() => setMainView('documents')}
+            >
+              <span>📄 Documents</span>
+              {spec?.documents && spec.documents.length > 0 && (
+                <span style={{ fontSize: 11, background: 'var(--bg-2)', padding: '1px 6px', borderRadius: 10, color: 'var(--text-muted)' }}>
+                  {spec.documents.length}
+                </span>
+              )}
+            </button>
+          </nav>
 
-          <div style={{ margin: '20px 0', borderTop: '1px solid var(--border-subtle)' }} />
+          {/* TABULAR VIEW */}
+          {mainView === 'tabular' && (
+            <div className={styles.subGrid}>
+              {/* Step 1: Start with a source */}
+              <section className={styles.card}>
+                <h2>1. Start with a source</h2>
+                <UploadPanel disabled={busy || active} onFile={handleUpload} />
+                <div style={{ margin: '20px 0', borderTop: '1px solid var(--border-subtle)' }} />
+                <AIPromptPanel
+                  disabled={busy || active}
+                  onSubmit={handleAIDraft}
+                  aiUnavailable={aiUnavailable}
+                />
+                <button
+                  className={styles.secondary}
+                  disabled={busy || active}
+                  onClick={handleExample}
+                  style={{ marginTop: 10, width: '100%' }}
+                >
+                  Load commerce + invoices example
+                </button>
+              </section>
 
-          <AIPromptPanel
-            disabled={busy || active}
-            onSubmit={handleAIDraft}
-            aiUnavailable={aiUnavailable}
-          />
-
-          <button
-            className={styles.secondary}
-            disabled={busy || active}
-            onClick={handleExample}
-            style={{ marginTop: 10, width: '100%' }}
-          >
-            Load commerce + invoices example
-          </button>
-
-          {/* Active job summary in entry panel */}
-          {job && (
-            <div style={{ marginTop: 20 }}>
-              <JobPanel job={job} onCancel={handleCancel} busy={busy} />
+              {/* Step 2: Review specification */}
+              <section className={styles.card}>
+                <h2>2. Review the specification</h2>
+                {!spec ? (
+                  <p className={styles.muted}>
+                    Upload a source, describe your dataset with AI, or load the example to see the schema here.
+                  </p>
+                ) : (
+                  <SpecReviewPanel
+                    spec={spec}
+                    accepted={accepted}
+                    busy={busy || active}
+                    onSpecChange={(s) => setSpec(s)}
+                    onAcceptChange={setAccepted}
+                    onError={(msg) => setMessage(msg)}
+                  />
+                )}
+              </section>
             </div>
           )}
-        </section>
 
-        {/* ---- MIDDLE: Spec Review (F2) ---- */}
-        <section className={styles.card}>
-          <h2>2. Review the specification</h2>
-          {!spec ? (
-            <p className={styles.muted}>
-              Upload a source, describe your dataset with AI, or load the example to see the schema here.
-            </p>
-          ) : (
-            <SpecReviewPanel
-              spec={spec}
-              accepted={accepted}
-              busy={busy || active}
-              onSpecChange={(s) => setSpec(s)}
-              onAcceptChange={setAccepted}
-              onError={(msg) => setMessage(msg)}
-            />
+          {/* RELATIONAL VIEW */}
+          {mainView === 'relational' && (
+            <section className={styles.card}>
+              <h2>Relational schema & integrity</h2>
+              {spec ? (
+                <RelationalView
+                  spec={spec}
+                  tableArtifacts={tableArtifacts}
+                  busy={busy}
+                  onGenerate={handleGenerate}
+                  onError={(msg) => setMessage(msg)}
+                />
+              ) : (
+                <div style={{ textAlign: 'center', padding: 32 }}>
+                  <p className={styles.muted} style={{ fontSize: 13, marginBottom: 12 }}>
+                    Load or draft a specification first to inspect relational relationships and integrity checks.
+                  </p>
+                  <button className={styles.secondary} onClick={handleExample}>
+                    Load commerce + invoices example
+                  </button>
+                </div>
+              )}
+            </section>
           )}
-        </section>
 
-        {/* ---- RIGHT: Generate / Relational / Documents ---- */}
-        <section className={styles.card}>
-          {/* Tab strip */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 12 }}>
-            {([
-              { key: 'generate', label: '3. Generate' },
-              { key: 'relational', label: '4. Relational' },
-              { key: 'documents', label: '5. Documents' },
-            ] as const).map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setRightPanel(key)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: 6,
-                  border: `1px solid ${key === rightPanel ? 'var(--synth)' : 'var(--border-default)'}`,
-                  background: key === rightPanel ? 'var(--synth-soft)' : 'transparent',
-                  color: key === rightPanel ? 'var(--synth)' : 'var(--text-body)',
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  fontWeight: key === rightPanel ? 600 : 400,
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {/* DOCUMENTS VIEW */}
+          {mainView === 'documents' && (
+            <section className={styles.card}>
+              <h2>Reconciled documents</h2>
+              {spec ? (
+                <DocumentView
+                  spec={spec}
+                  artifacts={artifacts}
+                  tableArtifacts={tableArtifacts}
+                />
+              ) : (
+                <div style={{ textAlign: 'center', padding: 32 }}>
+                  <p className={styles.muted} style={{ fontSize: 13, marginBottom: 12 }}>
+                    Load or draft a specification first to view reconciled invoice and bank statement documents.
+                  </p>
+                  <button className={styles.secondary} onClick={handleExample}>
+                    Load commerce + invoices example
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
 
-          {rightPanel === 'generate' && (
+          {/* PREVIEW TABLE (if preview requested) */}
+          {previewRows.length > 0 && (
+            <section className={styles.card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h2 style={{ margin: 0 }}>Preview · first {previewRows.length} rows</h2>
+                <button className={styles.secondary} onClick={() => setPreviewRows([])} style={{ fontSize: 11 }}>
+                  Dismiss
+                </button>
+              </div>
+              <div className={styles.preview}>
+                <table>
+                  <thead>
+                    <tr>{Object.keys(previewRows[0]).map((k) => <th key={k}>{k}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {previewRows.map((row, i) => (
+                      <tr key={i}>
+                        {Object.keys(previewRows[0]).map((k) => (
+                          <td key={k}>
+                            {typeof row[k] === 'object' ? JSON.stringify(row[k]) : String(row[k] ?? '')}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* ---- RIGHT SIDE PANEL: Generation Settings, Active Job, Results ---- */}
+        <aside className={styles.sidePanel}>
+          <section className={styles.card}>
+            <h2>Generation settings</h2>
             <EnginePanel
               spec={spec}
               accepted={accepted}
@@ -424,37 +507,34 @@ export default function V2Studio() {
               busy={busy}
               active={active}
               onEngineChange={setEngine}
+              onSeedChange={(seed) => spec && setSpec({ ...spec, seed })}
               onGenerate={handleGenerate}
               onCompare={handleCompare}
               onUseRecommendation={(rec) => { setEngine(rec); setMessage(`Engine set to ${rec}. Review spec and accept to generate.`); }}
             />
+          </section>
+
+          {/* Active Job Panel */}
+          {job && (
+            <section className={styles.card}>
+              <h2>Job status</h2>
+              <JobPanel job={job} onCancel={handleCancel} busy={busy} />
+            </section>
           )}
 
-          {rightPanel === 'relational' && spec && (
-            <RelationalView
-              spec={spec}
-              tableArtifacts={tableArtifacts}
-              busy={busy}
-              onError={(msg) => setMessage(msg)}
-            />
+          {/* Generated Results & Downloads */}
+          {artifacts.length > 0 && (
+            <section className={styles.card}>
+              <h2>Results ({artifacts.length})</h2>
+              <ArtifactList
+                artifacts={artifacts}
+                busy={busy}
+                onPreview={(rows) => setPreviewRows(rows)}
+                onError={(msg) => setMessage(msg)}
+              />
+            </section>
           )}
-
-          {rightPanel === 'relational' && !spec && (
-            <p className={styles.muted}>Load or draft a spec first.</p>
-          )}
-
-          {rightPanel === 'documents' && spec && (
-            <DocumentView
-              spec={spec}
-              artifacts={artifacts}
-              tableArtifacts={tableArtifacts}
-            />
-          )}
-
-          {rightPanel === 'documents' && !spec && (
-            <p className={styles.muted}>Load or draft a spec first.</p>
-          )}
-        </section>
+        </aside>
       </div>
 
       {/* Status message */}
@@ -473,49 +553,6 @@ export default function V2Studio() {
             ×
           </button>
         </div>
-      )}
-
-      {/* Artifacts (F7) */}
-      {artifacts.length > 0 && (
-        <section className={styles.card} style={{ maxWidth: 1500, margin: '0 auto 20px' }}>
-          <h2>Artifacts</h2>
-          <ArtifactList
-            artifacts={artifacts}
-            busy={busy}
-            onPreview={(rows) => setPreviewRows(rows)}
-            onError={(msg) => setMessage(msg)}
-          />
-        </section>
-      )}
-
-      {/* Preview table (F4/F7) */}
-      {previewRows.length > 0 && (
-        <section className={styles.card} style={{ maxWidth: 1500, margin: '0 auto 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h2 style={{ margin: 0 }}>Preview · first {previewRows.length} rows</h2>
-            <button className={styles.secondary} onClick={() => setPreviewRows([])} style={{ fontSize: 11 }}>
-              Dismiss
-            </button>
-          </div>
-          <div className={styles.preview}>
-            <table>
-              <thead>
-                <tr>{Object.keys(previewRows[0]).map((k) => <th key={k}>{k}</th>)}</tr>
-              </thead>
-              <tbody>
-                {previewRows.map((row, i) => (
-                  <tr key={i}>
-                    {Object.keys(previewRows[0]).map((k) => (
-                      <td key={k}>
-                        {typeof row[k] === 'object' ? JSON.stringify(row[k]) : String(row[k] ?? '')}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
       )}
     </main>
   );
