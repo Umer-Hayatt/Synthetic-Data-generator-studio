@@ -11,6 +11,7 @@ from faker.providers import BaseProvider
 from scipy.stats import norm
 from app.models.spec import DatasetSpec, PrivacyRule
 from app.core.config import settings
+from app.core.locales import normalize_locale, generate_coherent_person
 
 # ---------------------------------------------------------------------------
 # Curated locale-aware data for realistic Pakistani/generic content.
@@ -33,10 +34,12 @@ class PakistaniAddressProvider(BaseProvider):
 
 
 def locale_details(locale):
-    requested = locale.replace('-', '_')
-    effective = 'en_PK' if requested.lower() in ('ur', 'ur_pk', 'pk', 'en_pk') else requested
-    return {'requested_locale': locale, 'faker_locale': effective,
-            'locale_note': 'Romanized Pakistani names and curated Pakistani addresses.' if effective == 'en_PK' else None}
+    """Resolve and validate locale; always falls back to en_US rather than raising."""
+    effective, warning = normalize_locale(locale)
+    note = warning
+    if effective == 'en_PK':
+        note = note or 'Romanized Pakistani names and curated Pakistani addresses.'
+    return {'requested_locale': locale, 'faker_locale': effective, 'locale_note': note}
 
 
 def make_faker(locale):
@@ -44,10 +47,12 @@ def make_faker(locale):
     try:
         fake = Faker(effective)
     except (AttributeError, KeyError):
-        raise ValueError('Unsupported Faker locale.') from None
+        # normalize_locale always returns a valid locale, but be safe
+        fake = Faker('en_US')
     if effective == 'en_PK':
         fake.add_provider(PakistaniAddressProvider)
     return fake
+
 
 _GENERIC_CITIES = [
     'New York', 'London', 'Tokyo', 'Dubai', 'Singapore',
@@ -98,7 +103,7 @@ _CATEGORICAL_PATTERNS = [
 
 def _get_categorical_values(col_name: str, locale: str) -> list | None:
     """Return a curated list for categorical columns whose name matches a known pattern."""
-    is_pk = locale.lower().startswith(('ur', 'pk'))
+    is_pk = locale.lower().startswith(('ur', 'pk')) or locale.upper().endswith('PK')
     for pattern, key in _CATEGORICAL_PATTERNS:
         if pattern.search(col_name):
             if key == '_city':
@@ -121,6 +126,31 @@ def _get_categorical_values(col_name: str, locale: str) -> list | None:
     return None
 
 
+# Semantic types and column keywords that trigger coherent person synthesis
+_PERSON_SEMANTICS = frozenset({'email', 'phone', 'person_name', 'address'})
+_PERSON_KW = ('email', 'phone', 'name', 'address', 'cnic')
+
+
+def _person_field(col_name: str, semantic_type: str) -> str:
+    """Map column + semantic_type to a key in the coherent person record dict."""
+    n = col_name.lower()
+    if semantic_type == 'person_name' or n == 'name' or 'full_name' in n:
+        return 'full_name'
+    if semantic_type == 'email' or 'email' in n:
+        return 'email'
+    if semantic_type == 'phone' or 'phone' in n:
+        return 'phone'
+    if semantic_type == 'address' or 'address' in n:
+        return 'address'
+    if 'first' in n and 'name' in n:
+        return 'first_name'
+    if 'last' in n and 'name' in n:
+        return 'last_name'
+    if 'cnic' in n or 'national_id' in n:
+        return 'cnic'
+    return 'full_name'
+
+
 def generate(spec: DatasetSpec) -> pd.DataFrame:
     if len(spec.tables) != 1:
         raise ValueError('P0 generation supports exactly one table.')
@@ -135,6 +165,20 @@ def generate(spec: DatasetSpec) -> pd.DataFrame:
     if table.correlation_columns:
         z = rng.multivariate_normal(np.zeros(len(table.correlation_columns)), table.correlation_matrix, size=n)
         uniforms = dict(zip(table.correlation_columns, norm.cdf(z).T))
+
+    # Pre-generate coherent person records when any person-type column exists.
+    # This ensures email is derived from the actual name, gender is consistent, etc.
+    person_cols_exist = any(
+        c.semantic_type in _PERSON_SEMANTICS or any(kw in c.name.lower() for kw in _PERSON_KW)
+        for c in table.columns
+    )
+    _persons: list[dict] = []
+    if person_cols_exist:
+        seen_emails: set = set()
+        for i in range(n):
+            row_rng = np.random.default_rng(spec.seed ^ ((i + 1) << 16))
+            _persons.append(generate_coherent_person(spec.locale, None, row_rng, seen_emails, i + 1))
+
     result = {}
     for col in table.columns:
         constraints, distribution = col.constraints, col.distribution
@@ -146,11 +190,12 @@ def generate(spec: DatasetSpec) -> pd.DataFrame:
             values = np.arange(start, start + n).astype(float)
         elif col.semantic_type == 'id':
             values = np.array([f'{col.name}_{spec.seed}_{i+1}' for i in range(n)], dtype=object)
-        elif col.semantic_type in ('email', 'phone', 'person_name', 'address'):
-            provider = {'email': fake.email, 'phone': fake.phone_number, 'person_name': fake.name, 'address': fake.address}[col.semantic_type]
-            values = np.array([provider() for _ in range(n)], dtype=object)
-            if spec.version == '2.0' and col.semantic_type == 'email' and constraints.unique:
-                values = np.array([f'{value.split("@")[0]}.{i+1}@example.net' for i, value in enumerate(values)], dtype=object)
+        elif _persons and (col.semantic_type in _PERSON_SEMANTICS
+                           or any(kw in col.name.lower() for kw in _PERSON_KW)):
+            # Coherent locale-aware synthesis: authentic name, email derived from name,
+            # realistic phone format (e.g. +92 3xx...), city with population weights.
+            field_key = _person_field(col.name, col.semantic_type)
+            values = np.array([p.get(field_key, p['full_name']) for p in _persons], dtype=object)
         elif constraints.categories or (distribution and distribution.values):
             # Explicit categories from spec
             categories = constraints.categories or distribution.values

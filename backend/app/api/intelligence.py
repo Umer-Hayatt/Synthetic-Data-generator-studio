@@ -4,6 +4,7 @@ from functools import lru_cache
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
 from app.core.ai import AIError, configured_router
+from app.core.locales import normalize_locale
 from app.models.spec import DatasetSpec, Model
 
 router = APIRouter(prefix='/api/v1/ai')
@@ -269,10 +270,17 @@ def _draft_to_spec(draft: _DatasetSpecDraft) -> tuple[DatasetSpec, list[str]]:
             'target_column': target_column,
         })
 
+    # Resolve and validate locale at spec-build time (not at generation time).
+    # normalize_locale always returns a valid Faker locale; falls back to en_US with a warning.
+    raw_locale = draft.locale or 'en_US'
+    resolved_locale, locale_warning = normalize_locale(raw_locale)
+    if locale_warning:
+        warnings.append(locale_warning)
+
     spec_dict = {
         'name': draft.name or 'dataset',
         'version': '2.0',
-        'locale': draft.locale or 'en_US',
+        'locale': resolved_locale,
         'seed': max(0, min(draft.seed, 2**32 - 1)),
         'tables': tables,
         'edge_cases': draft.edge_cases[:30],

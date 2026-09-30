@@ -26,7 +26,7 @@ export function ArtifactList({ artifacts, busy, onPreview, onError }: Props) {
   }
 
   return (
-    <div style={{ marginTop: 16 }}>
+    <div style={{ marginTop: 0 }}>
       <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-title)', marginBottom: 8 }}>
         Results ({artifacts.length})
       </p>
@@ -37,19 +37,22 @@ export function ArtifactList({ artifacts, busy, onPreview, onError }: Props) {
         const sizeLabel = sizeMiB >= 1
           ? `${sizeMiB.toFixed(1)} MiB`
           : `${(artifact.size / 1024).toFixed(1)} KiB`;
+        // Use table name from artifact metadata if available, otherwise "Result N"
+        const label = (artifact as any).table_name ?? (artifact as any).name ?? `Result ${i + 1}`;
 
         return (
           <div key={artifact.id} className={styles.artifact}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-              <div>
-                <p style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-title)' }}>
-                  Result {i + 1}
+            {/* header row: title on left, actions on right — both min-width:0 to prevent overflow */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
+              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                <p style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-title)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {label}
                   <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>
                     {artifact.format.toUpperCase()} · {sizeLabel}
                   </span>
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexShrink: 0, flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                 {!expired && artifact.format !== 'json' && (
                   <button
                     className={styles.secondary}
@@ -61,24 +64,24 @@ export function ArtifactList({ artifacts, busy, onPreview, onError }: Props) {
                   </button>
                 )}
                 {expired ? (
-                  <p style={{ color: 'var(--rose)', fontSize: 11, margin: 0 }}>This result expired, please regenerate</p>
+                  <p style={{ color: 'var(--rose)', fontSize: 11, margin: 0 }}>Expired — please regenerate</p>
                 ) : (
                   <>
                     {artifact.format === 'jsonl' && (
                       <a
                         href={`${v2Origin}/api/v1/artifacts/${artifact.id}/download?format=csv`}
                         download
-                        style={{ fontSize: 11, color: 'var(--synth)', padding: '4px 8px', border: '1px solid var(--synth-border)', borderRadius: 6, textDecoration: 'none' }}
+                        style={{ fontSize: 11, color: 'var(--synth)', padding: '4px 8px', border: '1px solid var(--synth-border)', borderRadius: 6, textDecoration: 'none', whiteSpace: 'nowrap' }}
                       >
-                        Download CSV
+                        CSV
                       </a>
                     )}
                     <a
                       href={`${v2Origin}/api/v1/artifacts/${artifact.id}/download`}
                       download
-                      style={{ fontSize: 11, color: 'var(--text-body)', padding: '4px 8px', border: '1px solid var(--border-default)', borderRadius: 6, textDecoration: 'none' }}
+                      style={{ fontSize: 11, color: 'var(--text-body)', padding: '4px 8px', border: '1px solid var(--border-default)', borderRadius: 6, textDecoration: 'none', whiteSpace: 'nowrap' }}
                     >
-                      Download {artifact.format.toUpperCase()}
+                      {artifact.format.toUpperCase()}
                     </a>
                   </>
                 )}

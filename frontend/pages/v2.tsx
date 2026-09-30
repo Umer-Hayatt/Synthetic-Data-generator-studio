@@ -526,7 +526,6 @@ export default function V2Studio() {
           {/* Generated Results & Downloads */}
           {artifacts.length > 0 && (
             <section className={styles.card}>
-              <h2>Results ({artifacts.length})</h2>
               <ArtifactList
                 artifacts={artifacts}
                 busy={busy}
