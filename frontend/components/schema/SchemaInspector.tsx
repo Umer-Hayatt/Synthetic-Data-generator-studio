@@ -63,6 +63,7 @@ export const SchemaInspector: React.FC = () => {
         {table.columns.map((col) => {
           const isNumeric = col.dtype === 'integer' || col.dtype === 'float';
           const privacyVal = getPrivacyValue(col);
+          const categories = col.constraints.categories ?? col.distribution?.values;
 
           return (
             <div key={col.name} className="schema-field-card">
@@ -99,7 +100,7 @@ export const SchemaInspector: React.FC = () => {
                     <div className="field-stat">
                       <span className="field-stat-label">Observed Range</span>
                       <span className="field-stat-val">
-                        {col.constraints.min !== undefined && col.constraints.max !== undefined
+                        {col.constraints.min != null && col.constraints.max != null
                           ? `${col.constraints.min} – ${col.constraints.max}`
                           : 'Dynamic'}
                       </span>
@@ -108,7 +109,7 @@ export const SchemaInspector: React.FC = () => {
                     <div className="field-stat">
                       <span className="field-stat-label">Mean</span>
                       <span className="field-stat-val">
-                        {col.distribution?.mean !== undefined
+                        {col.distribution?.mean != null
                           ? col.distribution.mean.toFixed(2)
                           : '—'}
                       </span>
@@ -119,15 +120,15 @@ export const SchemaInspector: React.FC = () => {
                     <div className="field-stat">
                       <span className="field-stat-label">Categories</span>
                       <span className="field-stat-val" style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {col.constraints.categories?.slice(0, 3).join(' / ') || 'Dynamic'}
-                        {(col.constraints.categories?.length || 0) > 3 ? '...' : ''}
+                        {categories?.slice(0, 3).join(' / ') || 'Dynamic'}
+                        {(categories?.length || 0) > 3 ? '...' : ''}
                       </span>
                     </div>
 
                     <div className="field-stat">
                       <span className="field-stat-label">Unique Values</span>
                       <span className="field-stat-val">
-                        {col.constraints.categories?.length || '—'}
+                        {categories?.length || '—'}
                       </span>
                     </div>
                   </>

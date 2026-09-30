@@ -182,4 +182,10 @@ export const api = {
       datasetId
     )}`;
   },
+
+  async downloadData(format: 'csv' | 'json', datasetId: string): Promise<Blob> {
+    const res = await fetch(api.getExportUrl(format, datasetId));
+    if (!res.ok) await handleResponse<never>(res);
+    return res.blob();
+  },
 };

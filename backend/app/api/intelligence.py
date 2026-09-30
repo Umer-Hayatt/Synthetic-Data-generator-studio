@@ -134,7 +134,7 @@ def _draft_to_spec(draft: _DatasetSpecDraft) -> DatasetSpec:
 
         tables.append({
             'name': t.name,
-            'row_count': max(1, min(t.row_count, 5000)),
+            'row_count': t.row_count,
             'columns': columns,
             'primary_key': primary_key,
             'foreign_keys': foreign_keys,

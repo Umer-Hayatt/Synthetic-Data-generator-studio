@@ -15,7 +15,7 @@ interface ExportModalProps {
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => {
-  const { generatedToken, generatedRowCount, datasetSpec, datasetName } =
+  const { generatedToken, generatedRowCount, datasetSpec, datasetName, reportError } =
     useStudio();
   const [downloading, setDownloading] = useState<'csv' | 'json' | null>(null);
 
@@ -23,21 +23,25 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
 
   const colCount = datasetSpec?.tables[0]?.columns.length || 0;
 
-  const handleDownload = (format: 'csv' | 'json') => {
+  const handleDownload = async (format: 'csv' | 'json') => {
     setDownloading(format);
-    const url = api.getExportUrl(format, generatedToken);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${datasetName || 'synthetic'}_data.${format}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    setTimeout(() => {
-      setDownloading(null);
+    try {
+      const blob = await api.downloadData(format, generatedToken);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${datasetName || 'synthetic'}_data.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       onClose();
-    }, 600);
+    } catch (err: any) {
+      reportError({ message: err.message || 'Export failed.', isSessionExpired: err.isSessionExpired });
+      onClose();
+    } finally {
+      setDownloading(null);
+    }
   };
 
   return (

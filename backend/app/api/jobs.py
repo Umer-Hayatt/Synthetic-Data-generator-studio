@@ -207,8 +207,10 @@ _MEDIA_TYPES = {
 
 @router.get('/artifacts/{artifact_id}/download')
 def download_artifact(artifact_id: str, format: str | None = None):
-    artifact = artifacts.get(artifact_id)  # raises KeyError -> 404 via get_artifact call below
-    get_artifact(artifact_id, 0)
+    try:
+        artifact = artifacts.get(artifact_id)
+    except KeyError:
+        raise HTTPException(404, 'Artifact not found or expired.') from None
     target_fmt = (format or artifact.format).lower()
     if target_fmt not in _MEDIA_TYPES:
         target_fmt = artifact.format

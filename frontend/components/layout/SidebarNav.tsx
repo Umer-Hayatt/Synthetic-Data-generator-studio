@@ -45,19 +45,19 @@ export const SidebarNav: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Real Records:</span>
                 <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontWeight: 600 }}>
-                  {referenceRowCount || 200}
+                  {referenceRowCount}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Synthetic Records:</span>
                 <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 600 }}>
-                  {generatedRowCount || 200}
+                  {generatedRowCount}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Columns:</span>
                 <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 500 }}>
-                  {columnsCount || 9}
+                  {columnsCount}
                 </span>
               </div>
             </div>

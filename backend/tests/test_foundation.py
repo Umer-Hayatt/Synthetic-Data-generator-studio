@@ -92,3 +92,20 @@ def test_async_ingest_api(monkeypatch, tmp_path):
     assert client.get('/api/v1/artifacts/' + profile_id).status_code == 200
     assert client.get('/api/v1/artifacts/' + profile_id + '/download').json()['row_count'] == 2
     executor.shutdown()
+
+
+def test_missing_and_expired_artifact_download_returns_404(monkeypatch, tmp_path):
+    from app.api import jobs as api
+    clock = [1000.0]
+    monkeypatch.setattr('app.core.artifacts.time.time', lambda: clock[0])
+    artifacts = LocalArtifactStore(tmp_path, ttl=10)
+    monkeypatch.setattr(api, 'artifacts', artifacts)
+    client = TestClient(app)
+    assert client.get('/api/v1/artifacts/missing/download').status_code == 404
+    artifact = artifacts.write([b'{"id":1}\n'], 'jsonl')
+    assert client.get(f'/api/v1/artifacts/{artifact.id}/download').status_code == 200
+    clock[0] += 11
+    for suffix in ('', '?format=csv'):
+        response = client.get(f'/api/v1/artifacts/{artifact.id}/download{suffix}')
+        assert response.status_code == 404
+        assert 'expired' in response.json()['detail']

@@ -60,3 +60,10 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Local end-to-end test tooling and generated evidence
+.test-tools/
+qa/*.png
+qa/browser-export.*
+qa/browser-invoices.jsonl
+qa/*-results.json

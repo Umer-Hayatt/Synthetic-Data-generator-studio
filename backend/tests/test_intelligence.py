@@ -3,6 +3,7 @@ from app.main import app
 from app.core.ai import AIRouter
 from app.api import intelligence
 from test_ai import Fake
+import pytest
 
 
 def test_prompt_spec_review_and_outage(monkeypatch):
@@ -23,3 +24,23 @@ def test_malformed_spec_rejected(monkeypatch):
     monkeypatch.setattr(intelligence,'get_router',lambda:AIRouter([Fake([{'tables':[]}])]))
     result = TestClient(app).post('/api/v1/ai/spec',json={'prompt':'x'}).json()
     assert result['status'] == 'unavailable' and result['reason'] == 'malformed_output'
+
+
+@pytest.mark.parametrize('rows', [1, 5001, 100000])
+def test_draft_preserves_requested_row_count(monkeypatch, rows):
+    draft = {'name': 'customers', 'tables': [{'name': 'customers', 'row_count': rows,
+        'columns': [{'name': 'id', 'dtype': 'integer', 'is_primary_key': True}]}]}
+    monkeypatch.setattr(intelligence, 'get_router', lambda: AIRouter([Fake([draft])]))
+    result = TestClient(app).post('/api/v1/ai/spec', json={'prompt': f'Create {rows} customers'}).json()
+    assert result['status'] == 'review_required'
+    assert result['spec']['tables'][0]['row_count'] == rows
+
+
+@pytest.mark.parametrize('rows', [0, -1, 10000001])
+def test_invalid_draft_counts_are_rejected_not_silently_changed(monkeypatch, rows):
+    draft = {'tables': [{'name': 'customers', 'row_count': rows,
+        'columns': [{'name': 'id', 'dtype': 'integer', 'is_primary_key': True}]}]}
+    monkeypatch.setattr(intelligence, 'get_router', lambda: AIRouter([Fake([draft])]))
+    result = TestClient(app).post('/api/v1/ai/spec', json={'prompt': 'Create customers'}).json()
+    assert result['status'] == 'unavailable'
+    assert result['reason'] == 'malformed_output'

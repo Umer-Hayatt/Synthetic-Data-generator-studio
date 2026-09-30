@@ -15,12 +15,6 @@ import {
 } from '../types';
 import { api, ApiError } from '../services/api';
 import { SAMPLE_DATASETS, getSampleFile } from '../services/samples';
-import {
-  FIXTURE_CHURN_SPEC,
-  FIXTURE_CHURN_PREVIEW,
-  FIXTURE_CHURN_QUALITY,
-  FIXTURE_CHURN_TSTR,
-} from '../services/fixtures';
 
 interface StudioContextType {
   // Session & Tokens (Reference vs Generated kept strictly separate)
@@ -76,6 +70,7 @@ interface StudioContextType {
   ) => Promise<boolean>;
   clearSession: () => void;
   dismissError: () => void;
+  reportError: (error: { message: string; isSessionExpired?: boolean }) => void;
 }
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
@@ -240,56 +235,14 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const loadFixtureChurn = useCallback(() => {
-    setReferenceToken('ref-churn-fixture');
-    setGeneratedToken('gen-churn-fixture');
-    setTokenExpirySeconds(900);
-    setDatasetName('customer_churn');
-    setDatasetSpec(FIXTURE_CHURN_SPEC);
-    setReferencePreview(FIXTURE_CHURN_PREVIEW);
-    setReferenceRowCount(200);
-    setReferenceColumns([
-      'customer_id',
-      'gender',
-      'senior_citizen',
-      'tenure_months',
-      'monthly_charges',
-      'total_charges',
-      'contract_type',
-      'payment_method',
-      'churn',
-    ]);
-    setGeneratedPreview(FIXTURE_CHURN_PREVIEW);
-    setGeneratedRowCount(200);
-    setGeneratedColumns([
-      'customer_id',
-      'gender',
-      'senior_citizen',
-      'tenure_months',
-      'monthly_charges',
-      'total_charges',
-      'contract_type',
-      'payment_method',
-      'churn',
-    ]);
-    setQualityResults(FIXTURE_CHURN_QUALITY);
-    setTstrResults(FIXTURE_CHURN_TSTR);
-    setActiveTab('preview');
-  }, []);
-
   const loadSampleDataset = useCallback(
     async (sampleId: string): Promise<boolean> => {
       const sample = SAMPLE_DATASETS.find((s) => s.id === sampleId);
       if (!sample) return false;
       const file = getSampleFile(sample);
-      const success = await handleFileUpload(file);
-      if (!success && sampleId === 'customer_churn') {
-        loadFixtureChurn();
-        return true;
-      }
-      return success;
+      return handleFileUpload(file);
     },
-    [handleFileUpload, loadFixtureChurn]
+    [handleFileUpload]
   );
 
   const updateSpec = useCallback((spec: DatasetSpec) => {
@@ -475,6 +428,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         triggerTstrEvaluation,
         clearSession,
         dismissError,
+        reportError: setError,
       }}
     >
       {children}

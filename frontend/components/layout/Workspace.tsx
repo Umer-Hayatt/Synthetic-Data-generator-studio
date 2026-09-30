@@ -74,7 +74,7 @@ export const Workspace: React.FC = () => {
               {datasetName || 'customer_churn'}
             </span>
             <span className="badge badge-synth" style={{ fontSize: '9px' }}>
-              Synthesized ({generatedRowCount || 200} rows)
+              {generatedRowCount > 0 ? `Synthesized (${generatedRowCount} rows)` : 'Not generated'}
             </span>
           </div>
 

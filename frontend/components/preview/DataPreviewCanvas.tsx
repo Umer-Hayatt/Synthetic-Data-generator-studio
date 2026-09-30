@@ -65,7 +65,7 @@ export const DataPreviewCanvas: React.FC = () => {
             <Sparkles size={12} />
             <span>Synthetic Preview</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', opacity: 0.85, marginLeft: '4px' }}>
-              ({generatedRowCount || 200})
+              ({generatedRowCount})
             </span>
           </button>
 
@@ -80,7 +80,7 @@ export const DataPreviewCanvas: React.FC = () => {
             <Database size={12} />
             <span>Real Reference Sample</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', opacity: 0.85, marginLeft: '4px' }}>
-              ({referenceRowCount || 200})
+              ({referenceRowCount})
             </span>
           </button>
         </div>
