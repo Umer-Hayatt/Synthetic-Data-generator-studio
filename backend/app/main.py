@@ -15,6 +15,7 @@ from app.core.store import store
 from app.api.evaluate import router as evaluate_router
 from app.api.jobs import router as jobs_router, artifacts, jobs
 from app.api.intelligence import router as intelligence_router
+from app.api.documents import router as documents_router
 
 @asynccontextmanager
 async def lifespan(app):
@@ -36,7 +37,7 @@ app.add_middleware(BodyLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in os.getenv(
-        'CORS_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000'
+        'CORS_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001'
     ).split(',') if origin.strip()],
     allow_methods=['GET', 'POST'],
     allow_headers=['Content-Type'],
@@ -49,3 +50,4 @@ app.include_router(export_router)
 app.include_router(evaluate_router)
 app.include_router(jobs_router)
 app.include_router(intelligence_router)
+app.include_router(documents_router)
