@@ -103,12 +103,18 @@ class LocalJobExecutor:
                 for artifact_id in outputs:
                     self.artifacts.delete(artifact_id)
                 self.store.update(token, status='cancelled', stage='cancelled')
+            except ValueError as exc:
+                pins.close()
+                for artifact_id in outputs:
+                    self.artifacts.delete(artifact_id)
+                # ValueError messages are safe to surface — they come from our own validation code.
+                self.store.update(token, status='failed', stage='failed', error=str(exc))
             except Exception:
                 pins.close()
                 for artifact_id in outputs:
                     self.artifacts.delete(artifact_id)
-                # Provider/parser exceptions may contain source rows or secrets.
-                self.store.update(token, status='failed', stage='failed', error='Operation failed validation or exceeded configured resources. Check format, schema and deployment limits.')
+                # Non-ValueError exceptions may contain source rows or secrets — keep generic.
+                self.store.update(token, status='failed', stage='failed', error='Generation failed due to an internal error. Check your spec schema and deployment limits.')
             finally:
                 pins.close()
                 with self.lock:

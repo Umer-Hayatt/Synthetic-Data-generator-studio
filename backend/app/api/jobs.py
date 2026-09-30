@@ -64,8 +64,15 @@ def generate_job(plan: GenerationPlan):
         raise HTTPException(400, 'This engine uses the reviewed specification rather than raw source fitting.')
     if plan.spec.business_rules:
         raise HTTPException(400, 'Free-text business rules are review suggestions. Translate them to supported typed rules before execution.')
+    # Auto-upgrade engine for multi-table specs so the user does not need to pick manually.
+    effective_engine = plan.engine
+    if effective_engine == 'statistical' and len(plan.spec.tables) > 1:
+        if plan.spec.documents:
+            effective_engine = 'documents'
+        elif any(t.foreign_keys for t in plan.spec.tables):
+            effective_engine = 'relational'
     try:
-        engine = registry.create(plan.engine)
+        engine = registry.create(effective_engine)
         if engine.capabilities().get('available') is False:
             raise HTTPException(400, 'Optional deep capability is not installed/enabled; use statistical generation.')
         if needs_source and (len(plan.spec.tables) != 1 or plan.spec.tables[0].row_count > settings.max_rows):
@@ -85,7 +92,7 @@ def generate_job(plan: GenerationPlan):
                 engine.fit(frame,target=plan.spec.tables[0].target_column,seed=plan.spec.seed)
             else:
                 engine.fit(plan.spec)
-            if plan.engine == 'statistical':
+            if effective_engine == 'statistical':
                 total, done = plan.spec.tables[0].row_count, 0
                 def chunks():
                     nonlocal done
