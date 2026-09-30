@@ -7,6 +7,7 @@ import re
 import numpy as np
 import pandas as pd
 from faker import Faker
+from faker.providers import BaseProvider
 from scipy.stats import norm
 from app.models.spec import DatasetSpec, PrivacyRule
 from app.core.config import settings
@@ -21,6 +22,32 @@ _PK_CITIES = [
     'Multan', 'Peshawar', 'Quetta', 'Hyderabad', 'Sialkot',
     'Gujranwala', 'Bahawalpur', 'Sargodha', 'Sukkur', 'Larkana',
 ]
+
+
+class PakistaniAddressProvider(BaseProvider):
+    """Romanized Pakistani addresses; Faker has no en_PK address provider."""
+    def address(self):
+        road = self.random_element(('Jinnah Road', 'Iqbal Road', 'Quaid Avenue', 'Liaquat Road'))
+        city = self.random_element(_PK_CITIES)
+        return f'{self.random_int(1, 999)} {road}, {city}, Pakistan'
+
+
+def locale_details(locale):
+    requested = locale.replace('-', '_')
+    effective = 'en_PK' if requested.lower() in ('ur', 'ur_pk', 'pk', 'en_pk') else requested
+    return {'requested_locale': locale, 'faker_locale': effective,
+            'locale_note': 'Romanized Pakistani names and curated Pakistani addresses.' if effective == 'en_PK' else None}
+
+
+def make_faker(locale):
+    effective = locale_details(locale)['faker_locale']
+    try:
+        fake = Faker(effective)
+    except (AttributeError, KeyError):
+        raise ValueError('Unsupported Faker locale.') from None
+    if effective == 'en_PK':
+        fake.add_provider(PakistaniAddressProvider)
+    return fake
 
 _GENERIC_CITIES = [
     'New York', 'London', 'Tokyo', 'Dubai', 'Singapore',
@@ -102,10 +129,7 @@ def generate(spec: DatasetSpec) -> pd.DataFrame:
         raise ValueError('Generation cell limit exceeded.')
     n = table.row_count
     rng = np.random.default_rng(spec.seed)
-    try:
-        fake = Faker(spec.locale)
-    except (AttributeError, KeyError) as exc:
-        raise ValueError('Unsupported Faker locale.') from exc
+    fake = make_faker(spec.locale)
     fake.seed_instance(spec.seed)
     uniforms = {}
     if table.correlation_columns:
@@ -122,9 +146,11 @@ def generate(spec: DatasetSpec) -> pd.DataFrame:
             values = np.arange(start, start + n).astype(float)
         elif col.semantic_type == 'id':
             values = np.array([f'{col.name}_{spec.seed}_{i+1}' for i in range(n)], dtype=object)
-        elif col.semantic_type in ('email', 'phone', 'person_name'):
-            provider = {'email': fake.email, 'phone': fake.phone_number, 'person_name': fake.name}[col.semantic_type]
+        elif col.semantic_type in ('email', 'phone', 'person_name', 'address'):
+            provider = {'email': fake.email, 'phone': fake.phone_number, 'person_name': fake.name, 'address': fake.address}[col.semantic_type]
             values = np.array([provider() for _ in range(n)], dtype=object)
+            if spec.version == '2.0' and col.semantic_type == 'email' and constraints.unique:
+                values = np.array([f'{value.split("@")[0]}.{i+1}@example.net' for i, value in enumerate(values)], dtype=object)
         elif constraints.categories or (distribution and distribution.values):
             # Explicit categories from spec
             categories = constraints.categories or distribution.values

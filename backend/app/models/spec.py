@@ -56,7 +56,7 @@ class PrivacyRule(Model):
 class ColumnSpec(Model):
     name: str = Field(min_length=1, max_length=128)
     dtype: Literal['integer', 'float', 'boolean', 'string', 'datetime']
-    semantic_type: Literal['id', 'email', 'phone', 'person_name', 'money', 'categorical', 'numeric', 'datetime', 'generic_text'] = 'generic_text'
+    semantic_type: Literal['id', 'email', 'phone', 'person_name', 'address', 'money', 'categorical', 'numeric', 'datetime', 'generic_text'] = 'generic_text'
     nullable: bool = True
     null_rate: float = Field(default=0, ge=0, le=1)
     constraints: Constraints = Field(default_factory=Constraints)
@@ -76,7 +76,7 @@ class ColumnSpec(Model):
             raise ValueError('noise and outliers require numeric columns')
         if self.constraints.auto_increment and self.dtype != 'integer':
             raise ValueError('auto_increment requires integer dtype')
-        if self.semantic_type in ('email', 'phone', 'person_name') and self.dtype != 'string':
+        if self.semantic_type in ('email', 'phone', 'person_name', 'address') and self.dtype != 'string':
             raise ValueError('identity semantics require string dtype')
         if self.semantic_type == 'id' and self.dtype not in ('integer', 'string'):
             raise ValueError('ID semantics require integer or string dtype')
@@ -106,6 +106,7 @@ class ForeignKey(Model):
     cardinality: Literal['1:1', '1:N'] = '1:N'
     min_children: int = Field(default=0, ge=0)
     max_children: int | None = Field(default=None, ge=1)
+    allocation: Literal['uniform', 'zipf'] = 'uniform'
 
 
 class Reconciliation(Model):
@@ -114,6 +115,34 @@ class Reconciliation(Model):
     child_table: str
     foreign_key: str
     factors: list[str] = Field(min_length=1, max_length=3)
+    discount_column: str | None = None
+    tax_column: str | None = None
+
+
+class ReferenceValue(Model):
+    table: str
+    column: str
+    foreign_key: str
+    reference_column: str
+
+
+class CategoryRange(Model):
+    table: str
+    category_column: str
+    value_column: str
+    ranges: dict[str, tuple[float, float]] = Field(min_length=1, max_length=100)
+
+
+class Settlement(Model):
+    """Explicit full one-to-one settlement, not a partial-payment simulator."""
+    table: str
+    foreign_key: str
+    amount_column: str
+    total_column: str
+    status_column: str | None = None
+    parent_status_column: str | None = None
+    status_value: str = 'succeeded'
+    parent_status_value: str = 'paid'
 
 
 class DocumentRequest(Model):
@@ -143,6 +172,7 @@ class TableSpec(Model):
     target_column: str | None = None
     correlation_columns: list[str] = Field(default_factory=list)
     correlation_matrix: list[list[float]] = Field(default_factory=list)
+    unique_together: list[list[str]] = Field(default_factory=list, max_length=1)
 
     @model_validator(mode='after')
     def consistent(self):
@@ -153,6 +183,9 @@ class TableSpec(Model):
             raise ValueError('duplicate foreign key columns')
         if len(names) != len(set(names)):
             raise ValueError('duplicate column names')
+        for group in self.unique_together:
+            if len(group) != 2 or len(set(group)) != 2 or not set(group) <= {fk.column for fk in self.foreign_keys}:
+                raise ValueError('unique_together requires two distinct declared foreign keys.')
         if self.primary_key is not None:
             if self.primary_key not in names:
                 raise ValueError('primary key must reference an existing column')
@@ -182,6 +215,10 @@ class DatasetSpec(Model):
     documents: list[DocumentRequest] = Field(default_factory=list, max_length=20)
     edge_cases: list[str] = Field(default_factory=list, max_length=30)
     business_rules: list[str] = Field(default_factory=list, max_length=30)
+    reference_values: list[ReferenceValue] = Field(default_factory=list, max_length=20)
+    temporal_constraints: list[ReferenceValue] = Field(default_factory=list, max_length=20)
+    category_ranges: list[CategoryRange] = Field(default_factory=list, max_length=20)
+    settlements: list[Settlement] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode='after')
     def unique_tables(self):
@@ -206,6 +243,8 @@ class DatasetSpec(Model):
                     raise ValueError('Invalid cardinality bounds.')
                 if fk.cardinality == '1:1' and table.row_count > parent.row_count:
                     raise ValueError('One-to-one child count exceeds parent count.')
+                if fk.cardinality == '1:1' and fk.min_children > 1:
+                    raise ValueError('One-to-one minimum cannot exceed one.')
                 if table.row_count < parent.row_count * fk.min_children or (fk.max_children and table.row_count > parent.row_count * fk.max_children):
                     raise ValueError('Row counts cannot satisfy cardinality bounds.')
                 graph[table.name].add(parent.name)
@@ -223,6 +262,8 @@ class DatasetSpec(Model):
             numeric = {c.name for c in child.columns if c.dtype in ('integer','float')}
             if not set(rule.factors) <= numeric:
                 raise ValueError('Reconciliation factors must be numeric columns.')
+            if any(c.null_rate or c.privacy_rule for c in child.columns if c.name in rule.factors):
+                raise ValueError('Reconciliation factors must be non-null and untransformed.')
             destination = next(c for c in parent.columns if c.name == rule.parent_column)
             if destination.dtype != 'float' or destination.privacy_rule or destination.constraints.unique:
                 raise ValueError('Reconciliation destination must be an untransformed non-unique float column.')
@@ -242,4 +283,6 @@ class DatasetSpec(Model):
                     raise ValueError('Document arithmetic requires non-null numeric untransformed columns.')
             if document.opening_balance_column and document.opening_balance_column not in {c.name for c in parent.columns}:
                 raise ValueError('Opening balance column must exist.')
+        from app.models.relational_rules import rule_plan
+        rule_plan(self)
         return self
