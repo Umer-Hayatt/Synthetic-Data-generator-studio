@@ -279,10 +279,16 @@
 
 @media (max-width: 1100px) {
   .grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
-  .grid > section:last-child {
-    grid-column: 1 / -1;
+  .sidePanel {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .subGrid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -290,12 +296,10 @@
   .page {
     padding: 16px;
   }
-  .grid {
-    grid-template-columns: 1fr;
-  }
   .header {
-    align-items: start;
+    align-items: flex-start;
     flex-direction: column;
+    gap: 12px;
   }
   .header h1 {
     font-size: 22px;
