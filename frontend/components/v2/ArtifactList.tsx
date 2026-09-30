@@ -28,7 +28,7 @@ export function ArtifactList({ artifacts, busy, onPreview, onError }: Props) {
   return (
     <div style={{ marginTop: 16 }}>
       <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-title)', marginBottom: 8 }}>
-        Artifacts ({artifacts.length})
+        Results ({artifacts.length})
       </p>
       {artifacts.map((artifact, i) => {
         const expiresAt = new Date(artifact.expires_at * 1000);
@@ -43,7 +43,7 @@ export function ArtifactList({ artifacts, busy, onPreview, onError }: Props) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
               <div>
                 <p style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-title)' }}>
-                  Artifact {i + 1}
+                  Result {i + 1}
                   <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>
                     {artifact.format.toUpperCase()} · {sizeLabel}
                   </span>

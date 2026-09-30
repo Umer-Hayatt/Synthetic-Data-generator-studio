@@ -81,7 +81,7 @@ V2-INTEGRATION is DONE for all 7 frontend features. tsc and browser verified.
 
 ### Frontend Polish & Design Iteration
 - [x] **Item 1: Remove session timers / expiry countdowns**: Removed `Session: 15m` badge and `Clock` indicator from Header; removed expiration timestamps from metadata details; standardized expiry warning to "This result expired, please regenerate" inside actual error states and modals. Verified `npx tsc --noEmit` clean.
-- [ ] **Item 2: Fonts and capitalization**
+- [x] **Item 2: Fonts and capitalization**: Configured Next.js font optimization (`next/font/google`) for `Inter` (sans-serif) and `JetBrains Mono` (monospace only for IDs, column names, code). Defined unified CSS typography scale tokens (`--text-page-title`, `--text-section-title`, `--text-card-title`, `--text-body-size`, `--text-caption-size`, `--text-eyebrow-size`). Enforced sentence case across all headings, buttons, and status labels; replaced leftover dev wording (`artifacts` -> `results`/`data`). Verified `npx tsc --noEmit` clean.
 - [ ] **Item 3: Layout — Relational & Documents top-level views**
 - [ ] **Item 4: Documents view — real document styling (Invoices & Statements)**
 - [ ] **Item 5: Polish & responsiveness**

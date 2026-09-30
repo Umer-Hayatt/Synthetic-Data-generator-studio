@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import styles from '../../styles/v2.module.css';
 import { Job, isTerminal, v2Origin } from '../../services/v2';
 
@@ -35,8 +35,8 @@ export function JobPanel({ job, onCancel, busy }: Props) {
     <div aria-live="polite" className={styles.job}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
         <div>
-          <strong style={{ color }}>
-            {job.status.toUpperCase()}
+          <strong style={{ color, textTransform: 'capitalize' }}>
+            {job.status}
           </strong>
           <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 8 }}>
             · {stageLabel}
