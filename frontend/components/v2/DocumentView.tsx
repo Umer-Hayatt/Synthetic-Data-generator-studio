@@ -33,8 +33,8 @@ function InvoiceInfo({ doc }: { doc: DocumentSpec }) {
       {doc.tax_rate != null && doc.tax_rate > 0 && <p><strong>Tax:</strong> {(doc.tax_rate * 100).toFixed(1)}%</p>}
       {doc.discount_rate != null && doc.discount_rate > 0 && <p><strong>Discount:</strong> {(doc.discount_rate * 100).toFixed(1)}%</p>}
       <p style={{ marginTop: 6, fontSize: 11, color: 'var(--text-faint)' }}>
-        Invoice arithmetic: subtotal = Σ(quantity × price) · discount applied before tax ·
-        total = subtotal × (1 − discount) × (1 + tax) — balanced to the cent using Decimal arithmetic.
+        Invoice arithmetic: subtotal = sum of rounded line totals; tax and discount are each calculated
+        from the subtotal. Total = subtotal + tax − discount, rounded to cents.
       </p>
     </div>
   );
@@ -69,14 +69,13 @@ export function DocumentView({ spec, artifacts, tableArtifacts }: Props) {
     );
   }
 
-  // Artifacts that are JSON (manifest or document outputs) excluding table artifacts
-  const tableArtifactIds = new Set(Object.values(tableArtifacts));
-  const docArtifacts = artifacts.filter((a) => a.format === 'json' && !tableArtifactIds.has(a.id));
+  const documentIds = new Set(docs.map((doc, index) => tableArtifacts[`document_${index}_${doc.kind}`]));
+  const docArtifacts = artifacts.filter((artifact) => documentIds.has(artifact.id));
 
   return (
     <div>
       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
-        Structured documents generated from relational entities. Download JSON artifacts below.
+        Structured documents generated from relational entities. Download JSONL artifacts below.
       </p>
 
       {docs.map((doc, i) => (
@@ -104,23 +103,23 @@ export function DocumentView({ spec, artifacts, tableArtifacts }: Props) {
             return (
               <div key={artifact.id} className={styles.artifact}>
                 <p style={{ fontSize: 12 }}>
-                  JSON document · {(artifact.size / 1024).toFixed(1)} KiB
+                  {artifact.format.toUpperCase()} document · {(artifact.size / 1024).toFixed(1)} KiB
                 </p>
                 {expired ? (
-                  <p style={{ color: 'var(--rose)', fontSize: 12 }}>Artifact expired. Re-generate to download.</p>
+                  <p style={{ color: 'var(--rose)', fontSize: 12 }}>This result expired, please regenerate</p>
                 ) : (
                   <a
                     href={`${v2Origin}/api/v1/artifacts/${artifact.id}/download`}
                     download
                     style={{ fontSize: 12 }}
                   >
-                    Download JSON
+                    Download {artifact.format.toUpperCase()}
                   </a>
                 )}
                 <details style={{ marginTop: 6, fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer' }}>
                   <summary>Details</summary>
                   <p style={{ margin: '4px 0 0', fontFamily: 'var(--font-mono)', color: 'var(--text-faint)' }}>
-                    ID: {artifact.id} · Expires: {expiresAt.toLocaleTimeString()}
+                    ID: {artifact.id}
                   </p>
                 </details>
               </div>

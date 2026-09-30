@@ -6,7 +6,6 @@ import {
   Plus,
   CheckCircle2,
   AlertTriangle,
-  Clock,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -18,7 +17,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
     referenceToken,
     generatedToken,
     backendOnline,
-    tokenExpirySeconds,
     clearSession,
   } = useStudio();
 
@@ -47,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
         </div>
       </div>
 
-      {/* Right: Health, Session, Actions */}
+      {/* Right: Health, Actions */}
       <div className="top-bar-right">
         {/* Backend health status badge */}
         <div
@@ -67,20 +65,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
           )}
           <span>{backendOnline === true ? 'Backend Online' : 'Backend Offline'}</span>
         </div>
-
-        {/* Subtle Session Indicator */}
-        {referenceToken && (
-          <div
-            className="badge badge-slate"
-            style={{ textTransform: 'none', fontSize: '11px', padding: '4px 8px' }}
-            title="Ephemeral bounded session (~15 min cache)"
-          >
-            <Clock size={12} style={{ color: 'var(--warning)' }} />
-            <span>
-              Session: {tokenExpirySeconds ? `${Math.round(tokenExpirySeconds / 60)}m` : '15m'}
-            </span>
-          </div>
-        )}
 
         {/* Action Buttons */}
         {referenceToken && (

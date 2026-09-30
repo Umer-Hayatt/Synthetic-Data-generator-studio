@@ -79,7 +79,13 @@ V2-INTEGRATION is DONE for all 7 frontend features. tsc and browser verified.
 8. [x] **Item 8: Streamed CSV and JSON downloads**: Backend `GET /artifacts/{id}/download?format=csv` added for on-the-fly streaming conversion of JSONL artifacts to CSV with proper content-type and filename. Frontend `ArtifactList.tsx` provides both CSV and format-native download links.
 9. [x] **Final Walkthrough**: E2E pipeline verified for upload dummy_orders.csv → review → generate → preview → download CSV/JSONL → load example → documents. `npx tsc --noEmit` clean.
 
-### Feature Flags (`frontend/services/features.ts`)
+### Frontend Polish & Design Iteration
+- [x] **Item 1: Remove session timers / expiry countdowns**: Removed `Session: 15m` badge and `Clock` indicator from Header; removed expiration timestamps from metadata details; standardized expiry warning to "This result expired, please regenerate" inside actual error states and modals. Verified `npx tsc --noEmit` clean.
+- [ ] **Item 2: Fonts and capitalization**
+- [ ] **Item 3: Layout — Relational & Documents top-level views**
+- [ ] **Item 4: Documents view — real document styling (Invoices & Statements)**
+- [ ] **Item 5: Polish & responsiveness**
+- [ ] **Item 6: Check & browser walkthrough**
 - `ENABLE_PDF_EXPORT`: `false` (PDF generation disabled; structured JSON outputs only)
 - `ENABLE_SQL_DUMP`: `false` (SQL dump export omitted)
 - `ENABLE_XML_FORMAT`: `false` (XML ingestion/export omitted)

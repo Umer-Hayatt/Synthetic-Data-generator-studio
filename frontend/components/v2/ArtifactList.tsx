@@ -61,7 +61,7 @@ export function ArtifactList({ artifacts, busy, onPreview, onError }: Props) {
                   </button>
                 )}
                 {expired ? (
-                  <p style={{ color: 'var(--rose)', fontSize: 11, margin: 0 }}>Expired</p>
+                  <p style={{ color: 'var(--rose)', fontSize: 11, margin: 0 }}>This result expired, please regenerate</p>
                 ) : (
                   <>
                     {artifact.format === 'jsonl' && (
@@ -87,7 +87,7 @@ export function ArtifactList({ artifacts, busy, onPreview, onError }: Props) {
             <details style={{ marginTop: 6, fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer' }}>
               <summary>Details</summary>
               <p style={{ margin: '4px 0 0', fontFamily: 'var(--font-mono)', color: 'var(--text-faint)' }}>
-                ID: {artifact.id} · Expires: {expiresAt.toLocaleTimeString()}
+                ID: {artifact.id}
               </p>
             </details>
           </div>
