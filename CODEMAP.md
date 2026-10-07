@@ -1,0 +1,68 @@
+# CODEMAP.md — One-line guide to where code lives
+
+Keep this updated whenever a slice adds, moves, or deletes files.
+
+## backend/app
+
+| Path | What it does |
+|---|---|
+| `main.py` | FastAPI app factory; mounts all routers |
+| **api/** | HTTP route handlers |
+| `api/ingest.py` | Classic studio **upload/demo**: parses CSV/JSON, stores dataset in job store |
+| `api/generate.py` | Classic studio **generate**: dispatches tabular/relational/document job |
+| `api/intelligence.py` | **AI generator**: prompt -> spec -> generated table (tabular) |
+| `api/evaluate.py` | Classic studio **quality**: triggers statistical evaluation |
+| `api/export.py` | Classic studio **export**: returns CSV/JSON of generated rows |
+| `api/documents.py` | **Document engine** routes: invoices, bank statements |
+| `api/jobs.py` | Job-status polling endpoint; sanitises error messages |
+| `api/spec.py` | Returns persisted spec for the active job |
+| `api/health.py` | `/health` liveness probe |
+| **core/** | Shared utilities |
+| `core/jobs.py` | In-memory **job store** (create, update, fetch) |
+| `core/ai.py` | Gemini/OpenAI client wrapper used by AI generator |
+| `core/inference.py` | Schema inference (column types, nullable flags) |
+| `core/profiling.py` | Column statistics profiling |
+| `core/locales.py` | Locale registry + curated data (PK/US/GB/DE/FR/ES/IN) |
+| `core/config.py` | Environment settings (API keys, limits) |
+| `core/store.py` | Lightweight KV store for artifacts |
+| `core/artifacts.py` | Artifact serialisation helpers |
+| `core/validation.py` | Shared Pydantic validators |
+| `core/body_limit.py` | Request body-size middleware |
+| **engines/** | Data-synthesis back-ends |
+| `engines/tabular.py` | **Classic studio** tabular synthesiser (column-by-column) |
+| `engines/relational.py` | **Relational engine**: multi-table PK/FK-consistent synthesis |
+| `engines/documents.py` | **Document engine**: invoice/bank-statement generation |
+| `engines/registry.py` | Resolves which engine to call for a given spec |
+| `engines/deep.py` | Deep-copy / structural helpers for engine output |
+| **models/** | Pydantic schemas |
+| `models/spec.py` | Central DataSpec, ColumnSpec, JobSpec models |
+| `models/relational_rules.py` | FK, cardinality, and referential-integrity rule models |
+| **eval/** | **Quality evaluation** |
+| `eval/quality.py` | Statistical similarity score (fidelity %) |
+| `eval/comparison.py` | Column-level comparison metrics |
+| `eval/diagnostics.py` | Diagnostic helpers (nulls, ranges, uniqueness) |
+| **adapters/** | External-format adapters (CSV/JSON normalisation) |
+
+## frontend
+
+| Path | What it does |
+|---|---|
+| `pages/index.tsx` | **Classic studio** root page (upload -> generate -> preview -> quality -> export) |
+| `pages/v2.tsx` | Separate /v2 page (kept until S5-S7 complete, link hidden in S4) |
+| `pages/_app.tsx` | Next.js app wrapper; global styles |
+| **components/ingestion/** | File upload + demo dataset selector (classic studio step 1) |
+| **components/configuration/** | Schema/privacy editors (classic studio step 2) |
+| **components/preview/** | Generated-data table preview (classic studio step 3) |
+| **components/quality/** | Quality charts and summary card (classic studio step 4) |
+| **components/export/** | Export buttons CSV/JSON (classic studio step 5) |
+| **components/schema/** | Column-type editor, drawer |
+| **components/layout/** | Page shell, sidebar, tabs |
+| **components/common/** | Shared UI primitives (buttons, badges, loaders) |
+| **components/v2/** | V2-only components (AI generator, documents, relational panels) |
+| `services/api.ts` | Typed fetch wrappers for all backend endpoints |
+| `services/v2.ts` | Typed fetch wrappers for AI/relational/document endpoints |
+| `services/fixtures.ts` | Demo dataset definitions |
+| `services/samples.ts` | Sample column presets |
+| `services/features.ts` | Feature flags |
+| `types/` | Shared TypeScript interfaces mirroring backend schemas |
+| `context/` | React context providers (job state, locale, spec) |

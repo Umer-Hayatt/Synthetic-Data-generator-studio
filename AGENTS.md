@@ -18,6 +18,9 @@ This repository is built and maintained by autonomous and semi-autonomous coding
 8. **Keep Secrets Out**: Never write, commit, or log credentials, API keys, or private datasets. Use environment variables defined in `.env.example`.
 9. **Update State Immediately**: Upon completing a task or milestone, update `TASKS.md` (status `DONE`) and keep `PROJECT_STATE.md` concise and synchronized.
 10. **Stop at Real Blockers**: If an external dependency fails, requirements conflict, or a critical blocker arises, document the issue under Blockers in `PROJECT_STATE.md` and stop—do not invent speculative workarounds.
+11. **Read `CODEMAP.md` First**: Use it to locate which file to open. Never read whole directories; open only the specific files the current slice names.
+12. **Search, Don't Browse**: Use `grep`/`ripgrep` to find code by name or pattern. Never scan an entire directory tree to find something.
+13. **Keep `CODEMAP.md` Updated**: When a slice adds, moves, or deletes files, update `CODEMAP.md` in the same commit.
 
 ---
 

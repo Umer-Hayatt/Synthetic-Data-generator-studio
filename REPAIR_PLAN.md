@@ -9,7 +9,8 @@ its checks and is committed. Do not touch unrelated features.
 2. Delete dead code, files, routes, docs and tests that belong to the slice's feature. No leftovers.
 3. Implement the change end to end (API + UI + tests).
 4. Verify: backend `pytest`, frontend `npx tsc --noEmit`, and one manual browser run of the slice.
-5. Update the status log below and PROJECT_STATE.md, commit "slice N: <name>", push, then STOP and report.
+5. Before committing, list any file in the touched area that is no longer imported or referenced anywhere, and delete it. Do not merge or rename modules unless the slice requires it. Update `CODEMAP.md` if files were added, moved, or deleted.
+6. Update the status log below and PROJECT_STATE.md, commit "slice N: <name>", push, then STOP and report.
 
 Do not invent requirements. Do not refactor unrelated working code. Never commit secrets.
 
