@@ -9,7 +9,7 @@ The project combines a Python FastAPI backend with a Next.js frontend and is des
 - Upload and profile CSV, JSON, JSONL, XLSX, and Parquet-style data sources
 - Build and validate dataset generation specs
 - Generate synthetic datasets with configurable rules and privacy controls
-- Evaluate fidelity and model performance using quality metrics and TSTR analysis
+- Evaluate fidelity using statistical quality metrics
 - Export generated data as CSV or JSON
 - Deploy the API and frontend separately with Render + Vercel-friendly configs
 
@@ -100,8 +100,9 @@ Then open:
 2. Inspect the generated schema and summary metadata
 3. Edit or validate a dataset specification
 4. Generate a synthetic dataset
-5. Run quality and TSTR evaluations
+5. Run quality evaluations
 6. Preview and export the final results
+
 
 This project is intended to keep the raw source data in the trusted backend context while returning only schema, tokens, and generated outputs to the client.
 

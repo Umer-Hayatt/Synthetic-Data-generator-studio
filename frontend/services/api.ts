@@ -4,7 +4,6 @@ import {
   IngestResponse,
   PreviewResponse,
   QualityResponse,
-  TSTRResponse,
 } from '../types';
 
 const API_BASE_URL =
@@ -158,26 +157,8 @@ export const api = {
     return await handleResponse<QualityResponse>(res);
   },
 
-  async evaluateTstr(
-    referenceId: string,
-    target?: string | null,
-    task: 'auto' | 'classification' | 'regression' = 'auto',
-    seed: number = 42
-  ): Promise<TSTRResponse> {
-    const res = await fetch(`${API_BASE_URL}/api/v1/evaluate/tstr`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reference_id: referenceId,
-        target: target ?? null,
-        task,
-        seed,
-      }),
-    });
-    return await handleResponse<TSTRResponse>(res);
-  },
-
   getExportUrl(format: 'csv' | 'json', datasetId: string): string {
+
     return `${API_BASE_URL}/api/v1/export/${format}?dataset_id=${encodeURIComponent(
       datasetId
     )}`;

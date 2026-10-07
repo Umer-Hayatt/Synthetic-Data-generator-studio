@@ -41,4 +41,4 @@ def test_expired_tokens_at_all_api_boundaries(monkeypatch):
                 assert client.get('/api/v1/'+route, params={'dataset_id': token}).status_code == 404
         assert client.post('/api/v1/evaluate/quality', json={
             'reference_id': upload['dataset_id'], 'generated_id': generated['dataset_id']}).status_code == 404
-        assert client.post('/api/v1/evaluate/tstr', json={'reference_id': upload['dataset_id']}).status_code == 404
+

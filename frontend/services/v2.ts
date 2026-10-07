@@ -143,8 +143,8 @@ export interface ComparisonResult {
   quality_score?: number;
   runtime_seconds?: number;
   memory_estimate_bytes?: number;
-  tstr?: { status: string; tstr?: Record<string, number | null> };
 }
+
 
 export interface Comparison {
   recommendation: string | null;

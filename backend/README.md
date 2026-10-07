@@ -74,29 +74,6 @@ Evaluation contract:
   can be evaluated, `overall_score` is null and `score_status` is `unavailable`.
   Histograms use 12 shared bins; category charts show up to 50 categories while
   metrics use all categories. This score measures fidelity, not privacy.
-- `POST /api/v1/evaluate/tstr` takes
-  `{"reference_id":"<ingest token>","target":"churn","task":"classification","seed":42}`.
-  `target` may be null; `task` is `auto`, `classification`, or `regression`.
-  Returns `status: "ok"`, raw `trtr`/`tstr`, `comparison`, split row counts,
-  target candidates, and model/split descriptions. Unsupported targets return
-  HTTP 200 with `status: "unavailable"` and an actionable `reason`.
-  Auto mode treats integral numeric targets with at most 20 values as classes;
-  users can explicitly select regression. At least 20 observed targets are
-  required. Missing-target rows are dropped and counted before splitting.
-  Classification requires 2+ examples per class and enough test rows for all
-  classes. ID-named features are excluded. Feature imputation and encoding are
-  fitted separately on each training set; unknown test categories are allowed.
-
-TSTR always performs a fresh 80/20 split and learns its synthesis spec from
-REAL TRAIN only. It never uses the full-upload spec or a prior generated token.
-Its synthetic row count equals REAL TRAIN. Both RandomForest pipelines have
-the same parameters and evaluate the same REAL TEST. Classification reports
-accuracy, macro F1, and ROC-AUC when valid; unavailable AUC is null with a reason.
-Regression reports MAE, RMSE, and **R-squared (`r2`)**, following repository
-requirements. Constant test targets yield null R-squared. Every comparison uses
-`delta = TSTR - TRTR`; MAE/RMSE deltas indicate increased error when positive.
-Only accuracy/F1/AUC may include `retention_ratio`, when the baseline is positive.
-R-squared is allowed to be negative and has no retention ratio.
 
 Limitations: single-table P0 only; categorical dependencies are approximate;
 outlier/null rates are sampling probabilities, not exact counts; inferred hard
@@ -114,73 +91,10 @@ For local startup from `backend/`:
 
 Frontend handoff: upload, retain the reference token and editable spec, validate
 edits with `/spec`, generate, retain the generated token, then request preview,
-quality, TSTR, and export. Do not send full datasets back for these operations.
+quality, and export. Do not send full datasets back for these operations.
 Treat 400 as an actionable input/capacity error, 404 as an expired/invalid token,
-and 422 as structured request/spec validation errors. TSTR availability is a
-payload state, not an HTTP error. Consult `/docs` for request schemas.
+and 422 as structured request/spec validation errors. Consult `/docs` for request schemas.
 
-Verification: 46 tests passed on Python 3.12; `pip check` and module compilation
-passed. The suite includes strict real-test isolation, binary/multiclass TSTR,
-regression/negative R-squared, privacy controls, fidelity, malformed uploads,
-request limits, token expiry, and preview/export integration. One non-failing
-Starlette warning concerns its deprecated HTTPX test-client integration.
-
-Evaluation contract:
-
-- `POST /api/v1/evaluate/quality` takes
-  `{"reference_id":"<ingest token>","generated_id":"<generation token>"}`.
-  Returns per-column KS/Wasserstein or TVD/Jensen-Shannon metrics, histogram or
-  category chart data, missing rates, Pearson matrices, and score components.
-  `overall_score` is 100 times the mean of available distribution, missingness,
-  and correlation components; the full formula is in `score_definition`.
-  Show `distribution_columns_evaluated` alongside the score. If no distribution
-  can be evaluated, `overall_score` is null and `score_status` is `unavailable`.
-  Histograms use 12 shared bins; category charts show up to 50 categories while
-  metrics use all categories. This score measures fidelity, not privacy.
-- `POST /api/v1/evaluate/tstr` takes
-  `{"reference_id":"<ingest token>","target":"churn","task":"classification","seed":42}`.
-  `target` may be null; `task` is `auto`, `classification`, or `regression`.
-  Returns `status: "ok"`, raw `trtr`/`tstr`, `comparison`, split row counts,
-  target candidates, and model/split descriptions. Unsupported targets return
-  HTTP 200 with `status: "unavailable"` and an actionable `reason`.
-  Auto mode treats integral numeric targets with at most 20 values as classes;
-  users can explicitly select regression. At least 20 observed targets are
-  required. Missing-target rows are dropped and counted before splitting.
-  Classification requires 2+ examples per class and enough test rows for all
-  classes. ID-named features are excluded. Feature imputation and encoding are
-  fitted separately on each training set; unknown test categories are allowed.
-
-TSTR always performs a fresh 80/20 split and learns its synthesis spec from
-REAL TRAIN only. It never uses the full-upload spec or a prior generated token.
-Its synthetic row count equals REAL TRAIN. Both RandomForest pipelines have
-the same parameters and evaluate the same REAL TEST. Classification reports
-accuracy, macro F1, and ROC-AUC when valid; unavailable AUC is null with a reason.
-Regression reports MAE, RMSE, and **R-squared (`r2`)**, following repository
-requirements. Constant test targets yield null R-squared. Every comparison uses
-`delta = TSTR - TRTR`; MAE/RMSE deltas indicate increased error when positive.
-Only accuracy/F1/AUC may include `retention_ratio`, when the baseline is positive.
-R-squared is allowed to be negative and has no retention ratio.
-
-Limitations: single-table P0 only; categorical dependencies are approximate;
-outlier/null rates are sampling probabilities, not exact counts; inferred hard
-bounds can clip injected outliers (edit/remove bounds to permit extremes).
-Generation reproducibility assumes the same dependency versions and spec.
-Quality comparisons for dates currently use categorical labels. Statistical
-inference is heuristic and semantic confidence is advisory. No P1/P2, external
-AI, database, authentication, GPU, or neural synthesizer is required.
-
-For local startup from `backend/`:
-
-```powershell
-.venv/Scripts/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
-```
-
-Frontend handoff: upload, retain the reference token and editable spec, validate
-edits with `/spec`, generate, retain the generated token, then request preview,
-quality, TSTR, and export. Do not send full datasets back for these operations.
-Treat 400 as an actionable input/capacity error, 404 as an expired/invalid token,
-and 422 as structured request/spec validation errors. TSTR availability is a
-payload state, not an HTTP error. Consult `/docs` for request schemas.
 
 ## V2 backend additions (integration verification pending)
 

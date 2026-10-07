@@ -18,8 +18,9 @@ export default function Home() {
         <title>Synthetic Data Studio</title>
         <meta
           name="description"
-          content="General-purpose schema-aware synthetic structured data platform with statistical quality evaluation and TSTR ML utility benchmarking."
+          content="General-purpose schema-aware synthetic structured data platform with statistical quality evaluation."
         />
+
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 

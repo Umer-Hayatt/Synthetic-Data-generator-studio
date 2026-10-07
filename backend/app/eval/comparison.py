@@ -3,7 +3,6 @@ from time import perf_counter
 from sklearn.model_selection import train_test_split
 from app.engines.registry import StatisticalSynthesizer, registry
 from app.eval.quality import quality
-from app.eval.tstr import evaluate_tstr
 from app.eval.diagnostics import memorization
 
 
@@ -33,9 +32,8 @@ def compare(frame, target=None, seed=42, engines=('statistical','statistical_con
             engine.fit(train,target=target if classes is not None else None,seed=seed)
             generated = engine.generate(len(train))
             fidelity = quality(test,generated)
-            utility = evaluate_tstr(frame,target,seed=seed,synthesizer_factory=factory)
             results.append({'engine':name,'status':'ok','quality_score':fidelity['overall_score'],
-                'tstr':utility,'runtime_seconds':perf_counter()-start,
+                'runtime_seconds':perf_counter()-start,
                 'memory_estimate_bytes':int(train.memory_usage(deep=True).sum()+generated.memory_usage(deep=True).sum()),
                 'memory_measurement':'Input plus output DataFrame footprint; excludes model/native/process peak memory.',
                 'diagnostics':memorization(train,generated)})
@@ -43,15 +41,12 @@ def compare(frame, target=None, seed=42, engines=('statistical','statistical_con
             results.append({'engine':name,'status':'unavailable','reason':'Engine could not fit this bounded sample.'})
     eligible = [r for r in results if r['status']=='ok']
     def rank(item):
-        utility = item['tstr']
         score = item['quality_score'] or 0
-        if utility.get('status') == 'ok':
-            metrics = utility['tstr']
-            score = metrics.get('macro_f1', -(metrics.get('rmse') or 0))
         # Within small metric ties, keep simpler/faster statistical baseline.
         return (round(score,2), 1 if item['engine']=='statistical' else 0, -item['runtime_seconds'])
     selected = max(eligible,key=rank)['engine'] if eligible else None
     return {'results':results,'recommendation':selected,'seed':seed,
             'sample_rows':len(frame),'split':'80/20; fit uses train only; internal engineering benchmark.',
-            'selection_rule':'Rounded TSTR macro-F1 (classification), negative RMSE (regression), otherwise quality; ties favor baseline then runtime.',
+            'selection_rule':'Fidelity quality score; ties favor baseline then runtime.',
             'notice':'Recommendation applies only to this sampled dataset and seed; deep is never preferred by name.'}
+

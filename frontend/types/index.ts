@@ -1,5 +1,5 @@
 export type DataTypeMode = 'tabular' | 'relational' | 'documents';
-export type WorkspaceTab = 'preview' | 'schema' | 'quality' | 'tstr';
+export type WorkspaceTab = 'preview' | 'schema' | 'quality';
 
 export type ColumnDType = 'integer' | 'float' | 'boolean' | 'string' | 'datetime';
 export type SemanticType =
@@ -148,37 +148,3 @@ export interface QualityResponse {
   synthetic_rows: number;
 }
 
-export interface TargetCandidate {
-  name: string;
-  suggested_task: 'classification' | 'regression';
-}
-
-export interface MetricComparisonItem {
-  trtr: number | null;
-  tstr: number | null;
-  delta: number | null;
-  direction: 'higher_is_better' | 'lower_is_better';
-  retention_ratio?: number;
-}
-
-export interface TSTRResponse {
-  status: 'ok' | 'unavailable';
-  reason?: string;
-  task?: 'classification' | 'regression' | 'auto';
-  target?: string;
-  seed?: number;
-  target_candidates?: TargetCandidate[];
-  rows?: {
-    real_train: number;
-    real_test: number;
-    synthetic_train: number;
-    dropped_missing_target: number;
-  };
-  trtr?: Record<string, number | null>;
-  tstr?: Record<string, number | null>;
-  comparison?: Record<string, MetricComparisonItem>;
-  roc_auc_unavailable_reasons?: Record<string, string>;
-  model?: string;
-  split?: string;
-  excluded_identifier_features?: string[];
-}

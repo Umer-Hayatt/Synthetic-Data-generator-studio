@@ -112,8 +112,9 @@ export const EntryScreen: React.FC = () => {
             </div>
 
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Load benchmark datasets pre-configured for instant generation, quality scoring, and TSTR evaluation.
+              Load benchmark datasets pre-configured for instant generation and quality scoring.
             </p>
+
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {SAMPLE_DATASETS.map((sample) => (

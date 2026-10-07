@@ -15,7 +15,7 @@ export const SAMPLE_DATASETS: SampleDatasetInfo[] = [
   {
     id: 'customer_churn',
     name: 'Telco Customer Churn',
-    badge: 'TSTR Classification',
+    badge: 'Classification',
     tagline: 'Predict customer churn probability from subscription profile',
     description:
       'Realistic customer dataset containing tenure, monthly charges, contract types, and retention status.',
@@ -60,7 +60,8 @@ export const SAMPLE_DATASETS: SampleDatasetInfo[] = [
   {
     id: 'loan_portfolio',
     name: 'Retail Loan Portfolio',
-    badge: 'TSTR Regression',
+    badge: 'Regression',
+
     tagline: 'Assess credit risk score and interest rate dynamics',
     description:
       'Applicant records featuring credit score, debt-to-income, loan amount, and predicted risk rate.',

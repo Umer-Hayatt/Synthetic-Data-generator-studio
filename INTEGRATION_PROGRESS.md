@@ -10,7 +10,8 @@
 - [x] F3: Generation job panel — stage labels, bounded exponential backoff poll (caps at 30s), Cancel button, terminal states. DONE + browser-verified.
 - [x] F4: Relational view — table switcher, PK/FK badges, cardinality constraints, bounded preview (20 rows). DONE + browser-verified.
 - [x] F5: Document view — invoice arithmetic explanation, bank-statement balance explanation, expired artifact state, PDF-not-implemented notice. DONE + browser-verified.
-- [x] F6: Engine & comparison panel — engine selector with disabled-reason hints, deep-unavailable note, comparison table with quality/runtime/memory/TSTR, AUTO as suggestion only with evidence disclaimers. DONE + browser-verified.
+- [x] F6: Engine & comparison panel — engine selector with disabled-reason hints, deep-unavailable note, comparison table with quality/runtime/memory, AUTO as suggestion only with evidence disclaimers. DONE + browser-verified.
+
 - [x] F7: Artifact downloads — download links, expired state detection, JSONL/CSV preview button, dismiss, artifact expiry display. DONE + browser-verified.
 
 ---

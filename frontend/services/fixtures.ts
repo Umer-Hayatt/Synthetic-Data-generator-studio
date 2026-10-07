@@ -1,8 +1,8 @@
 import {
   DatasetSpec,
   QualityResponse,
-  TSTRResponse,
 } from '../types';
+
 
 export const FIXTURE_CHURN_SPEC: DatasetSpec = {
   name: 'customer_churn',
@@ -504,53 +504,3 @@ export const FIXTURE_CHURN_QUALITY: QualityResponse = {
   ],
 };
 
-export const FIXTURE_CHURN_TSTR: TSTRResponse = {
-  status: 'ok',
-  task: 'classification',
-  target: 'churn',
-  seed: 42,
-  rows: {
-    real_train: 160,
-    real_test: 40,
-    synthetic_train: 160,
-    dropped_missing_target: 0,
-  },
-  trtr: {
-    accuracy: 0.875,
-    macro_f1: 0.842,
-    roc_auc: 0.895,
-  },
-  tstr: {
-    accuracy: 0.85,
-    macro_f1: 0.818,
-    roc_auc: 0.872,
-  },
-  comparison: {
-    accuracy: {
-      trtr: 0.875,
-      tstr: 0.85,
-      delta: -0.025,
-      direction: 'higher_is_better',
-      retention_ratio: 0.971,
-    },
-    macro_f1: {
-      trtr: 0.842,
-      tstr: 0.818,
-      delta: -0.024,
-      direction: 'higher_is_better',
-      retention_ratio: 0.971,
-    },
-    roc_auc: {
-      trtr: 0.895,
-      tstr: 0.872,
-      delta: -0.023,
-      direction: 'higher_is_better',
-      retention_ratio: 0.974,
-    },
-  },
-  model:
-    'RandomForest: 50 trees, max_depth=8, min_samples_leaf=2; identical preprocessing architecture fitted separately.',
-  split:
-    '80/20; stratified for classification. Synthesis fitted strictly on Real Train.',
-  excluded_identifier_features: ['customer_id'],
-};

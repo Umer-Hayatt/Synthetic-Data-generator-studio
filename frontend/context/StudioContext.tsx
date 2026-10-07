@@ -10,7 +10,6 @@ import {
   ColumnSpec,
   DatasetSpec,
   QualityResponse,
-  TSTRResponse,
   WorkspaceTab,
 } from '../types';
 import { api, ApiError } from '../services/api';
@@ -38,7 +37,6 @@ interface StudioContextType {
 
   // Evaluation States
   qualityResults: QualityResponse | null;
-  tstrResults: TSTRResponse | null;
 
   // Navigation & UI States
   activeTab: WorkspaceTab;
@@ -51,7 +49,6 @@ interface StudioContextType {
   isIngesting: boolean;
   isGenerating: boolean;
   isEvaluatingQuality: boolean;
-  isEvaluatingTstr: boolean;
   error: { message: string; isSessionExpired?: boolean } | null;
 
   // Actions
@@ -63,15 +60,11 @@ interface StudioContextType {
   updateGlobalConfig: (updates: { rowCount?: number; seed?: number }) => void;
   triggerGenerate: (rowCountOverride?: number) => Promise<boolean>;
   triggerQualityEvaluation: () => Promise<boolean>;
-  triggerTstrEvaluation: (
-    target?: string,
-    task?: 'auto' | 'classification' | 'regression',
-    seed?: number
-  ) => Promise<boolean>;
   clearSession: () => void;
   dismissError: () => void;
   reportError: (error: { message: string; isSessionExpired?: boolean }) => void;
 }
+
 
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
@@ -103,7 +96,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [qualityResults, setQualityResults] = useState<QualityResponse | null>(
     null
   );
-  const [tstrResults, setTstrResults] = useState<TSTRResponse | null>(null);
 
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('preview');
   const [previewViewMode, setPreviewViewMode] = useState<
@@ -114,7 +106,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [isIngesting, setIsIngesting] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isEvaluatingQuality, setIsEvaluatingQuality] = useState<boolean>(false);
-  const [isEvaluatingTstr, setIsEvaluatingTstr] = useState<boolean>(false);
   const [error, setError] = useState<{
     message: string;
     isSessionExpired?: boolean;
@@ -152,7 +143,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setGeneratedRowCount(0);
     setGeneratedColumns([]);
     setQualityResults(null);
-    setTstrResults(null);
     setActiveTab('preview');
     setError(null);
   }, []);
@@ -184,7 +174,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         setGeneratedRowCount(0);
         setGeneratedColumns([]);
         setQualityResults(null);
-        setTstrResults(null);
         setPreviewViewMode('reference');
 
         // Automatically trigger initial generation with the fitted spec
@@ -204,20 +193,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
             .catch(() => {
               /* quality evaluation can be run explicitly via tab */
             });
-
-          // Trigger initial TSTR evaluation check
-          api
-            .evaluateTstr(resp.dataset_id, null, 'auto', resp.spec.seed)
-            .then((t) => setTstrResults(t))
-            .catch(() => {
-              /* TSTR evaluation can be re-run with selected target */
-            });
         } catch (genErr: any) {
           setError({
             message: `Generation error: ${genErr.message}`,
             isSessionExpired: genErr.isSessionExpired,
           });
         } finally {
+
           setIsGenerating(false);
         }
 
@@ -354,42 +336,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, [referenceToken, generatedToken]);
 
-  const triggerTstrEvaluation = useCallback(
-    async (
-      target?: string,
-      task: 'auto' | 'classification' | 'regression' = 'auto',
-      seed: number = 42
-    ): Promise<boolean> => {
-      if (!referenceToken) {
-        setError({
-          message: 'TSTR evaluation requires an ingested reference dataset.',
-        });
-        return false;
-      }
-      setIsEvaluatingTstr(true);
-      setError(null);
-      try {
-        const t = await api.evaluateTstr(
-          referenceToken,
-          target ?? null,
-          task,
-          seed
-        );
-        setTstrResults(t);
-        return true;
-      } catch (err: any) {
-        setError({
-          message: err.message || 'TSTR evaluation failed.',
-          isSessionExpired: err.isSessionExpired,
-        });
-        return false;
-      } finally {
-        setIsEvaluatingTstr(false);
-      }
-    },
-    [referenceToken]
-  );
-
   return (
     <StudioContext.Provider
       value={{
@@ -406,7 +352,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         generatedRowCount,
         generatedColumns,
         qualityResults,
-        tstrResults,
         activeTab,
         setActiveTab,
         previewViewMode,
@@ -415,7 +360,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         isIngesting,
         isGenerating,
         isEvaluatingQuality,
-        isEvaluatingTstr,
         error,
         checkBackendHealth,
         handleFileUpload,
@@ -425,7 +369,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         updateGlobalConfig,
         triggerGenerate,
         triggerQualityEvaluation,
-        triggerTstrEvaluation,
         clearSession,
         dismissError,
         reportError: setError,
@@ -434,6 +377,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       {children}
     </StudioContext.Provider>
   );
+
 }
 
 export function useStudio() {

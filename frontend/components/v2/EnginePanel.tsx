@@ -40,14 +40,10 @@ function ComparisonRow({ result }: { result: ComparisonResult }) {
       <td>{ok ? fmt(result.quality_score) : '—'}</td>
       <td>{ok ? `${result.runtime_seconds?.toFixed(2) ?? '—'}s` : '—'}</td>
       <td>{ok ? kb(result.memory_estimate_bytes) : '—'}</td>
-      <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-        {ok && result.tstr?.tstr
-          ? Object.entries(result.tstr.tstr).map(([k, v]) => `${k}: ${fmt(v)}`).join(' · ')
-          : '—'}
-      </td>
     </tr>
   );
 }
+
 
 export function EnginePanel({
   spec,
@@ -215,7 +211,6 @@ export function EnginePanel({
                   <th>Quality score</th>
                   <th>Runtime</th>
                   <th>Memory (DataFrame)</th>
-                  <th>Internal TSTR metrics</th>
                 </tr>
               </thead>
               <tbody>
@@ -235,9 +230,10 @@ export function EnginePanel({
                 AUTO suggestion: <span style={{ color: 'var(--synth)' }}>{comparison.recommendation}</span>
               </p>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                Based on quality score, internal TSTR, runtime and DataFrame memory from this specific source.
+                Based on quality score, runtime and DataFrame memory from this specific source.
                 Review the evidence above before accepting. This is a suggestion, not an automatic selection.
               </p>
+
               <button
                 className={styles.secondary}
                 onClick={() => onUseRecommendation(comparison.recommendation!)}

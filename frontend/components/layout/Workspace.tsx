@@ -5,12 +5,10 @@ import { ConfigPanel } from '../configuration/ConfigPanel';
 import { DataPreviewCanvas } from '../preview/DataPreviewCanvas';
 import { SchemaInspector } from '../schema/SchemaInspector';
 import { QualityDashboard } from '../quality/QualityDashboard';
-import { TSTRDashboard } from '../tstr/TSTRDashboard';
 import {
   Eye,
   Sliders,
   Activity,
-  BrainCircuit,
   Database,
   CheckCircle2,
 } from 'lucide-react';
@@ -21,7 +19,6 @@ export const Workspace: React.FC = () => {
     activeTab,
     setActiveTab,
     qualityResults,
-    tstrResults,
     datasetName,
     generatedRowCount,
   } = useStudio();
@@ -52,13 +49,8 @@ export const Workspace: React.FC = () => {
           ? `${Math.round(qualityResults.overall_score)}%`
           : undefined,
     },
-    {
-      id: 'tstr',
-      label: 'TSTR ML Utility',
-      icon: <BrainCircuit size={13} />,
-      badge: tstrResults?.status === 'ok' ? 'Evaluated' : undefined,
-    },
   ];
+
 
   return (
     <div className="workspace-layout">
@@ -109,8 +101,8 @@ export const Workspace: React.FC = () => {
           {activeTab === 'preview' && <DataPreviewCanvas />}
           {activeTab === 'schema' && <SchemaInspector />}
           {activeTab === 'quality' && <QualityDashboard />}
-          {activeTab === 'tstr' && <TSTRDashboard />}
         </div>
+
       </main>
 
       {/* Column 3: Right Sidebar (300px) */}
