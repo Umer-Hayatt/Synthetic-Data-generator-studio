@@ -4,11 +4,11 @@
 REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
 
 ## Active Task
-S2 complete (Schema & Privacy summary with sensitive detection & modals). Next: S3 — Synthetic Quality summary (classic studio).
+S3 complete (Synthetic Quality summary with real checks, centralized label thresholds, QualityChartsModal and ExportModal). Next: S4 — Hide the link to /v2.
 
 ## Baseline
 - Frontend: `npx tsc --noEmit` passes with 0 errors.
-- Backend: `pytest` passes with 116 passed, 1 skipped, 11 failed (3 sensitive detection tests added; remaining 11 failures scheduled for S5 and S7).
+- Backend: `pytest` passes with 117 passed, 1 skipped, 11 failed (quality privacy & integrity tests added; remaining 11 failures scheduled for S5 and S7).
 - Classic studio workflow verified: upload/ingest -> generate -> preview -> quality -> export (CSV/JSON) all functional.
 - Repo: https://github.com/Umer-Hayatt/Synthetic-Data-generator-studio (branch `main`).
 

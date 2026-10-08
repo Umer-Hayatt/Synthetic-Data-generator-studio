@@ -66,10 +66,44 @@ def quality(reference: pd.DataFrame, synthetic: pd.DataFrame) -> dict:
     components = {'distribution':float(np.mean(distribution_scores)) if distribution_scores else None,
                   'missingness':float(np.mean(missing_scores)), 'correlation':correlation['similarity']}
     available = [value for value in components.values() if value is not None]
+
+    # Real privacy check: reference memorization / exact row matching rate
+    if len(reference) and len(synthetic):
+        ref_hashes = set(pd.util.hash_pandas_object(reference, index=False))
+        synth_hashes = pd.util.hash_pandas_object(synthetic, index=False)
+        exact_matches = int(synth_hashes.isin(ref_hashes).sum())
+        exact_match_rate = float(exact_matches / len(synthetic))
+    else:
+        exact_matches = 0
+        exact_match_rate = 0.0
+
+    privacy_protected = exact_match_rate <= 0.20 or len(synthetic) <= 5
+    privacy = {
+        'status': 'Protected' if privacy_protected else 'At Risk',
+        'exact_match_rate': exact_match_rate,
+        'exact_matches': exact_matches,
+    }
+
+    # Real integrity check: column preservation, null violations, and non-empty output
+    null_issues = 0
+    for col in reference.columns:
+        if reference[col].isna().sum() == 0 and synthetic[col].isna().sum() > 0:
+            null_issues += 1
+    integrity_passed = set(reference.columns) == set(synthetic.columns) and null_issues == 0 and len(synthetic) > 0
+    integrity = {
+        'status': 'Passed' if integrity_passed else 'Warning',
+        'columns_preserved': set(reference.columns) == set(synthetic.columns),
+        'null_integrity': null_issues == 0,
+        'valid_row_count': len(synthetic) > 0,
+    }
+
     return {'overall_score':100*float(np.mean(available)) if distribution_scores else None,
             'score_status':'available' if distribution_scores else 'unavailable',
             'distribution_columns_evaluated':len(distribution_scores),
             'distribution_columns_total':len(columns), 'components':components, 'columns':columns,
             'correlation':correlation,
+            'privacy': privacy,
+            'integrity': integrity,
             'score_definition':'100 * mean(available components). Distribution = mean(1-KS numeric, 1-TVD categorical); missingness = mean(1-absolute null-rate difference); correlation = 1-mean absolute Pearson pair difference/2. Unavailable components are omitted; no overall score without an evaluable distribution column.',
             'reference_rows':len(reference), 'synthetic_rows':len(synthetic)}
+

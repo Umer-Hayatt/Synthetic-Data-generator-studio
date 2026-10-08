@@ -63,6 +63,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `services/v2.ts` | Typed fetch wrappers for AI/relational/document endpoints |
 | `services/fixtures.ts` | Demo dataset definitions |
 | `services/samples.ts` | Sample column presets |
+| `services/qualityLabels.ts` | Quality score threshold and label definitions |
 | `services/features.ts` | Feature flags |
 | `types/` | Shared TypeScript interfaces mirroring backend schemas |
 | `context/` | React context providers (job state, locale, spec) |

@@ -79,5 +79,5 @@ Quality: NN% <label>      Privacy: Protected      Integrity: Passed
 - After this slice, delete the /v2 route.
 
 ## Status log
-S0 SKIPPED | S1 DONE | S2 DONE | S3 TODO | S4 TODO | S5 TODO | S6 TODO | S7 TODO
+S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 TODO | S5 TODO | S6 TODO | S7 TODO
 

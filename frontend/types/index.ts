@@ -148,5 +148,16 @@ export interface QualityResponse {
   score_definition: string;
   reference_rows: number;
   synthetic_rows: number;
+  privacy?: {
+    status: 'Protected' | 'At Risk';
+    exact_match_rate?: number;
+    exact_matches?: number;
+  };
+  integrity?: {
+    status: 'Passed' | 'Warning' | 'Failed';
+    columns_preserved?: boolean;
+    null_integrity?: boolean;
+    valid_row_count?: boolean;
+  };
 }
 

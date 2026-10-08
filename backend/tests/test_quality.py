@@ -36,4 +36,24 @@ def test_quality_api_payload():
     response = TestClient(app).post('/api/v1/evaluate/quality', json={
         'reference_id':store.put(frame,'reference'), 'generated_id':store.put(frame,'generated')})
     assert response.status_code == 200
-    assert set(response.json()) >= {'overall_score','components','columns','correlation','score_definition'}
+    assert set(response.json()) >= {'overall_score','components','columns','correlation','score_definition','privacy','integrity'}
+
+
+def test_privacy_and_integrity_checks():
+    ref = pd.DataFrame({'id': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'val': np.arange(10, dtype=float)})
+    synth_good = pd.DataFrame({'id': [101, 102, 103, 104, 105, 106, 107, 108, 109, 110], 'val': np.arange(10, dtype=float) + 0.1})
+    res_good = quality(ref, synth_good)
+    assert res_good['privacy']['status'] == 'Protected'
+    assert res_good['integrity']['status'] == 'Passed'
+
+    # An identical large copy has 100% exact match rate -> At Risk
+    large_ref = pd.DataFrame({'id': list(range(50)), 'val': list(range(50))})
+    res_leaked = quality(large_ref, large_ref)
+    assert res_leaked['privacy']['status'] == 'At Risk'
+    assert res_leaked['privacy']['exact_match_rate'] == 1.0
+
+    # Synthetic with unexpected nulls on previously complete column -> integrity Warning
+    synth_nulls = pd.DataFrame({'id': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'val': [1.0, None, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]})
+    res_nulls = quality(ref, synth_nulls)
+    assert res_nulls['integrity']['status'] == 'Warning'
+
