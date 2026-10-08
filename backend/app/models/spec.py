@@ -25,9 +25,10 @@ class Constraints(Model):
 
 
 class Distribution(Model):
-    type: Literal['gaussian', 'uniform', 'categorical', 'empirical'] = 'gaussian'
+    type: Literal['gaussian', 'uniform', 'categorical', 'empirical', 'skewed'] = 'gaussian'
     mean: float = 0
     std: float = Field(default=1, ge=0)
+    skew: float = 0
     values: list[str | int | float | bool] = Field(default_factory=list, max_length=1000)
     probabilities: list[float] = Field(default_factory=list, max_length=1000)
     quantiles: list[float] = Field(default_factory=list, max_length=101)

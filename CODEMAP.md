@@ -38,7 +38,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `models/spec.py` | Central DataSpec, ColumnSpec, JobSpec models |
 | `models/relational_rules.py` | FK, cardinality, and referential-integrity rule models |
 | **eval/** | **Quality evaluation** |
-| `eval/quality.py` | Statistical similarity score (fidelity %) |
+| `eval/quality.py` | Statistical similarity score (fidelity %) & reference-free spec quality |
 | `eval/comparison.py` | Column-level comparison metrics |
 | `eval/diagnostics.py` | Diagnostic helpers (nulls, ranges, uniqueness) |
 | **adapters/** | External-format adapters (CSV/JSON normalisation) |

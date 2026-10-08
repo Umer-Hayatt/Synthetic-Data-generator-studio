@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Database,
   Sparkles,
+  Sliders,
 } from 'lucide-react';
 
 export const DataPreviewCanvas: React.FC = () => {
@@ -19,6 +20,7 @@ export const DataPreviewCanvas: React.FC = () => {
     referenceRowCount,
     referenceColumns,
     datasetSpec,
+    setActiveTab,
   } = useStudio();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -100,6 +102,16 @@ export const DataPreviewCanvas: React.FC = () => {
               style={{ paddingLeft: '26px', width: '180px', height: '28px' }}
             />
           </div>
+
+          <button
+            onClick={() => setActiveTab('schema')}
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: '11px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '5px' }}
+            title="Edit schema columns, constraints, and distributions"
+          >
+            <Sliders size={12} />
+            <span>Edit schema</span>
+          </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>

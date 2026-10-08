@@ -15,6 +15,8 @@ export const QualityDashboard: React.FC = () => {
     generatedPreview,
     datasetSpec,
     sensitiveColumns,
+    referenceToken,
+    generatedToken,
   } = useStudio();
 
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -26,6 +28,12 @@ export const QualityDashboard: React.FC = () => {
   // 2. Quality % and Label
   const overallScore = qualityResults?.overall_score;
   const qualityDisplay = useMemo(() => {
+    if (qualityResults?.score_status === 'not_applicable' || qualityResults?.fidelity_label) {
+      return qualityResults.fidelity_label || 'Not applicable (generated from prompt)';
+    }
+    if (!referenceToken && generatedToken) {
+      return 'Not applicable (generated from prompt)';
+    }
     if (overallScore !== null && overallScore !== undefined && !isNaN(overallScore)) {
       const rounded = Math.round(overallScore);
       const label = getQualityLabel(rounded);
@@ -35,7 +43,7 @@ export const QualityDashboard: React.FC = () => {
       return 'Evaluating...';
     }
     return 'Pending';
-  }, [overallScore, isEvaluatingQuality]);
+  }, [overallScore, qualityResults, isEvaluatingQuality, referenceToken, generatedToken]);
 
   // 3. Real Privacy check
   const privacyCheck = useMemo<{ status: 'Protected' | 'At Risk'; isProtected: boolean }>(() => {

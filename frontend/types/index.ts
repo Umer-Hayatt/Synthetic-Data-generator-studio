@@ -22,9 +22,10 @@ export interface Constraints {
 }
 
 export interface Distribution {
-  type: 'gaussian' | 'uniform' | 'categorical' | 'empirical';
+  type: 'gaussian' | 'uniform' | 'categorical' | 'empirical' | 'skewed';
   mean?: number;
   std?: number;
+  skew?: number;
   values?: (string | number | boolean)[];
   probabilities?: number[];
   quantiles?: number[];
@@ -95,6 +96,7 @@ export interface GenerateResponse {
   row_count: number;
   columns: string[];
   preview: Record<string, any>[];
+  warnings?: string[];
 }
 
 export interface PreviewResponse {
@@ -146,7 +148,8 @@ export interface CorrelationMetric {
 
 export interface QualityResponse {
   overall_score: number | null;
-  score_status: 'available' | 'unavailable';
+  score_status: 'available' | 'unavailable' | 'not_applicable';
+  fidelity_label?: string;
   distribution_columns_evaluated: number;
   distribution_columns_total: number;
   components: {

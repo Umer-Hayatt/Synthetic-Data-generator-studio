@@ -293,13 +293,30 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         const sensitiveNames = schemaSummary.filter((c) => c.is_sensitive).map((c) => c.name);
         setSensitiveColumns(sensitiveNames);
 
-        // Reset generated outputs until user triggers generation
-        setGeneratedToken(null);
-        setGeneratedRowCount(0);
-        setGeneratedColumns([]);
-        setGeneratedPreview([]);
-        setQualityResults(null);
-        setPreviewViewMode('generated');
+        // Automatically run generation from the prompt-derived spec
+        setIsGenerating(true);
+        let genResp: any = null;
+        try {
+          genResp = await api.generateData(resp.spec, 50);
+          setGeneratedToken(genResp.dataset_id);
+          setGeneratedPreview(genResp.preview);
+          setGeneratedRowCount(genResp.row_count);
+          setGeneratedColumns(genResp.columns);
+          setPreviewViewMode('generated');
+
+          // Trigger quality evaluation without reference data
+          api
+            .evaluateQuality(null, genResp.dataset_id, resp.spec)
+            .then((q) => setQualityResults(q))
+            .catch(() => {});
+        } catch (genErr: any) {
+          setError({
+            message: `Generation error: ${genErr.message}`,
+            isSessionExpired: genErr.isSessionExpired,
+          });
+        } finally {
+          setIsGenerating(false);
+        }
 
         // Capture notices if fallback was used or warnings were issued
         const notices: string[] = [];
@@ -309,12 +326,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         if (resp.warnings && resp.warnings.length > 0) {
           notices.push(...resp.warnings);
         }
+        if (genResp?.warnings && genResp.warnings.length > 0) {
+          notices.push(...genResp.warnings);
+        }
         if (notices.length > 0) {
           setSchemaNotice(notices.join(' '));
         }
 
-        // Navigate directly to the Schema & Privacy summary tab
-        setActiveTab('schema');
+        // Navigate directly to preview tab to show the synthesized table
+        setActiveTab('preview');
         return true;
       } catch (err: any) {
         setError({
@@ -392,13 +412,15 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         setGeneratedColumns(resp.columns);
         setPreviewViewMode('generated');
 
-        // Automatically refresh quality evaluation if referenceToken exists
-        if (referenceToken) {
-          api
-            .evaluateQuality(referenceToken, resp.dataset_id)
-            .then((q) => setQualityResults(q))
-            .catch(() => {});
+        if (resp.warnings && resp.warnings.length > 0) {
+          setSchemaNotice(resp.warnings.join(' '));
         }
+
+        // Automatically refresh quality evaluation
+        api
+          .evaluateQuality(referenceToken || null, resp.dataset_id, targetSpec)
+          .then((q) => setQualityResults(q))
+          .catch(() => {});
         return true;
       } catch (err: any) {
         setError({
@@ -414,17 +436,16 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   );
 
   const triggerQualityEvaluation = useCallback(async (): Promise<boolean> => {
-    if (!referenceToken || !generatedToken) {
+    if (!generatedToken) {
       setError({
-        message:
-          'Quality evaluation requires both reference and generated datasets.',
+        message: 'Quality evaluation requires a generated dataset.',
       });
       return false;
     }
     setIsEvaluatingQuality(true);
     setError(null);
     try {
-      const q = await api.evaluateQuality(referenceToken, generatedToken);
+      const q = await api.evaluateQuality(referenceToken || null, generatedToken, datasetSpec || null);
       setQualityResults(q);
       return true;
     } catch (err: any) {
@@ -436,7 +457,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsEvaluatingQuality(false);
     }
-  }, [referenceToken, generatedToken]);
+  }, [referenceToken, generatedToken, datasetSpec]);
 
   return (
     <StudioContext.Provider

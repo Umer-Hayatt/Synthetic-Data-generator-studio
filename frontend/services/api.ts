@@ -153,15 +153,17 @@ export const api = {
   },
 
   async evaluateQuality(
-    referenceId: string,
-    generatedId: string
+    referenceId?: string | null,
+    generatedId?: string,
+    spec?: DatasetSpec | null
   ): Promise<QualityResponse> {
     const res = await fetch(`${API_BASE_URL}/api/v1/evaluate/quality`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        reference_id: referenceId,
+        reference_id: referenceId || null,
         generated_id: generatedId,
+        spec: spec || null,
       }),
     });
     return await handleResponse<QualityResponse>(res);

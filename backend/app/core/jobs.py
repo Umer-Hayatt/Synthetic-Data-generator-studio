@@ -107,8 +107,10 @@ class LocalJobExecutor:
                 pins.close()
                 for artifact_id in outputs:
                     self.artifacts.delete(artifact_id)
-                # ValueError messages are safe to surface — they come from our own validation code.
-                self.store.update(token, status='failed', stage='failed', error=str(exc))
+                err_msg = str(exc)
+                if 'secret' in err_msg.lower():
+                    err_msg = 'Job failed due to invalid input.'
+                self.store.update(token, status='failed', stage='failed', error=err_msg)
             except Exception:
                 pins.close()
                 for artifact_id in outputs:

@@ -25,8 +25,16 @@ def generate_dataset(request: GenerationRequest):
             raise ValueError('Generation cell limit exceeded.')
         frame = generate(request.spec)
         token = store.put(frame, 'generated')
+        warnings: list[str] = []
+        if request.spec.tables and request.spec.tables[0].row_count > len(frame):
+            requested = request.spec.tables[0].row_count
+            warnings.append(
+                f"Requested {requested:,} rows exceeds generation limit of {settings.max_rows:,}. "
+                f"Generated {len(frame):,} rows."
+            )
         return {'dataset_id': token, 'row_count': len(frame), 'columns': list(frame.columns),
-                'preview': records(frame.head(request.preview_limit)), 'expires_in_seconds': store.ttl}
+                'preview': records(frame.head(request.preview_limit)), 'expires_in_seconds': store.ttl,
+                'warnings': warnings}
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from None
 

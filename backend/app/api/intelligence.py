@@ -1,5 +1,7 @@
 """AI proposals are reviewed DatasetSpecs, never an implicit generation request."""
 import json, re
+import pandas as pd
+import numpy as np
 from functools import lru_cache
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
@@ -52,9 +54,18 @@ class _DraftColumn(BaseModel):
     reference_column: str = ''
     cardinality: str = '1:N'
     is_target: bool = False
+    unique: bool = False
     min_value: float = 0.0
     max_value: float = 0.0
     has_bounds: bool = False
+    distribution_type: str = 'uniform'  # uniform | gaussian | normal | skewed | categorical
+    mean: float = 0.0
+    std: float = 1.0
+    skew: float = 0.0
+    categories: list[str | int | float | bool] = Field(default_factory=list)
+    weights: list[float] = Field(default_factory=list)
+    date_min: str = ''
+    date_max: str = ''
 
 
 class _DraftTable(BaseModel):
@@ -182,6 +193,53 @@ def _repair_draft(draft: _DatasetSpecDraft) -> _DatasetSpecDraft:
                     c.reference_table = ''
                     c.reference_column = ''
 
+    # 4. Validate and clamp generation hints to realistic ranges
+    for t in draft.tables:
+        for c in t.columns:
+            lower = c.name.lower()
+            if 'gpa' in lower:
+                c.dtype = 'float'
+                c.semantic_type = 'numeric'
+                c.has_bounds = True
+                c.min_value = max(0.0, min(c.min_value, 4.0)) if c.has_bounds and c.min_value != 0.0 else 1.0
+                c.max_value = min(4.0, max(c.max_value, 2.0)) if c.has_bounds and c.max_value != 0.0 else 4.0
+                c.distribution_type = 'gaussian'
+                c.mean = 3.2
+                c.std = 0.5
+            elif 'age' in lower and c.dtype in ('integer', 'float', 'numeric'):
+                c.has_bounds = True
+                c.min_value = max(0.0, c.min_value) if c.has_bounds else 18.0
+                c.max_value = min(120.0, max(c.max_value, 20.0)) if c.has_bounds else 80.0
+            elif any(k in lower for k in ('attendance', 'percent', 'percentage')):
+                c.has_bounds = True
+                c.min_value = max(0.0, min(c.min_value, 100.0))
+                c.max_value = min(100.0, max(c.max_value, c.min_value + 1.0 if c.min_value > 0 else 100.0))
+
+            if c.has_bounds:
+                if c.min_value > c.max_value:
+                    c.min_value, c.max_value = c.max_value, c.min_value
+                if c.min_value == c.max_value:
+                    c.max_value = c.min_value + 1.0
+
+            if c.categories:
+                c.categories = list(dict.fromkeys(c.categories))
+                if c.weights and len(c.weights) == len(c.categories) and all(w >= 0 for w in c.weights) and sum(c.weights) > 0:
+                    tot = sum(c.weights)
+                    c.weights = [round(w / tot, 4) for w in c.weights]
+                    c.weights[-1] = round(1.0 - sum(c.weights[:-1]), 4)
+                else:
+                    k = len(c.categories)
+                    c.weights = [round(1.0 / k, 4)] * k
+                    c.weights[-1] = round(1.0 - sum(c.weights[:-1]), 4)
+
+            if c.is_primary_key:
+                c.unique = True
+                c.nullable = False
+                c.null_rate = 0.0
+            if c.unique:
+                c.nullable = False
+                c.null_rate = 0.0
+
     draft._repair_warnings = warnings  # type: ignore[attr-defined]
     return draft
 
@@ -216,20 +274,67 @@ def _draft_to_spec(draft: _DatasetSpecDraft) -> tuple[DatasetSpec, list[str]]:
                 dtype = 'float'
 
             constraints: dict = {}
-            if c.is_primary_key:
-                constraints = {'unique': True, 'auto_increment': dtype == 'integer'}
-                primary_key = c.name
+            if c.is_primary_key or c.unique:
+                constraints['unique'] = True
+                if c.is_primary_key and dtype == 'integer':
+                    constraints['auto_increment'] = True
+                if c.is_primary_key:
+                    primary_key = c.name
             if c.has_bounds and c.min_value < c.max_value:
-                constraints['min'] = c.min_value
-                constraints['max'] = c.max_value
+                constraints['min'] = float(c.min_value)
+                constraints['max'] = float(c.max_value)
+            if c.categories:
+                constraints['categories'] = list(c.categories)
+
+            # Date range in constraints
+            if dtype == 'datetime':
+                if c.date_min:
+                    try:
+                        constraints['min'] = float(pd.to_datetime(c.date_min).timestamp())
+                    except Exception:
+                        pass
+                if c.date_max:
+                    try:
+                        constraints['max'] = float(pd.to_datetime(c.date_max).timestamp())
+                    except Exception:
+                        pass
+
+            distribution = None
+            if c.categories:
+                distribution = {
+                    'type': 'categorical',
+                    'values': list(c.categories),
+                    'probabilities': list(c.weights) if c.weights else [round(1.0/len(c.categories), 4)]*len(c.categories),
+                }
+            elif c.distribution_type in ('gaussian', 'normal'):
+                mean_val = c.mean if c.mean != 0.0 else (
+                    (c.min_value + c.max_value) / 2 if c.has_bounds else 50.0
+                )
+                std_val = c.std if c.std > 0 else (
+                    (c.max_value - c.min_value) / 4 if c.has_bounds else 10.0
+                )
+                distribution = {'type': 'gaussian', 'mean': float(mean_val), 'std': float(std_val)}
+            elif c.distribution_type == 'skewed':
+                mean_val = c.mean if c.mean != 0.0 else (
+                    (c.min_value + c.max_value) / 2 if c.has_bounds else 50.0
+                )
+                std_val = c.std if c.std > 0 else (
+                    (c.max_value - c.min_value) / 4 if c.has_bounds else 10.0
+                )
+                distribution = {'type': 'skewed', 'mean': float(mean_val), 'std': float(std_val), 'skew': float(c.skew or 4.0)}
+            elif c.distribution_type == 'uniform' or c.has_bounds:
+                lo = float(c.min_value) if c.has_bounds else 0.0
+                hi = float(c.max_value) if c.has_bounds else 100.0
+                distribution = {'type': 'uniform', 'mean': (lo + hi)/2, 'std': max((hi - lo)/3.464, 0.1)}
 
             col: dict = {
                 'name': c.name,
                 'dtype': dtype,
                 'semantic_type': semantic,
-                'nullable': False if (c.is_primary_key or c.is_foreign_key) else c.nullable,
-                'null_rate': 0.0,
+                'nullable': False if (c.is_primary_key or c.is_foreign_key or c.unique) else c.nullable,
+                'null_rate': 0.0 if (c.is_primary_key or c.is_foreign_key or c.unique) else c.null_rate,
                 'constraints': constraints,
+                'distribution': distribution,
             }
             if c.is_foreign_key and c.reference_table and c.reference_column:
                 col['nullable'] = False
@@ -373,134 +478,136 @@ def generate_fallback_draft(prompt: str, requested_rows: int | None = None) -> t
     if any(k in p for k in ('student', 'university', 'college', 'gpa', 'semester', 'attendance', 'grade', 'school', 'course')):
         table_name = 'Students'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
             _DraftColumn(name='full_name', dtype='string', semantic_type='person_name', nullable=False),
             _DraftColumn(name='email', dtype='string', semantic_type='email', nullable=False),
-            _DraftColumn(name='semester', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=8),
-            _DraftColumn(name='gpa', dtype='float', semantic_type='numeric', has_bounds=True, min_value=1.0, max_value=4.0),
-            _DraftColumn(name='attendance', dtype='float', semantic_type='numeric', has_bounds=True, min_value=50.0, max_value=100.0),
-            _DraftColumn(name='fee_status', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='semester', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=8, distribution_type='uniform'),
+            _DraftColumn(name='gpa', dtype='float', semantic_type='numeric', has_bounds=True, min_value=1.0, max_value=4.0, distribution_type='gaussian', mean=3.2, std=0.45),
+            _DraftColumn(name='attendance', dtype='float', semantic_type='numeric', has_bounds=True, min_value=50.0, max_value=100.0, distribution_type='uniform'),
+            _DraftColumn(name='fee_status', dtype='string', semantic_type='categorical', categories=['Paid', 'Pending', 'Overdue', 'Scholarship'], weights=[0.60, 0.25, 0.10, 0.05]),
         ]
     # Domain 2: Restaurant & Food Orders
     elif any(k in p for k in ('restaurant', 'dining', 'meal', 'food', 'menu', 'dish', 'delivery', 'restaurant order')):
         table_name = 'RestaurantOrders'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
             _DraftColumn(name='customer_name', dtype='string', semantic_type='person_name', nullable=False),
             _DraftColumn(name='item_name', dtype='string', semantic_type='generic_text', nullable=False),
-            _DraftColumn(name='category', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='quantity', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=10),
-            _DraftColumn(name='total_price', dtype='float', semantic_type='money', has_bounds=True, min_value=5.0, max_value=200.0),
-            _DraftColumn(name='order_status', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='category', dtype='string', semantic_type='categorical', categories=['Appetizer', 'Main Course', 'Dessert', 'Beverage'], weights=[0.25, 0.45, 0.15, 0.15]),
+            _DraftColumn(name='quantity', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=8, distribution_type='uniform'),
+            _DraftColumn(name='unit_price', dtype='float', semantic_type='money', has_bounds=True, min_value=3.0, max_value=50.0, distribution_type='uniform'),
+            _DraftColumn(name='total_price', dtype='float', semantic_type='money', has_bounds=True, min_value=3.0, max_value=400.0),
+            _DraftColumn(name='order_status', dtype='string', semantic_type='categorical', categories=['Placed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'], weights=[0.15, 0.15, 0.20, 0.45, 0.05]),
         ]
     # Domain 3: Bank Customers
     elif any(k in p for k in ('bank', 'account', 'balance', 'credit_score', 'credit score', 'loan', 'finance', 'deposit')):
         table_name = 'BankCustomers'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
             _DraftColumn(name='full_name', dtype='string', semantic_type='person_name', nullable=False),
             _DraftColumn(name='email', dtype='string', semantic_type='email', nullable=False),
-            _DraftColumn(name='account_number', dtype='string', semantic_type='id', nullable=False),
-            _DraftColumn(name='account_type', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='balance', dtype='float', semantic_type='money', has_bounds=True, min_value=50.0, max_value=100000.0),
-            _DraftColumn(name='credit_score', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=300, max_value=850),
+            _DraftColumn(name='account_number', dtype='string', semantic_type='id', unique=True, nullable=False),
+            _DraftColumn(name='account_type', dtype='string', semantic_type='categorical', categories=['Checking', 'Savings', 'Money Market', 'Business'], weights=[0.45, 0.35, 0.10, 0.10]),
+            _DraftColumn(name='balance', dtype='float', semantic_type='money', has_bounds=True, min_value=50.0, max_value=100000.0, distribution_type='skewed', mean=12500.0, std=15000.0, skew=3.5),
+            _DraftColumn(name='credit_score', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=350, max_value=850, distribution_type='gaussian', mean=680.0, std=65.0),
         ]
     # Domain 4: Retail Products
     elif any(k in p for k in ('product', 'retail', 'catalog', 'sku', 'inventory', 'merchandise', 'store', 'shop')):
         table_name = 'Products'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
             _DraftColumn(name='product_name', dtype='string', semantic_type='generic_text', nullable=False),
-            _DraftColumn(name='category', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='sku', dtype='string', semantic_type='id', nullable=False),
-            _DraftColumn(name='unit_price', dtype='float', semantic_type='money', has_bounds=True, min_value=2.0, max_value=1000.0),
-            _DraftColumn(name='stock_quantity', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=0, max_value=500),
+            _DraftColumn(name='category', dtype='string', semantic_type='categorical', categories=['Electronics', 'Apparel', 'Home & Kitchen', 'Beauty', 'Sports'], weights=[0.25, 0.25, 0.20, 0.15, 0.15]),
+            _DraftColumn(name='sku', dtype='string', semantic_type='id', unique=True, nullable=False),
+            _DraftColumn(name='unit_price', dtype='float', semantic_type='money', has_bounds=True, min_value=2.0, max_value=500.0, distribution_type='skewed', mean=45.0, std=60.0, skew=2.5),
+            _DraftColumn(name='stock_quantity', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=0, max_value=500, distribution_type='uniform'),
         ]
     elif any(k in p for k in ('patient', 'hospital', 'clinic', 'medical', 'diagnosis', 'health', 'doctor')):
         table_name = 'Patients'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
             _DraftColumn(name='patient_name', dtype='string', semantic_type='person_name', nullable=False),
-            _DraftColumn(name='gender', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='diagnosis', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='room_number', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=101, max_value=599),
-            _DraftColumn(name='admission_date', dtype='datetime', semantic_type='datetime'),
+            _DraftColumn(name='gender', dtype='string', semantic_type='categorical', categories=['Male', 'Female', 'Other'], weights=[0.48, 0.48, 0.04]),
+            _DraftColumn(name='diagnosis', dtype='string', semantic_type='categorical', categories=['Hypertension', 'Diabetes', 'Asthma', 'Pneumonia', 'Arrhythmia'], weights=[0.30, 0.25, 0.20, 0.15, 0.10]),
+            _DraftColumn(name='room_number', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=101, max_value=599, distribution_type='uniform'),
+            _DraftColumn(name='admission_date', dtype='datetime', semantic_type='datetime', date_min='2023-01-01', date_max='2024-12-31'),
         ]
     elif any(k in p for k in ('employee', 'staff', 'payroll', 'worker', 'hr', 'salary', 'hire')):
         table_name = 'Employees'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
             _DraftColumn(name='full_name', dtype='string', semantic_type='person_name', nullable=False),
             _DraftColumn(name='email', dtype='string', semantic_type='email', nullable=False),
-            _DraftColumn(name='department', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='department', dtype='string', semantic_type='categorical', categories=['Engineering', 'Sales', 'Marketing', 'Human Resources', 'Finance'], weights=[0.35, 0.25, 0.15, 0.15, 0.10]),
             _DraftColumn(name='job_title', dtype='string', semantic_type='generic_text'),
-            _DraftColumn(name='salary', dtype='float', semantic_type='money', has_bounds=True, min_value=30000.0, max_value=180000.0),
-            _DraftColumn(name='hire_date', dtype='datetime', semantic_type='datetime'),
+            _DraftColumn(name='salary', dtype='float', semantic_type='money', has_bounds=True, min_value=35000.0, max_value=180000.0, distribution_type='skewed', mean=75000.0, std=28000.0, skew=2.0),
+            _DraftColumn(name='hire_date', dtype='datetime', semantic_type='datetime', date_min='2018-01-01', date_max='2024-06-01'),
         ]
     elif any(k in p for k in ('flight', 'airline', 'airport', 'aviation', 'plane')):
         table_name = 'Flights'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
-            _DraftColumn(name='flight_number', dtype='string', semantic_type='generic_text', nullable=False),
-            _DraftColumn(name='airline', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='origin', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='destination', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='departure_time', dtype='datetime', semantic_type='datetime'),
-            _DraftColumn(name='status', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
+            _DraftColumn(name='flight_number', dtype='string', semantic_type='generic_text', unique=True, nullable=False),
+            _DraftColumn(name='airline', dtype='string', semantic_type='categorical', categories=['Emirates', 'Qatar Airways', 'Delta', 'British Airways', 'PIA'], weights=[0.25, 0.25, 0.20, 0.15, 0.15]),
+            _DraftColumn(name='origin', dtype='string', semantic_type='categorical', categories=['JFK', 'DXB', 'LHR', 'KHI', 'ISB']),
+            _DraftColumn(name='destination', dtype='string', semantic_type='categorical', categories=['LHR', 'DXB', 'JFK', 'ISB', 'FRA']),
+            _DraftColumn(name='departure_time', dtype='datetime', semantic_type='datetime', date_min='2024-01-01', date_max='2024-12-31'),
+            _DraftColumn(name='status', dtype='string', semantic_type='categorical', categories=['Scheduled', 'On Time', 'Delayed', 'Departed', 'Cancelled'], weights=[0.40, 0.35, 0.15, 0.05, 0.05]),
         ]
     elif any(k in p for k in ('book', 'library', 'author', 'isbn', 'publication', 'novel')):
         table_name = 'Books'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
             _DraftColumn(name='title', dtype='string', semantic_type='generic_text', nullable=False),
             _DraftColumn(name='author', dtype='string', semantic_type='person_name', nullable=False),
-            _DraftColumn(name='isbn', dtype='string', semantic_type='generic_text'),
-            _DraftColumn(name='genre', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='publication_year', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1950, max_value=2025),
-            _DraftColumn(name='is_available', dtype='boolean', semantic_type='categorical'),
+            _DraftColumn(name='isbn', dtype='string', semantic_type='generic_text', unique=True, nullable=False),
+            _DraftColumn(name='genre', dtype='string', semantic_type='categorical', categories=['Fiction', 'Science Fiction', 'Mystery', 'History', 'Biography'], weights=[0.30, 0.25, 0.20, 0.15, 0.10]),
+            _DraftColumn(name='publication_year', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1950, max_value=2025, distribution_type='uniform'),
+            _DraftColumn(name='is_available', dtype='boolean', semantic_type='categorical', categories=[True, False], weights=[0.75, 0.25]),
         ]
     elif any(k in p for k in ('real estate', 'real_estate', 'property', 'listing', 'realtor', 'house', 'apartment', 'home', 'rental')):
         table_name = 'RealEstate'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
             _DraftColumn(name='address', dtype='string', semantic_type='address', nullable=False),
-            _DraftColumn(name='city', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='property_type', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='price', dtype='float', semantic_type='money', has_bounds=True, min_value=80000.0, max_value=2500000.0),
-            _DraftColumn(name='bedrooms', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=6),
-            _DraftColumn(name='bathrooms', dtype='float', semantic_type='numeric', has_bounds=True, min_value=1.0, max_value=4.0),
+            _DraftColumn(name='city', dtype='string', semantic_type='categorical', categories=['New York', 'London', 'Dubai', 'Karachi', 'Toronto']),
+            _DraftColumn(name='property_type', dtype='string', semantic_type='categorical', categories=['Apartment', 'Single Family', 'Condo', 'Townhouse'], weights=[0.40, 0.30, 0.20, 0.10]),
+            _DraftColumn(name='price', dtype='float', semantic_type='money', has_bounds=True, min_value=80000.0, max_value=2500000.0, distribution_type='skewed', mean=350000.0, std=300000.0, skew=3.0),
+            _DraftColumn(name='bedrooms', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=6, distribution_type='uniform'),
+            _DraftColumn(name='bathrooms', dtype='float', semantic_type='numeric', has_bounds=True, min_value=1.0, max_value=4.0, distribution_type='uniform'),
         ]
     elif any(k in p for k in ('iot', 'sensor', 'reading', 'telemetry', 'device', 'temperature', 'humidity')):
         table_name = 'SensorReadings'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
             _DraftColumn(name='device_id', dtype='string', semantic_type='id', nullable=False),
-            _DraftColumn(name='timestamp', dtype='datetime', semantic_type='datetime'),
-            _DraftColumn(name='temperature', dtype='float', semantic_type='numeric', has_bounds=True, min_value=-20.0, max_value=60.0),
-            _DraftColumn(name='humidity', dtype='float', semantic_type='numeric', has_bounds=True, min_value=10.0, max_value=100.0),
-            _DraftColumn(name='battery_level', dtype='float', semantic_type='numeric', has_bounds=True, min_value=0.0, max_value=100.0),
-            _DraftColumn(name='status', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='timestamp', dtype='datetime', semantic_type='datetime', date_min='2024-01-01', date_max='2024-01-07'),
+            _DraftColumn(name='temperature', dtype='float', semantic_type='numeric', has_bounds=True, min_value=-20.0, max_value=60.0, distribution_type='gaussian', mean=24.0, std=6.0),
+            _DraftColumn(name='humidity', dtype='float', semantic_type='numeric', has_bounds=True, min_value=10.0, max_value=100.0, distribution_type='uniform'),
+            _DraftColumn(name='battery_level', dtype='float', semantic_type='numeric', has_bounds=True, min_value=0.0, max_value=100.0, distribution_type='uniform'),
+            _DraftColumn(name='status', dtype='string', semantic_type='categorical', categories=['OK', 'WARNING', 'ERROR'], weights=[0.85, 0.10, 0.05]),
         ]
     elif any(k in p for k in ('restaurant', 'order', 'dining', 'meal', 'food', 'menu', 'dish', 'delivery')):
         table_name = 'RestaurantOrders'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
             _DraftColumn(name='customer_name', dtype='string', semantic_type='person_name', nullable=False),
             _DraftColumn(name='item_name', dtype='string', semantic_type='generic_text', nullable=False),
-            _DraftColumn(name='category', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='quantity', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=10),
-            _DraftColumn(name='total_price', dtype='float', semantic_type='money', has_bounds=True, min_value=5.0, max_value=200.0),
-            _DraftColumn(name='order_status', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='category', dtype='string', semantic_type='categorical', categories=['Appetizer', 'Main Course', 'Dessert', 'Beverage'], weights=[0.25, 0.45, 0.15, 0.15]),
+            _DraftColumn(name='quantity', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=8, distribution_type='uniform'),
+            _DraftColumn(name='unit_price', dtype='float', semantic_type='money', has_bounds=True, min_value=3.0, max_value=50.0, distribution_type='uniform'),
+            _DraftColumn(name='total_price', dtype='float', semantic_type='money', has_bounds=True, min_value=3.0, max_value=400.0),
+            _DraftColumn(name='order_status', dtype='string', semantic_type='categorical', categories=['Placed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'], weights=[0.15, 0.15, 0.20, 0.45, 0.05]),
         ]
     else:
         table_name = 'Records'
         cols = [
-            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, unique=True, nullable=False),
             _DraftColumn(name='name', dtype='string', semantic_type='person_name', nullable=False),
-            _DraftColumn(name='category', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='status', dtype='string', semantic_type='categorical'),
-            _DraftColumn(name='value', dtype='float', semantic_type='numeric', has_bounds=True, min_value=10.0, max_value=1000.0),
-            _DraftColumn(name='created_at', dtype='datetime', semantic_type='datetime'),
+            _DraftColumn(name='category', dtype='string', semantic_type='categorical', categories=['Standard', 'Premium', 'Basic'], weights=[0.50, 0.30, 0.20]),
+            _DraftColumn(name='status', dtype='string', semantic_type='categorical', categories=['Active', 'Pending', 'Inactive'], weights=[0.60, 0.30, 0.10]),
+            _DraftColumn(name='value', dtype='float', semantic_type='numeric', has_bounds=True, min_value=10.0, max_value=1000.0, distribution_type='uniform'),
+            _DraftColumn(name='created_at', dtype='datetime', semantic_type='datetime', date_min='2023-01-01', date_max='2024-12-31'),
         ]
 
     if any(phrase in p for phrase in (' and orders', ' and products', ' and line_items', 'multi-table', 'multiple tables', 'related tables')):

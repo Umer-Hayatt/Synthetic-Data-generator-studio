@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from faker import Faker
 from faker.providers import BaseProvider
-from scipy.stats import norm
+from scipy.stats import norm, skewnorm
 from app.models.spec import DatasetSpec, PrivacyRule
 from app.core.config import settings
 from app.core.locales import normalize_locale, generate_coherent_person
@@ -151,13 +151,59 @@ def _person_field(col_name: str, semantic_type: str) -> str:
     return 'full_name'
 
 
+def _apply_cross_column_coherence(df: pd.DataFrame, table, seed: int) -> pd.DataFrame:
+    # 1. Total = Price * Quantity
+    price_cols = [c.name for c in table.columns if re.search(r'\b(unit_price|price|cost)\b', c.name, re.I) and not re.search(r'\b(total)\b', c.name, re.I)]
+    qty_cols = [c.name for c in table.columns if re.search(r'\b(quantity|qty|count|item_count)\b', c.name, re.I)]
+    total_cols = [c.name for c in table.columns if re.search(r'\b(total|total_price|total_amount|subtotal)\b', c.name, re.I) and c.name not in price_cols]
+    if price_cols and qty_cols and total_cols:
+        p_name, q_name, t_name = price_cols[0], qty_cols[0], total_cols[0]
+        if p_name in df.columns and q_name in df.columns and t_name in df.columns:
+            p_val = pd.to_numeric(df[p_name], errors='coerce').fillna(0)
+            q_val = pd.to_numeric(df[q_name], errors='coerce').fillna(0)
+            t_col_spec = next(c for c in table.columns if c.name == t_name)
+            if t_col_spec.dtype == 'integer':
+                df[t_name] = (p_val * q_val).round().astype('Int64')
+            else:
+                df[t_name] = (p_val * q_val).round(2).astype('Float64')
+
+    # 2. Start date before end date
+    for c1 in table.columns:
+        for c2 in table.columns:
+            if c1.name != c2.name and c1.dtype == 'datetime' and c2.dtype == 'datetime':
+                n1, n2 = c1.name.lower(), c2.name.lower()
+                is_start = any(k in n1 for k in ('start', 'depart', 'checkin', 'admission', 'create', 'from', 'begin', 'open', 'hire'))
+                is_end = any(k in n2 for k in ('end', 'arriv', 'checkout', 'discharge', 'update', 'to', 'finish', 'close', 'term'))
+                if is_start and is_end and c1.name in df.columns and c2.name in df.columns:
+                    dt1 = pd.to_datetime(df[c1.name], utc=True, errors='coerce')
+                    dt2 = pd.to_datetime(df[c2.name], utc=True, errors='coerce')
+                    valid = dt1.notna() & dt2.notna()
+                    invalid = valid & (dt2 < dt1)
+                    if invalid.any():
+                        rng_c = np.random.default_rng(seed ^ 0x55AA)
+                        durations = pd.to_timedelta(rng_c.uniform(3600, 86400 * 5, size=invalid.sum()), unit='s')
+                        dt2.loc[invalid] = dt1.loc[invalid] + durations
+                        df[c2.name] = dt2.dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    # 3. Percentages & GPA bounded
+    for c in table.columns:
+        if c.name in df.columns and c.dtype in ('integer', 'float'):
+            lower = c.name.lower()
+            if re.search(r'\b(percentage|percent|attendance)\b', lower):
+                df[c.name] = pd.to_numeric(df[c.name], errors='coerce').clip(0.0, 100.0)
+            elif re.search(r'\bgpa\b', lower):
+                df[c.name] = pd.to_numeric(df[c.name], errors='coerce').clip(0.0, 4.0)
+
+    return df
+
+
 def generate(spec: DatasetSpec) -> pd.DataFrame:
     if len(spec.tables) != 1:
         raise ValueError('P0 generation supports exactly one table.')
     table = spec.tables[0]
     if table.row_count * len(table.columns) > settings.max_cells:
         raise ValueError('Generation cell limit exceeded.')
-    n = table.row_count
+    n = min(table.row_count, settings.max_rows)
     rng = np.random.default_rng(spec.seed)
     fake = make_faker(spec.locale)
     fake.seed_instance(spec.seed)
@@ -166,14 +212,25 @@ def generate(spec: DatasetSpec) -> pd.DataFrame:
         z = rng.multivariate_normal(np.zeros(len(table.correlation_columns)), table.correlation_matrix, size=n)
         uniforms = dict(zip(table.correlation_columns, norm.cdf(z).T))
 
-    # Pre-generate coherent person records when any person-type column exists.
-    # This ensures email is derived from the actual name, gender is consistent, etc.
+    # Detect if invoked as part of relational multi-table synthesis
+    is_relational = bool(
+        table.foreign_keys
+        or table.unique_together
+        or getattr(spec, 'foreign_keys', None)
+        or getattr(spec, 'category_ranges', None)
+        or getattr(spec, 'temporal_constraints', None)
+        or getattr(spec, 'reconciliations', None)
+        or getattr(spec, 'settlements', None)
+        or getattr(spec, 'reference_values', None)
+    )
+
+    # Pre-generate coherent person records when any person-type column exists (tabular engine).
     person_cols_exist = any(
         c.semantic_type in _PERSON_SEMANTICS or any(kw in c.name.lower() for kw in _PERSON_KW)
         for c in table.columns
     )
     _persons: list[dict] = []
-    if person_cols_exist:
+    if person_cols_exist and not is_relational:
         seen_emails: set = set()
         for i in range(n):
             row_rng = np.random.default_rng(spec.seed ^ ((i + 1) << 16))
@@ -188,22 +245,39 @@ def generate(spec: DatasetSpec) -> pd.DataFrame:
         if constraints.auto_increment or (col.semantic_type == 'id' and col.dtype == 'integer'):
             start = int(np.ceil(constraints.min)) if constraints.min is not None else 1
             values = np.arange(start, start + n).astype(float)
-        elif col.semantic_type == 'id':
-            values = np.array([f'{col.name}_{spec.seed}_{i+1}' for i in range(n)], dtype=object)
+        elif constraints.unique and col.dtype == 'integer':
+            if constraints.min is not None and constraints.max is not None and (int(constraints.max) - int(constraints.min) + 1) >= n:
+                values = (constraints.min + rng.permutation(int(constraints.max) - int(constraints.min) + 1)[:n]).astype(float)
+            else:
+                start = int(np.ceil(constraints.min)) if constraints.min is not None else 1
+                values = np.arange(start, start + n).astype(float)
         elif _persons and (col.semantic_type in _PERSON_SEMANTICS
                            or any(kw in col.name.lower() for kw in _PERSON_KW)):
-            # Coherent locale-aware synthesis: authentic name, email derived from name,
-            # realistic phone format (e.g. +92 3xx...), city with population weights.
             field_key = _person_field(col.name, col.semantic_type)
             values = np.array([p.get(field_key, p['full_name']) for p in _persons], dtype=object)
-        elif constraints.categories or (distribution and distribution.values):
-            # Explicit categories from spec
-            categories = constraints.categories or distribution.values
-            probabilities = distribution.probabilities if distribution and distribution.values == categories and distribution.probabilities else [1 / len(categories)] * len(categories)
-            indices = np.minimum(np.searchsorted(np.cumsum(probabilities), u), len(categories)-1)
+        elif is_relational and col.semantic_type in ('email', 'phone', 'person_name', 'address'):
+            provider = {'email': fake.email, 'phone': fake.phone_number, 'person_name': fake.name, 'address': fake.address}[col.semantic_type]
+            values = np.array([provider() for _ in range(n)], dtype=object)
+            if spec.version == '2.0' and col.semantic_type == 'email' and constraints.unique:
+                values = np.array([f'{value.split("@")[0]}.{i+1}@example.net' for i, value in enumerate(values)], dtype=object)
+        elif constraints.unique and col.dtype == 'string':
+            prefix = re.sub(r'[^A-Za-z]', '', col.name.upper())[:4] or 'ID'
+            values = np.array([f'{prefix}-{i+1:06d}' for i in range(n)], dtype=object)
+        elif col.semantic_type == 'id':
+            values = np.array([f'{col.name}_{spec.seed}_{i+1}' for i in range(n)], dtype=object)
+        elif (constraints and constraints.categories) or (distribution and (distribution.values or distribution.type == 'categorical')):
+            categories = list(constraints.categories if (constraints and constraints.categories) else (distribution.values if distribution else []))
+            probabilities = None
+            if distribution and distribution.probabilities and len(distribution.probabilities) == len(categories):
+                probabilities = distribution.probabilities
+            if probabilities:
+                probs = np.array(probabilities, dtype=float)
+                probs = probs / probs.sum()
+                indices = np.minimum(np.searchsorted(np.cumsum(probs), u), len(categories) - 1)
+            else:
+                indices = (u * len(categories)).astype(int).clip(0, len(categories) - 1)
             values = np.array(categories, dtype=object)[indices]
         elif col.semantic_type == 'categorical' and col.dtype == 'string':
-            # Try curated lists based on column name, fall back to Faker word
             curated = _get_categorical_values(col.name, spec.locale)
             if curated:
                 indices = (u * len(curated)).astype(int).clip(0, len(curated) - 1)
@@ -213,8 +287,23 @@ def generate(spec: DatasetSpec) -> pd.DataFrame:
         elif col.dtype in ('integer', 'float', 'datetime'):
             if distribution and distribution.quantiles:
                 values = np.interp(u, np.linspace(0, 1, len(distribution.quantiles)), distribution.quantiles)
+            elif distribution and distribution.type == 'skewed':
+                a_skew = getattr(distribution, 'skew', 0.0) or 4.0
+                mean = distribution.mean if distribution.mean != 0 else (
+                    (constraints.min + constraints.max) / 2 if (constraints.min is not None and constraints.max is not None) else 50.0
+                )
+                std = distribution.std if distribution.std > 0 else (
+                    (constraints.max - constraints.min) / 4 if (constraints.min is not None and constraints.max is not None) else 10.0
+                )
+                values = skewnorm.ppf(np.clip(u, 1e-6, 1 - 1e-6), a=a_skew, loc=mean, scale=std)
             elif distribution and distribution.type == 'gaussian':
-                values = distribution.mean + distribution.std * norm.ppf(np.clip(u, 1e-10, 1-1e-10))
+                values = distribution.mean + distribution.std * norm.ppf(np.clip(u, 1e-10, 1 - 1e-10))
+            elif col.dtype == 'datetime':
+                lo = float(constraints.min) if (constraints.min is not None and constraints.min > 1e6) else 1640995200.0
+                hi = float(constraints.max) if (constraints.max is not None and constraints.max > 1e6) else 1735689600.0
+                if lo > hi:
+                    lo, hi = hi, lo
+                values = lo + (hi - lo) * u
             else:
                 lo = constraints.min if constraints.min is not None else 0
                 hi = constraints.max if constraints.max is not None else 1
@@ -258,10 +347,17 @@ def generate(spec: DatasetSpec) -> pd.DataFrame:
         elif privacy and privacy.method == 'hash':
             series = series.map(lambda value: hashlib.sha256(str(value).encode()).hexdigest())
         if constraints.unique and series.duplicated().any():
-            raise ValueError(f'Cannot satisfy uniqueness for {col.name}; use auto_increment or ID semantics.')
+            if col.dtype == 'string':
+                prefix = re.sub(r'[^A-Za-z]', '', col.name.upper())[:4] or 'ID'
+                series = pd.Series([f'{prefix}-{spec.seed}_{i+1:06d}' for i in range(n)], dtype=object)
+            elif col.dtype == 'integer':
+                series = pd.Series(np.arange(1, n + 1), dtype='Int64')
         if col.null_rate:
             series[rng.random(n) < col.null_rate] = None
         if numeric and not (privacy and privacy.method in ('mask', 'hash')):
             series = pd.to_numeric(series).astype('Int64' if col.dtype == 'integer' else 'Float64')
         result[col.name] = series
-    return pd.DataFrame(result)
+    df = pd.DataFrame(result)
+    df = _apply_cross_column_coherence(df, table, spec.seed)
+    return df
+

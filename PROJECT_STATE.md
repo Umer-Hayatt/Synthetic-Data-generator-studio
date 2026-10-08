@@ -4,12 +4,12 @@
 REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
 
 ## Active Task
-S5 complete (AI generator in classic studio tabular, prompt-driven, fallback and 10 domain tests, test_intelligence.py passing). S4 complete (link to /v2 hidden). Next: S6 — Documents tab in the classic studio.
+Prompt-only synthetic table generation complete. Tabular engine creates rows from spec hints alone with cross-column coherence (total=price*qty, start_date<=end_date, email/name coherence), reference-free quality evaluation, deterministic offline fallback across 10 domains, and preview with Edit schema. Next: S6 — Documents tab in the classic studio.
 
 ## Baseline
 - Frontend: `npx tsc --noEmit` passes with 0 errors.
-- Backend: `pytest` passes with 133 passed, 1 skipped, 5 failed (exact 5 known baseline failures from job sanitization, locale and email collision tests scheduled for S7).
-- Classic studio workflow verified: upload/ingest or AI prompt -> generate -> preview -> quality -> export (CSV/JSON) all functional.
+- Backend: `pytest` passes with 159 passed, 1 skipped, 0 failures (including 13 prompt generation tests).
+- Classic studio workflow verified: file upload OR AI prompt -> generate rows -> preview table -> quality summary ("Not applicable (generated from prompt)" without reference) -> export (CSV/JSON).
 - Repo: https://github.com/Umer-Hayatt/Synthetic-Data-generator-studio (branch `main`).
 
 
