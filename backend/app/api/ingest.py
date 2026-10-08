@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.core.inference import infer_schema
 from app.core.profiling import fit_spec
 from app.core.store import store
+from app.core.tabular_entities import retain_observed_entities
 
 router = APIRouter(prefix='/api/v1')
 
@@ -15,6 +16,7 @@ async def ingest(file: UploadFile = File(...)):
         frame = parse_upload(file.filename or '', await file.read(settings.max_upload_bytes + 1))
         schema = infer_schema(frame)
         spec = fit_spec(frame, auto_privacy=True)
+        spec = retain_observed_entities(frame, spec)
         token = store.put(frame, 'reference')
         sensitive_cols = [col['name'] for col in schema if col.get('is_sensitive')]
         return {'dataset_id': token, 'expires_in_seconds': store.ttl,

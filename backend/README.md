@@ -21,6 +21,29 @@ Interactive API documentation: `/docs`; machine-readable contract: `/openapi.jso
 Set `CORS_ORIGINS` to a comma-separated list of allowed frontend origins.
 The default permits localhost and 127.0.0.1 on port 3000.
 
+Hybrid relationship analysis uses `GEMINI_API_KEYS` and `GEMINI_MODEL` from the
+root environment. The verified local model is `gemini-3.8-flash`; unavailable AI
+falls back to checked naming hints and explicit mappings, with a safe status code.
+AI receives schema metadata and prompt/clarification context, not dataset rows,
+observed category values or dataset bearer tokens.
+
+- `POST /api/v1/relationships/analyze`: `{dataset_id, storage: "frame" | "artifact",
+  source_table, prompt?, clarification?, entities?}`. Frame IDs must refer to
+  generated rows; artifacts must be bounded JSONL tables. Returns entity mappings,
+  full-row dependency evidence, observed counts and clarification questions.
+- `POST /api/v1/relationships/normalize`: the same source plus reviewed
+  `entities: [{name, key, columns}]` and `accepted: true`. Revalidates all rows,
+  materializes tables, and verifies an exact rejoin preserving duplicate rows.
+  Unassigned attributes stay at the original grain; a collision-free surrogate
+  row key is added only when needed. Returned generated tokens support full
+  `/preview` pagination and CSV/JSON `/export`. The original snapshot is retained.
+
+Analysis supports up to `MAX_ROWS` and `MAX_CELLS`, at most 19 entity mappings,
+and flat scalar values with non-null integer/string keys. Null/conflicting keys,
+cycles, overlapping ownership, unsupported counts and exhausted cache capacity
+are rejected explicitly. Optional `tabular_entities` in DatasetSpec preserves
+declared or fully evidenced upload dependencies during flat generation.
+
 Upload with `POST /api/v1/ingest` (multipart field `file`). CSV uses UTF-8;
 XLSX reads the first worksheet; JSON accepts record arrays or column arrays.
 The response includes `row_count`, `columns`, `schema`, `spec`, and at most 20

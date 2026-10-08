@@ -37,5 +37,17 @@ class FrameStore:
                 raise KeyError('Dataset token is missing, expired, or has the wrong kind; upload/generate again.')
             return entry[3].copy(deep=True)
 
+    def put_many(self, frames: dict[str, pd.DataFrame], kind: str) -> dict[str, str]:
+        """Publish a normalized snapshot atomically; capacity failure leaves no partial tables."""
+        sizes = {name: int(frame.memory_usage(index=True, deep=True).sum()) for name, frame in frames.items()}
+        with self.lock:
+            self.cleanup()
+            if sum(sizes.values()) + sum(entry[1] for entry in self.entries.values()) > self.max_bytes:
+                raise ValueError('Ephemeral memory capacity exceeded; retry after datasets expire.')
+            staged = {name: (secrets.token_urlsafe(24), frame.copy(deep=True)) for name, frame in frames.items()}
+            expires = time.monotonic() + self.ttl
+            self.entries.update({token: (expires, sizes[name], kind, frame) for name, (token, frame) in staged.items()})
+            return {name: token for name, (token, _) in staged.items()}
+
 
 store = FrameStore()

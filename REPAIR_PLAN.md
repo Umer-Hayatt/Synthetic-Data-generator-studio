@@ -76,7 +76,7 @@ Quality: NN% <label>      Privacy: Protected      Integrity: Passed
 - Verification: Pytest passes (159 passed, 1 skipped), frontend tsc passes with 0 errors.
 
 ## Status log
-S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9-S12 PLANNED
+S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S10-S12 PLANNED
 
 ## Input-driven follow-up repair — planned, 2026-10-08
 
@@ -86,7 +86,7 @@ working end to end, Documents must assess whether that same data supports a
 document and render it without substituting or regenerating unrelated entities.
 S1-S7 remain completed historical milestones. This extends this active plan;
 it does not resume the superseded V2 work order. Product choices are recorded
-below. Execute the following slices sequentially; S8 is complete and S9 is next.
+below. Execute the following slices sequentially; S8-S9 are complete and S10 is next.
 
 ### Confirmed causes and baseline
 - `backend/app/api/intelligence.py` truncates multi-table AI drafts to the first
@@ -160,7 +160,39 @@ relationships or silently modify source values to make a proposed model pass.
 - Relationship inference/normalization, document suitability and rendering from
   the same generated snapshot remain S9-S12 work; S8 does not claim those complete.
 
-### S9 — Relational analysis and normalization of generated data — PLANNED
+### S9 — Relational analysis and normalization of generated data — DONE
+- Owner approved the hybrid approach: AI proposes entity meanings using schema
+  metadata and prompt context; deterministic full-snapshot checks decide whether
+  mappings are valid, and accepted splits must reconstruct every original row.
+- Implemented generated frame/JSONL analysis, reviewed entity mappings and
+  clarification, full-data conflicts/counts, atomic normalization, exact rejoin
+  verification, duplicate-row preservation and explicit surrogate keys. The
+  original generated snapshot remains authoritative and unchanged.
+- Prompt entity intent and explicit main/related counts survive flattening.
+  Flat generation preserves declared groups and evidenced upload dependencies;
+  declared non-person attributes no longer use generic person-name heuristics.
+- The review UI exposes source mappings, counts and evidence, leaves unassigned
+  fields at the original grain, and asks about ambiguous/unique-row mappings.
+  Unique-per-row splits require explicit selection. New normalized tables use
+  real frame pagination and complete CSV/JSON exports. Older demo inspection
+  cleanup and linked-record navigation remain S10.
+- Removed unused commerce ratio constants and the fixed commerce prompt example.
+  Restored the removed historical fixture under backend tests and moved its
+  builder out of the untracked audit script; all existing regressions now run
+  independently of frontend demos and local scratch tools.
+- Live provider diagnosis: the old configured gemini-2.5-flash model returned
+  404. Local configuration now uses gemini-3.8-flash. Simplified the provider
+  relationship JSON schema while retaining canonical local validation; live
+  analysis returned AI available, real suggestions and targeted questions.
+- Verification (2026-10-09): backend 176 passed / 1 skipped; 13 React lifecycle
+  tests passed; frontend type check and production build passed. Browser verified
+  AI prompt -> 40 enrollments with 10 students and 5 courses -> reviewed mappings
+  -> exact normalization, real pagination and entity previews. A 60-row synthetic
+  commerce upload passed full JSON rejoin equality, final-page and full CSV checks.
+  Conflicts beyond preview, null/expired/wrong-kind sources, no-relation input,
+  AI unavailable/hallucinated output, duplicate rows, cross-batch consistency and
+  superseded requests are covered. Final review/preview CSS verified in browser;
+  proof screenshots are in local qa/. Provider outages remain visibly handled.
 - Add a reviewable relationship proposal from the complete active generated
   tabular snapshot, resolved server-side by its token/artifact ID. Use a bounded
   candidate search and validate proposed dependencies against all supported rows

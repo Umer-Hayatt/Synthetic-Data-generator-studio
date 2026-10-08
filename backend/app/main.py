@@ -16,6 +16,7 @@ from app.api.evaluate import router as evaluate_router
 from app.api.jobs import router as jobs_router, artifacts, jobs
 from app.api.intelligence import router as intelligence_router
 from app.api.documents import router as documents_router
+from app.api.relationships import router as relationships_router
 
 @asynccontextmanager
 async def lifespan(app):
@@ -51,3 +52,4 @@ app.include_router(evaluate_router)
 app.include_router(jobs_router)
 app.include_router(intelligence_router)
 app.include_router(documents_router)
+app.include_router(relationships_router)

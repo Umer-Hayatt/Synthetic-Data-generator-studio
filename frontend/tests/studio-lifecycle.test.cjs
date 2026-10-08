@@ -37,6 +37,8 @@ async function mount(t, overrides = {}) {
     evaluateQuality: async () => ({ overall_score: 80 }),
     getArtifact: async (id) => ({ preview: artifactRows.get(id) || [] }),
     getDocumentUrl: () => '/documents/export',
+    fetchPreview: async () => ({ rows: [], row_count: 0 }),
+    getExportUrl: (format, id) => `/export/${format}/${id}`,
     ...overrides.api,
   };
   const v2 = {
@@ -70,6 +72,7 @@ async function mount(t, overrides = {}) {
   global.fetch = overrides.fetch || (async (url) => ({ ok: true,
     json: async () => cache.get(url.split('/').at(-2)) }));
   const mocks = new Map([
+    [path.join(root, 'components/relational/RelationshipPlanner.module.css'), { default: { planner: 'planner' }, __esModule: true }],
     [path.join(root, 'services/api.ts'), { api }],
     [path.join(root, 'services/v2.ts'), v2],
   ]);
@@ -133,6 +136,61 @@ test('new prompt clears demo artifacts immediately and retains its prompt and sn
   assert.equal(h.state.generatedSnapshot.sourceId, h.state.activeSource.id);
   assert.equal(h.state.generatedSnapshot.revision, h.state.datasetRevision);
   assert.equal(h.state.generatedSnapshot.storage, 'frame');
+});
+
+test('relationship normalization uses the retained full snapshot and keeps original tabular state', async (t) => {
+  const requests = [];
+  const h = await mount(t, { api: {
+    analyzeRelationships: async body => { requests.push(body); return { source_dataset_id: body.dataset_id, entities: [], questions: [] }; },
+    normalizeRelationships: async body => { requests.push(body); return { source_dataset_id: body.dataset_id, tables: [], integrity: { lossless: true }, spec: spec('Normalized') }; },
+  } });
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); });
+  const originalSpec = h.state.datasetSpec, snapshot = h.state.generatedSnapshot;
+  await act(async () => { assert.equal(await h.state.analyzeRelationships(), true); });
+  await act(async () => { assert.equal(await h.state.acceptRelationships([{ name: 'People', key: 'id', columns: ['value'] }]), true); });
+  assert.equal(requests[0].dataset_id, snapshot.datasetId);
+  assert.equal(requests[0].prompt, 'Current');
+  assert.equal(h.state.datasetSpec, originalSpec);
+  assert.equal(h.state.generatedSnapshot, snapshot);
+  assert.equal(h.state.generatedToken, snapshot.datasetId);
+  assert.ok(h.state.relationshipResult.integrity.lossless);
+  act(() => h.state.updateGlobalConfig({ seed: 99 }));
+  assert.equal(h.state.relationshipResult, null);
+  assert.equal(h.state.relationshipProposal, null);
+});
+
+test('superseded relationship analysis and normalization cannot publish stale output', async (t) => {
+  const first = deferred(), last = deferred(), normalized = deferred();
+  let calls = 0;
+  const h = await mount(t, { api: { analyzeRelationships: () => ++calls === 1 ? first.promise : last.promise,
+    normalizeRelationships: () => normalized.promise } });
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); });
+  let old, current;
+  act(() => { old = h.state.analyzeRelationships(); });
+  act(() => { current = h.state.analyzeRelationships('clearer'); });
+  await act(async () => { first.resolve({ source_dataset_id: 'generated-Current', entities: [] }); assert.equal(await old, false); });
+  assert.equal(h.state.isAnalyzingRelationships, true);
+  await act(async () => { last.resolve({ source_dataset_id: 'generated-Current', entities: [], questions: [] }); assert.equal(await current, true); });
+  let pending;
+  act(() => { pending = h.state.acceptRelationships([]); });
+  await act(async () => { await h.state.loadFromAiPrompt('New'); });
+  await act(async () => { normalized.resolve({ source_dataset_id: 'generated-Current' }); assert.equal(await pending, false); });
+  assert.equal(h.state.relationshipResult, null);
+  assert.equal(h.state.relationshipProposal, null);
+  assert.equal(h.state.generatedToken, 'generated-New');
+});
+
+test('relationship review selects repeated entities but requires explicit choice for a unique-per-row split', async (t) => {
+  const h = await mount(t, { api: { analyzeRelationships: async body => ({ source_dataset_id: body.dataset_id,
+    row_count: 3, ai_status: 'available', questions: ['Is Records a separate entity?'], entities: [
+      { name: 'People', key: 'person_id', columns: ['name'], entity_count: 2, valid: true, cardinality: '1:N' },
+      { name: 'Records', key: 'id', columns: ['value'], entity_count: 3, valid: true, cardinality: '1:1' },
+    ] }) } });
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); h.state.setActiveTab('relational'); });
+  await act(async () => { await h.state.analyzeRelationships(); });
+  const checkboxes = h.renderer.root.findAllByType('input').filter(input => input.props.type === 'checkbox');
+  assert.equal(checkboxes.find(input => input.props['aria-label'] === 'Include People').props.checked, true);
+  assert.equal(checkboxes.find(input => input.props['aria-label'] === 'Include Records').props.checked, false);
 });
 
 test('an older ingestion cannot overwrite a newer prompt or launch its generation', async (t) => {

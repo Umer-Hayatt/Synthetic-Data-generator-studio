@@ -5,6 +5,7 @@ import {
   PreviewResponse,
   PromptSpecResponse,
   QualityResponse,
+  RelationshipInput, RelationshipProposal, RelationshipResult,
 } from '../types';
 
 const API_BASE_URL =
@@ -74,6 +75,17 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export const api = {
+  async analyzeRelationships(input: RelationshipInput): Promise<RelationshipProposal> {
+    return handleResponse(await fetch(`${API_BASE_URL}/api/v1/relationships/analyze`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+    }));
+  },
+  async normalizeRelationships(input: RelationshipInput): Promise<RelationshipResult> {
+    return handleResponse(await fetch(`${API_BASE_URL}/api/v1/relationships/normalize`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...input, accepted: true }),
+    }));
+  },
   getBaseUrl(): string {
     return API_BASE_URL;
   },

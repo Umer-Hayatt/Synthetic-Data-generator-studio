@@ -225,8 +225,13 @@ def generate(spec: DatasetSpec) -> pd.DataFrame:
     )
 
     # Pre-generate coherent person records when any person-type column exists (tabular engine).
+    entity_attributes = {name for entity in spec.tabular_entities for name in entity.columns}
+    def is_person_column(column):
+        return column.semantic_type in _PERSON_SEMANTICS or (
+            column.name not in entity_attributes and any(kw in column.name.lower() for kw in _PERSON_KW))
+
     person_cols_exist = any(
-        c.semantic_type in _PERSON_SEMANTICS or any(kw in c.name.lower() for kw in _PERSON_KW)
+        is_person_column(c)
         for c in table.columns
     )
     _persons: list[dict] = []
@@ -251,8 +256,7 @@ def generate(spec: DatasetSpec) -> pd.DataFrame:
             else:
                 start = int(np.ceil(constraints.min)) if constraints.min is not None else 1
                 values = np.arange(start, start + n).astype(float)
-        elif _persons and (col.semantic_type in _PERSON_SEMANTICS
-                           or any(kw in col.name.lower() for kw in _PERSON_KW)):
+        elif _persons and is_person_column(col):
             field_key = _person_field(col.name, col.semantic_type)
             values = np.array([p.get(field_key, p['full_name']) for p in _persons], dtype=object)
         elif is_relational and col.semantic_type in ('email', 'phone', 'person_name', 'address'):
@@ -359,5 +363,8 @@ def generate(spec: DatasetSpec) -> pd.DataFrame:
         result[col.name] = series
     df = pd.DataFrame(result)
     df = _apply_cross_column_coherence(df, table, spec.seed)
+    if spec.tabular_entities:
+        from app.core.tabular_entities import preserve_entities
+        df = preserve_entities(df, spec)
     return df
 

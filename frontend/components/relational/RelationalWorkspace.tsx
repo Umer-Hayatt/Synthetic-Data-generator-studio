@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStudio } from '../../context/StudioContext';
 import { api } from '../../services/api';
+import { RelationshipPlanner } from './RelationshipPlanner';
 import {
   Network,
   Table2,
@@ -18,6 +19,12 @@ import {
 } from 'lucide-react';
 
 export const RelationalWorkspace: React.FC = () => {
+  const { datasetSpec, activeSource } = useStudio();
+  return datasetSpec?.tables.length === 1 && activeSource?.kind !== 'demo'
+    ? <RelationshipPlanner /> : <ConfiguredRelationalWorkspace />;
+};
+
+const ConfiguredRelationalWorkspace: React.FC = () => {
   const {
     datasetSpec,
     updateSpec,

@@ -12,6 +12,7 @@ import {
   DatasetSpec,
   QualityResponse,
   WorkspaceTab,
+  EntityMapping, RelationshipProposal, RelationshipResult,
 } from '../types';
 import { api } from '../services/api';
 import { SAMPLE_DATASETS, getSampleFile } from '../services/samples';
@@ -27,6 +28,11 @@ import {
 import { COMMERCE_RELATIONAL_SPEC, BANKING_RELATIONAL_SPEC } from '../services/relationalDemo';
 
 interface StudioContextType {
+  relationshipProposal: RelationshipProposal | null;
+  relationshipResult: RelationshipResult | null;
+  isAnalyzingRelationships: boolean;
+  analyzeRelationships: (clarification?: string, entities?: EntityMapping[]) => Promise<boolean>;
+  acceptRelationships: (entities: EntityMapping[]) => Promise<boolean>;
   activeSource: { id: number; kind: 'upload' | 'prompt' | 'demo'; prompt?: string } | null;
   datasetRevision: number;
   generatedSnapshot: { sourceId: number; revision: number; datasetId: string; storage: 'frame' | 'artifact' } | null;
@@ -102,6 +108,10 @@ const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
 export function StudioProvider({ children }: { children: ReactNode }) {
   const revisionRef = useRef(0);
+  const relationshipRequestRef = useRef(0);
+  const [relationshipProposal, setRelationshipProposal] = useState<RelationshipProposal | null>(null);
+  const [relationshipResult, setRelationshipResult] = useState<RelationshipResult | null>(null);
+  const [isAnalyzingRelationships, setIsAnalyzingRelationships] = useState(false);
   const mountedRef = useRef(true);
   const sourceRef = useRef<StudioContextType['activeSource']>(null);
   const [activeSource, setActiveSource] = useState<StudioContextType['activeSource']>(null);
@@ -171,6 +181,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     mountedRef.current && revisionRef.current === revision, []);
 
   const invalidateOutputs = useCallback(() => {
+    ++relationshipRequestRef.current;
+    setRelationshipProposal(null);
+    setRelationshipResult(null);
+    setIsAnalyzingRelationships(false);
     const revision = ++revisionRef.current;
     setDatasetRevision(revision);
     setGeneratedSnapshot(null);
@@ -197,6 +211,42 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       setGeneratedSnapshot({ sourceId: sourceRef.current.id, revision, datasetId, storage });
     }
   }, [isCurrent]);
+
+  const runRelationships = useCallback(async (normalize: boolean, clarification: string, entities: EntityMapping[]) => {
+    const snapshot = generatedSnapshot;
+    if (!snapshot || !isCurrent(snapshot.revision)) {
+      setError({ message: 'Generate the current tabular dataset before analyzing relationships.' });
+      return false;
+    }
+    const requestId = ++relationshipRequestRef.current;
+    const current = () => isCurrent(snapshot.revision) && requestId === relationshipRequestRef.current;
+    setIsAnalyzingRelationships(true);
+    setRelationshipResult(null);
+    if (!normalize) setRelationshipProposal(null);
+    setError(null);
+    const input = { dataset_id: snapshot.datasetId, storage: snapshot.storage,
+      source_table: datasetSpec?.tables[0]?.name || 'Records', prompt: activeSource?.prompt || '',
+      clarification, entities };
+    try {
+      if (normalize) {
+        const result = await api.normalizeRelationships(input);
+        if (!current() || result.source_dataset_id !== snapshot.datasetId) return false;
+        setRelationshipResult(result);
+      } else {
+        const result = await api.analyzeRelationships(input);
+        if (!current() || result.source_dataset_id !== snapshot.datasetId) return false;
+        setRelationshipProposal(result);
+      }
+      return true;
+    } catch (err: any) {
+      if (current()) setError({ message: err.message || 'Relationship analysis failed.', isSessionExpired: err.isSessionExpired });
+      return false;
+    } finally { if (current()) setIsAnalyzingRelationships(false); }
+  }, [generatedSnapshot, datasetSpec, activeSource, isCurrent]);
+  const analyzeRelationships = useCallback((clarification = '', entities?: EntityMapping[]) =>
+    runRelationships(false, clarification, (entities ?? datasetSpec?.tabular_entities ?? []).map(({ name, key, columns }) => ({ name, key, columns }))), [runRelationships, datasetSpec]);
+  const acceptRelationships = useCallback((entities: EntityMapping[]) =>
+    runRelationships(true, '', entities), [runRelationships]);
 
   const checkBackendHealth = useCallback(async (): Promise<boolean> => {
     try {
@@ -692,6 +742,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     <StudioContext.Provider
       value={{
         activeSource,
+        relationshipProposal, relationshipResult, isAnalyzingRelationships,
+        analyzeRelationships, acceptRelationships,
         datasetRevision,
         generatedSnapshot,
         referenceToken,

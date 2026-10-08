@@ -206,6 +206,13 @@ class TableSpec(Model):
         return self
 
 
+class TabularEntity(Model):
+    name: str = Field(min_length=1, max_length=64, pattern=r'^[A-Za-z][A-Za-z0-9_]*$')
+    key: str
+    columns: list[str] = Field(min_length=1, max_length=200)
+    entity_count: int = Field(ge=1, le=settings.max_rows)
+
+
 class DatasetSpec(Model):
     name: str = Field(min_length=1, max_length=128)
     version: Literal['1.0', '2.0'] = '1.0'
@@ -220,9 +227,42 @@ class DatasetSpec(Model):
     temporal_constraints: list[ReferenceValue] = Field(default_factory=list, max_length=20)
     category_ranges: list[CategoryRange] = Field(default_factory=list, max_length=20)
     settlements: list[Settlement] = Field(default_factory=list, max_length=20)
+    tabular_entities: list[TabularEntity] = Field(default_factory=list, max_length=19)
 
     @model_validator(mode='after')
     def unique_tables(self):
+        if self.tabular_entities:
+            if len(self.tables) != 1:
+                raise ValueError('Tabular entity groups require a single flat table.')
+            table = self.tables[0]
+            by_col = {c.name: c for c in table.columns}
+            keys, owners = {}, {}
+            for entity in self.tabular_entities:
+                if entity.key in keys or entity.key in entity.columns or len(set(entity.columns)) != len(entity.columns):
+                    raise ValueError('Tabular entities require distinct keys and attribute mappings.')
+                if entity.name in keys.values() or entity.name == table.name:
+                    raise ValueError('Tabular entity names must be distinct.')
+                keys[entity.key] = entity.name
+                if entity.entity_count > table.row_count:
+                    raise ValueError('More related entities than flat rows cannot be represented; review the counts.')
+                for name in [entity.key, *entity.columns]:
+                    if name not in by_col:
+                        raise ValueError('Tabular entity maps an absent column.')
+                    if by_col[name].constraints.unique or name == table.primary_key:
+                        raise ValueError('Repeated entity fields cannot be globally unique or the flat table primary key.')
+                key = by_col[entity.key]
+                if key.dtype not in ('integer', 'string') or key.null_rate or key.privacy_rule:
+                    raise ValueError('Tabular entity keys require non-null, untransformed integer/string values.')
+                for name in entity.columns:
+                    if name in owners:
+                        raise ValueError('An attribute cannot belong to multiple tabular entities.')
+                    owners[name] = entity.name
+            graph = {e.name: ({owners[e.key]} if e.key in owners else set()) for e in self.tabular_entities}
+            from graphlib import TopologicalSorter, CycleError
+            try:
+                tuple(TopologicalSorter(graph).static_order())
+            except CycleError:
+                raise ValueError('Tabular entity dependencies must be acyclic.') from None
         if len({table.name for table in self.tables}) != len(self.tables):
             raise ValueError('duplicate table names')
         if self.version == '1.0' and any(t.row_count > settings.max_rows for t in self.tables):

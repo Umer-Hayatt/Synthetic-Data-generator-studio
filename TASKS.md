@@ -10,7 +10,12 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
   tab preview invalidation; normal actions no longer substitute demos.
   Verified: backend 159 passed / 1 skipped, 10 React lifecycle tests, frontend
   type check/production build, live banking -> seed edit -> tabular sample flow.
-- S9-S12 are PLANNED in REPAIR_PLAN.md. Historical tasks below remain superseded.
+- [DONE] S9 — Hybrid analysis and lossless normalization of generated data (2026-10-09).
+  AI metadata proposals, full-row dependency checks, reviewed mappings, exact
+  rejoin, prompt/upload dependency preservation, full table pagination/exports.
+  Verified: backend 176 passed / 1 skipped, 13 React tests, type check/build and
+  live AI enrollment plus full commerce upload/rejoin/export flow.
+- S10-S12 are PLANNED in REPAIR_PLAN.md. Historical tasks below remain superseded.
 
 ---
 

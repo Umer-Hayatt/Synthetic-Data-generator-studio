@@ -122,10 +122,31 @@ export interface DatasetSpec {
   locale: string;
   seed: number;
   tables: TableSpec[];
+  tabular_entities?: (EntityMapping & { entity_count: number })[];
   documents?: DocumentRequest[];
   reconciliations?: unknown[];
   business_rules?: string[];
   edge_cases?: string[];
+}
+
+export interface EntityMapping { name: string; key: string; columns: string[] }
+export interface RelationshipEntity extends EntityMapping {
+  valid: boolean; reason: string; entity_count: number; cardinality: string;
+  origin: string; evidence: string; conflicting_keys: Record<string, number>; null_keys: number;
+}
+export interface RelationshipProposal {
+  source_dataset_id: string; row_count: number; columns: string[];
+  ai_status: string; status: string; entities: RelationshipEntity[]; questions: string[];
+}
+export interface RelationshipResult {
+  source_dataset_id: string; spec: DatasetSpec;
+  tables: (TableSpec & { dataset_id: string; preview: Record<string, unknown>[] })[];
+  integrity: { lossless: boolean; source_rows: number; orphan_foreign_keys: number;
+    primary_keys_unique: boolean; surrogate_key: string | null };
+}
+export interface RelationshipInput {
+  dataset_id: string; storage: 'frame' | 'artifact'; source_table: string;
+  prompt?: string; clarification?: string; entities?: EntityMapping[];
 }
 
 export interface PromptSpecResponse {

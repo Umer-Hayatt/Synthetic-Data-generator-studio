@@ -77,6 +77,15 @@ class StatisticalSynthesizer:
             raise ValueError('Statistical engine requires one table.')
         table = spec.tables[0]
         batch_rows = min(batch_rows, settings.max_rows, max(1, settings.max_cells//len(table.columns)))
+        if spec.tabular_entities:
+            if table.row_count > settings.max_rows or table.row_count * len(table.columns) > settings.max_cells:
+                raise ValueError('Declared entity dependencies require a complete snapshot within the local row/cell limits.')
+            # Independent batch seeds would give the same entity different values.
+            # Materialize the bounded coherent snapshot once, then serialize pages.
+            frame = generate(spec)
+            for offset in range(0, len(frame), batch_rows):
+                yield frame.iloc[offset:offset+batch_rows]
+            return
         for column in table.columns:
             if column.constraints.unique and not (column.constraints.auto_increment or column.semantic_type == 'id'):
                 raise ValueError('Batched uniqueness requires ID semantics or auto_increment.')

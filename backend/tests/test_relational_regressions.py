@@ -11,7 +11,7 @@ from faker import Faker
 from app.models.spec import DatasetSpec
 from app.engines import relational, tabular
 from app.engines.relational import RelationalSynthesizer, table_seed, money_float
-from tools.audit_relational import fixture
+from relational_fixture import fixture
 
 
 def run(data):
