@@ -14,7 +14,7 @@ export const SidebarNav: React.FC = () => {
   const {
     datasetName,
     datasetSpec,
-    referenceToken,
+    activeSource,
     referenceRowCount,
     generatedRowCount,
     setActiveTab,
@@ -44,7 +44,7 @@ export const SidebarNav: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Source:</span>
                 <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                  {referenceToken ? 'CSV / Sample' : 'AI Prompt'}
+                  {activeSource?.kind === 'demo' ? 'Demo' : activeSource?.kind === 'upload' ? 'Uploaded file / sample' : activeSource?.kind === 'prompt' ? 'AI Prompt' : 'Not selected'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>

@@ -26,6 +26,7 @@ export const Workspace: React.FC = () => {
     datasetName,
     datasetSpec,
     generatedRowCount,
+    datasetRevision,
   } = useStudio();
 
   const tabs: {
@@ -124,8 +125,8 @@ export const Workspace: React.FC = () => {
           {activeTab === 'preview' && <DataPreviewCanvas />}
           {activeTab === 'schema' && <SchemaInspector />}
           {activeTab === 'quality' && <QualityDashboard />}
-          {activeTab === 'relational' && <RelationalWorkspace />}
-          {activeTab === 'documents' && <DocumentsWorkspace />}
+          {activeTab === 'relational' && <RelationalWorkspace key={datasetRevision} />}
+          {activeTab === 'documents' && <DocumentsWorkspace key={datasetRevision} />}
         </div>
 
       </main>

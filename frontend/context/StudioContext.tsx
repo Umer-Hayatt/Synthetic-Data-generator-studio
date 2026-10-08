@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react';
 import {
@@ -12,7 +13,7 @@ import {
   QualityResponse,
   WorkspaceTab,
 } from '../types';
-import { api, ApiError } from '../services/api';
+import { api } from '../services/api';
 import { SAMPLE_DATASETS, getSampleFile } from '../services/samples';
 import {
   Artifact,
@@ -23,10 +24,12 @@ import {
   v2Origin,
   v2Request,
 } from '../services/v2';
-import { FIXTURE_COMMERCE_SPEC } from '../services/fixtures';
 import { COMMERCE_RELATIONAL_SPEC, BANKING_RELATIONAL_SPEC } from '../services/relationalDemo';
 
 interface StudioContextType {
+  activeSource: { id: number; kind: 'upload' | 'prompt' | 'demo'; prompt?: string } | null;
+  datasetRevision: number;
+  generatedSnapshot: { sourceId: number; revision: number; datasetId: string; storage: 'frame' | 'artifact' } | null;
   // Session & Tokens (Reference vs Generated kept strictly separate)
   referenceToken: string | null;
   generatedToken: string | null;
@@ -77,7 +80,6 @@ interface StudioContextType {
   triggerMultiTableGenerate: () => Promise<boolean>;
   generateRelationalFromSpec: (specOverride?: DatasetSpec) => Promise<boolean>;
   generateDocumentsFromSpec: (specOverride?: DatasetSpec) => Promise<boolean>;
-  loadRelationalDemo: () => void;
   loadCommerceRelational: () => Promise<boolean>;
   loadBankingRelational: () => Promise<boolean>;
 
@@ -99,6 +101,12 @@ interface StudioContextType {
 const StudioContext = createContext<StudioContextType | undefined>(undefined);
 
 export function StudioProvider({ children }: { children: ReactNode }) {
+  const revisionRef = useRef(0);
+  const mountedRef = useRef(true);
+  const sourceRef = useRef<StudioContextType['activeSource']>(null);
+  const [activeSource, setActiveSource] = useState<StudioContextType['activeSource']>(null);
+  const [datasetRevision, setDatasetRevision] = useState(0);
+  const [generatedSnapshot, setGeneratedSnapshot] = useState<StudioContextType['generatedSnapshot']>(null);
   const [referenceToken, setReferenceToken] = useState<string | null>(null);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [tokenExpirySeconds, setTokenExpirySeconds] = useState<number | null>(
@@ -110,7 +118,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     null
   );
   const [sensitiveColumns, setSensitiveColumns] = useState<string[]>([]);
-  const [datasetSpec, setDatasetSpec] = useState<DatasetSpec | null>(null);
+  const [datasetSpec, setDatasetSpecState] = useState<DatasetSpec | null>(null);
+  const specRef = useRef<DatasetSpec | null>(null);
+  const setDatasetSpec = useCallback((spec: DatasetSpec | null) => {
+    specRef.current = spec;
+    setDatasetSpecState(spec);
+  }, []);
 
   const [referencePreview, setReferencePreview] = useState<Record<string, any>[]>(
     []
@@ -149,6 +162,42 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [relationalPreviews, setRelationalPreviews] = useState<Record<string, Record<string, any>[]>>({});
   const [isGeneratingMultiTable, setIsGeneratingMultiTable] = useState<boolean>(false);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const isCurrent = useCallback((revision: number) =>
+    mountedRef.current && revisionRef.current === revision, []);
+
+  const invalidateOutputs = useCallback(() => {
+    const revision = ++revisionRef.current;
+    setDatasetRevision(revision);
+    setGeneratedSnapshot(null);
+    setGeneratedToken(null);
+    setGeneratedPreview([]);
+    setGeneratedRowCount(0);
+    setGeneratedColumns([]);
+    setQualityResults(null);
+    setTableArtifacts({});
+    setDocumentArtifacts([]);
+    setDocumentManifestId(null);
+    setRelationalPreviews({});
+    setIsIngesting(false);
+    setIsGenerating(false);
+    setIsGeneratingMultiTable(false);
+    setIsEvaluatingQuality(false);
+    setError(null);
+    setSchemaNotice(null);
+    return revision;
+  }, []);
+
+  const recordSnapshot = useCallback((revision: number, datasetId: string, storage: 'frame' | 'artifact') => {
+    if (isCurrent(revision) && sourceRef.current) {
+      setGeneratedSnapshot({ sourceId: sourceRef.current.id, revision, datasetId, storage });
+    }
+  }, [isCurrent]);
+
   const checkBackendHealth = useCallback(async (): Promise<boolean> => {
     try {
       await api.checkHealth();
@@ -168,8 +217,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   }, [checkBackendHealth]);
 
   const clearSession = useCallback(() => {
+    invalidateOutputs();
+    sourceRef.current = null;
+    setActiveSource(null);
     setReferenceToken(null);
-    setGeneratedToken(null);
     setTokenExpirySeconds(null);
     setDatasetName('Untitled Dataset');
     setInferredSchema(null);
@@ -178,18 +229,17 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setReferencePreview([]);
     setReferenceRowCount(0);
     setReferenceColumns([]);
-    setGeneratedPreview([]);
-    setGeneratedRowCount(0);
-    setGeneratedColumns([]);
-    setQualityResults(null);
-    setTableArtifacts({});
-    setDocumentArtifacts([]);
-    setDocumentManifestId(null);
-    setRelationalPreviews({});
     setActiveTab('preview');
-    setError(null);
-    setSchemaNotice(null);
-  }, []);
+    setPreviewViewMode('generated');
+  }, [invalidateOutputs]);
+
+  const beginSource = useCallback((kind: 'upload' | 'prompt' | 'demo', prompt?: string) => {
+    clearSession();
+    const source = { id: revisionRef.current, kind, ...(prompt !== undefined ? { prompt } : {}) };
+    sourceRef.current = source;
+    setActiveSource(source);
+    return revisionRef.current;
+  }, [clearSession]);
 
   const dismissError = useCallback(() => {
     setError(null);
@@ -201,11 +251,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const handleFileUpload = useCallback(
     async (file: File): Promise<boolean> => {
+      const revision = beginSource('upload');
       setIsIngesting(true);
       setError(null);
       setSchemaNotice(null);
       try {
         const resp = await api.ingestFile(file);
+        if (!isCurrent(revision)) return false;
 
         // Retain reference token separate from generated token
         setReferenceToken(resp.dataset_id);
@@ -235,6 +287,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         setIsGenerating(true);
         try {
           const genResp = await api.generateData(resp.spec, 25);
+          if (!isCurrent(revision)) return false;
+          recordSnapshot(revision, genResp.dataset_id, 'frame');
           setGeneratedToken(genResp.dataset_id);
           setGeneratedPreview(genResp.preview);
           setGeneratedRowCount(genResp.row_count);
@@ -244,32 +298,34 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           // Trigger initial quality evaluation seamlessly in background
           api
             .evaluateQuality(resp.dataset_id, genResp.dataset_id)
-            .then((q) => setQualityResults(q))
+            .then((q) => { if (isCurrent(revision)) setQualityResults(q); })
             .catch(() => {
               /* quality evaluation can be run explicitly via tab */
             });
         } catch (genErr: any) {
+          if (!isCurrent(revision)) return false;
           setError({
             message: `Generation error: ${genErr.message}`,
             isSessionExpired: genErr.isSessionExpired,
           });
         } finally {
 
-          setIsGenerating(false);
+          if (isCurrent(revision)) setIsGenerating(false);
         }
 
         return true;
       } catch (err: any) {
+        if (!isCurrent(revision)) return false;
         setError({
           message: err.message || 'Failed to ingest file.',
           isSessionExpired: err.isSessionExpired,
         });
         return false;
       } finally {
-        setIsIngesting(false);
+        if (isCurrent(revision)) setIsIngesting(false);
       }
     },
-    []
+    [beginSource, isCurrent, recordSnapshot]
   );
 
   const loadSampleDataset = useCallback(
@@ -284,11 +340,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
   const loadFromAiPrompt = useCallback(
     async (prompt: string): Promise<boolean> => {
+      const revision = beginSource('prompt', prompt);
       setIsIngesting(true);
       setError(null);
       setSchemaNotice(null);
       try {
         const resp = await api.promptSpec(prompt);
+        if (!isCurrent(revision)) return false;
 
         if (resp.status === 'unavailable' || !resp.spec) {
           const errMsg = resp.detail || resp.fallback || 'Unable to draft schema specification from prompt.';
@@ -334,6 +392,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         let genResp: any = null;
         try {
           genResp = await api.generateData(resp.spec, 50);
+          if (!isCurrent(revision)) return false;
+          recordSnapshot(revision, genResp.dataset_id, 'frame');
           setGeneratedToken(genResp.dataset_id);
           setGeneratedPreview(genResp.preview);
           setGeneratedRowCount(genResp.row_count);
@@ -343,15 +403,16 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           // Trigger quality evaluation without reference data
           api
             .evaluateQuality(null, genResp.dataset_id, resp.spec)
-            .then((q) => setQualityResults(q))
+            .then((q) => { if (isCurrent(revision)) setQualityResults(q); })
             .catch(() => {});
         } catch (genErr: any) {
+          if (!isCurrent(revision)) return false;
           setError({
             message: `Generation error: ${genErr.message}`,
             isSessionExpired: genErr.isSessionExpired,
           });
         } finally {
-          setIsGenerating(false);
+          if (isCurrent(revision)) setIsGenerating(false);
         }
 
         // Capture notices if fallback was used or warnings were issued
@@ -373,61 +434,67 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         setActiveTab('preview');
         return true;
       } catch (err: any) {
+        if (!isCurrent(revision)) return false;
         setError({
           message: err.message || 'Failed to generate specification from prompt.',
           isSessionExpired: err.isSessionExpired,
         });
         return false;
       } finally {
-        setIsIngesting(false);
+        if (isCurrent(revision)) setIsIngesting(false);
       }
     },
-    []
+    [beginSource, isCurrent, recordSnapshot]
   );
 
   const updateSpec = useCallback((spec: DatasetSpec) => {
+    if (JSON.stringify(spec) === JSON.stringify(specRef.current)) return;
+    invalidateOutputs();
     setDatasetSpec(spec);
-  }, []);
+  }, [invalidateOutputs, setDatasetSpec]);
 
   const updateColumnConfig = useCallback(
     (columnName: string, updates: Partial<ColumnSpec>) => {
-      setDatasetSpec((prev) => {
-        if (!prev || !prev.tables.length) return prev;
-        const newTables = prev.tables.map((table, tIdx) => {
-          if (tIdx !== 0) return table;
-          const newCols = table.columns.map((col) => {
-            if (col.name !== columnName) return col;
-            return { ...col, ...updates };
-          });
-          return { ...table, columns: newCols };
+      const spec = specRef.current;
+      if (!spec || !spec.tables.length) return;
+      const newTables = spec.tables.map((table, tIdx) => {
+        if (tIdx !== 0) return table;
+        const newCols = table.columns.map((col) => {
+          if (col.name !== columnName) return col;
+          return { ...col, ...updates };
         });
-        return { ...prev, tables: newTables };
+        return { ...table, columns: newCols };
       });
+      updateSpec({ ...spec, tables: newTables });
     },
-    []
+    [updateSpec]
   );
 
   const updateGlobalConfig = useCallback(
     (updates: { rowCount?: number; seed?: number }) => {
-      setDatasetSpec((prev) => {
-        if (!prev) return prev;
-        const newSeed = updates.seed !== undefined ? updates.seed : prev.seed;
-        const newTables = prev.tables.map((table, tIdx) => {
-          if (tIdx === 0 && updates.rowCount !== undefined) {
-            return { ...table, row_count: updates.rowCount };
-          }
-          return table;
-        });
-        return { ...prev, seed: newSeed, tables: newTables };
+      const spec = specRef.current;
+      if (!spec) return;
+      const newSeed = updates.seed !== undefined ? updates.seed : spec.seed;
+      const newTables = spec.tables.map((table, tIdx) => {
+        if (tIdx === 0 && updates.rowCount !== undefined) {
+          return { ...table, row_count: updates.rowCount };
+        }
+        return table;
       });
+      updateSpec({ ...spec, seed: newSeed, tables: newTables });
     },
-    []
+    [updateSpec]
   );
 
   const generateRelationalFromSpec = useCallback(
     async (specOverride?: DatasetSpec): Promise<boolean> => {
       const activeSpec = specOverride || datasetSpec;
       if (!activeSpec) return false;
+      if (activeSpec.tables.length < 2 && !activeSpec.documents?.length) {
+        setError({ message: 'This dataset has no relational model yet. Keep the current tabular data while relationships are configured.' });
+        return false;
+      }
+      const revision = invalidateOutputs();
       setIsGeneratingMultiTable(true);
       setIsGenerating(true);
       setError(null);
@@ -440,69 +507,83 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           engine,
           accepted: true,
         }));
+        if (!isCurrent(revision)) return false;
         let currentJob = jobResp;
         let attempts = 0;
         while (!isTerminal(currentJob.status) && attempts < 40) {
           await new Promise((resolve) => setTimeout(resolve, 800));
+          if (!isCurrent(revision)) return false;
           currentJob = await v2Request<Job>(`/jobs/${currentJob.job_id}`);
+          if (!isCurrent(revision)) return false;
           attempts++;
         }
-        if (currentJob.status === 'failed') {
-          throw new Error(currentJob.error || 'Relational generation failed.');
+        if (currentJob.status !== 'complete') {
+          throw new Error(currentJob.error || (currentJob.status === 'cancelled'
+            ? 'Generation was cancelled.' : 'Generation has not completed. Please retry.'));
         }
         const list = await Promise.all(
           currentJob.artifacts.map((id) => v2Request<Artifact>(`/artifacts/${id}`))
         );
-        setDocumentArtifacts(list);
+        if (!isCurrent(revision)) return false;
         const last = list[list.length - 1];
-        if (last?.format === 'json') {
-          setDocumentManifestId(last.id);
-          const resp = await fetch(`${v2Origin}/api/v1/artifacts/${last.id}/download`);
-          if (resp.ok) {
-            const manifest = (await resp.json()) as TableArtifactMap;
-            if (manifest.tables) {
-              setTableArtifacts(manifest.tables);
-              // Fetch previews for each table
-              const newPreviews: Record<string, Record<string, any>[]> = {};
-              for (const [tName, aId] of Object.entries(manifest.tables)) {
-                try {
-                  const art = await v2Request<Artifact>(`/artifacts/${aId}?preview_rows=25`);
-                  if (art.preview) {
-                    newPreviews[tName] = art.preview;
-                  }
-                } catch {
-                  // non-fatal
-                }
-              }
-              setRelationalPreviews(newPreviews);
-              const firstTableName = Object.keys(manifest.tables)[0];
-              const firstAid = manifest.tables[firstTableName];
-              if (firstAid && newPreviews[firstTableName]?.length > 0) {
-                setGeneratedPreview(newPreviews[firstTableName]);
-                setGeneratedRowCount(activeSpec.tables[0]?.row_count || newPreviews[firstTableName].length);
-                setGeneratedColumns(Object.keys(newPreviews[firstTableName][0]));
-                setGeneratedToken(firstAid);
-              }
-            }
+        if (last?.format !== 'json') throw new Error('Generation did not return a table manifest.');
+        const resp = await fetch(`${v2Origin}/api/v1/artifacts/${last.id}/download`);
+        if (!isCurrent(revision)) return false;
+        if (!resp.ok) throw new Error('Unable to load the generated table manifest.');
+        const manifest = (await resp.json()) as TableArtifactMap;
+        if (!isCurrent(revision)) return false;
+        if (!manifest.tables || !activeSpec.tables.every((table) => manifest.tables[table.name])) {
+          throw new Error('Generated table manifest does not match the active specification.');
+        }
+        // Fetch previews without publishing a partial or superseded manifest.
+        const newPreviews: Record<string, Record<string, any>[]> = {};
+        for (const [tName, aId] of Object.entries(manifest.tables)) {
+          if (!isCurrent(revision)) return false;
+          try {
+            const art = await v2Request<Artifact>(`/artifacts/${aId}?preview_rows=25`);
+            if (!isCurrent(revision)) return false;
+            if (art.preview) newPreviews[tName] = art.preview;
+          } catch {
+            // Preview failures do not invalidate downloadable output artifacts.
           }
         }
+        if (!isCurrent(revision)) return false;
+        setDocumentArtifacts(list);
+        setDocumentManifestId(last.id);
+        setTableArtifacts(manifest.tables);
+        setRelationalPreviews(newPreviews);
+        const firstTableName = activeSpec.tables[0].name;
+        const firstAid = manifest.tables[firstTableName];
+        setGeneratedPreview(newPreviews[firstTableName] || []);
+        setGeneratedRowCount(activeSpec.tables[0].row_count);
+        setGeneratedColumns(activeSpec.tables[0].columns.map((column) => column.name));
+        setGeneratedToken(firstAid);
+        recordSnapshot(revision, firstAid, 'artifact');
         return true;
       } catch (err: any) {
+        if (!isCurrent(revision)) return false;
         setError({ message: err.message || 'Relational generation failed.' });
         return false;
       } finally {
-        setIsGeneratingMultiTable(false);
-        setIsGenerating(false);
+        if (isCurrent(revision)) {
+          setIsGeneratingMultiTable(false);
+          setIsGenerating(false);
+        }
       }
     },
-    [datasetSpec]
+    [datasetSpec, invalidateOutputs, isCurrent, recordSnapshot]
   );
 
   const generateDocumentsFromSpec = useCallback(
     async (specOverride?: DatasetSpec): Promise<boolean> => {
-      return generateRelationalFromSpec(specOverride);
+      const spec = specOverride || datasetSpec;
+      if (!spec?.documents?.length) {
+        setError({ message: 'No document mapping is configured for this dataset. Required fields must be mapped before generating documents.' });
+        return false;
+      }
+      return generateRelationalFromSpec(spec);
     },
-    [generateRelationalFromSpec]
+    [datasetSpec, generateRelationalFromSpec]
   );
 
   const triggerMultiTableGenerate = useCallback(async (): Promise<boolean> => {
@@ -510,28 +591,20 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   }, [generateRelationalFromSpec]);
 
   const loadCommerceRelational = useCallback(async (): Promise<boolean> => {
+    beginSource('demo');
     setDatasetName(COMMERCE_RELATIONAL_SPEC.name);
     setDatasetSpec(COMMERCE_RELATIONAL_SPEC);
-    setReferenceRowCount(COMMERCE_RELATIONAL_SPEC.tables[0]?.row_count || 10);
     setActiveTab('relational');
     return generateRelationalFromSpec(COMMERCE_RELATIONAL_SPEC);
-  }, [generateRelationalFromSpec]);
+  }, [beginSource, generateRelationalFromSpec]);
 
   const loadBankingRelational = useCallback(async (): Promise<boolean> => {
+    beginSource('demo');
     setDatasetName(BANKING_RELATIONAL_SPEC.name);
     setDatasetSpec(BANKING_RELATIONAL_SPEC);
-    setReferenceRowCount(BANKING_RELATIONAL_SPEC.tables[0]?.row_count || 10);
     setActiveTab('documents');
     return generateRelationalFromSpec(BANKING_RELATIONAL_SPEC);
-  }, [generateRelationalFromSpec]);
-
-  const loadRelationalDemo = useCallback(() => {
-    clearSession();
-    setDatasetName('Commerce and invoices');
-    setDatasetSpec(FIXTURE_COMMERCE_SPEC);
-    setReferenceRowCount(FIXTURE_COMMERCE_SPEC.tables[0]?.row_count || 30);
-    setActiveTab('relational');
-  }, [clearSession]);
+  }, [beginSource, generateRelationalFromSpec]);
 
   const triggerGenerate = useCallback(
     async (rowCountOverride?: number): Promise<boolean> => {
@@ -540,6 +613,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       if (isMulti) {
         return triggerMultiTableGenerate();
       }
+      const revision = invalidateOutputs();
       setIsGenerating(true);
       setError(null);
 
@@ -555,6 +629,8 @@ export function StudioProvider({ children }: { children: ReactNode }) {
 
       try {
         const resp = await api.generateData(targetSpec, 50);
+        if (!isCurrent(revision)) return false;
+        recordSnapshot(revision, resp.dataset_id, 'frame');
         setGeneratedToken(resp.dataset_id);
         setGeneratedPreview(resp.preview);
         setGeneratedRowCount(resp.row_count);
@@ -568,23 +644,25 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         // Automatically refresh quality evaluation
         api
           .evaluateQuality(referenceToken || null, resp.dataset_id, targetSpec)
-          .then((q) => setQualityResults(q))
+          .then((q) => { if (isCurrent(revision)) setQualityResults(q); })
           .catch(() => {});
         return true;
       } catch (err: any) {
+        if (!isCurrent(revision)) return false;
         setError({
           message: err.message || 'Generation failed.',
           isSessionExpired: err.isSessionExpired,
         });
         return false;
       } finally {
-        setIsGenerating(false);
+        if (isCurrent(revision)) setIsGenerating(false);
       }
     },
-    [datasetSpec, referenceToken, triggerMultiTableGenerate]
+    [datasetSpec, referenceToken, triggerMultiTableGenerate, invalidateOutputs, isCurrent, recordSnapshot]
   );
 
   const triggerQualityEvaluation = useCallback(async (): Promise<boolean> => {
+    const revision = revisionRef.current;
     if (!generatedToken) {
       setError({
         message: 'Quality evaluation requires a generated dataset.',
@@ -595,22 +673,27 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const q = await api.evaluateQuality(referenceToken || null, generatedToken, datasetSpec || null);
+      if (!isCurrent(revision)) return false;
       setQualityResults(q);
       return true;
     } catch (err: any) {
+      if (!isCurrent(revision)) return false;
       setError({
         message: err.message || 'Quality evaluation failed.',
         isSessionExpired: err.isSessionExpired,
       });
       return false;
     } finally {
-      setIsEvaluatingQuality(false);
+      if (isCurrent(revision)) setIsEvaluatingQuality(false);
     }
-  }, [referenceToken, generatedToken, datasetSpec]);
+  }, [referenceToken, generatedToken, datasetSpec, isCurrent]);
 
   return (
     <StudioContext.Provider
       value={{
+        activeSource,
+        datasetRevision,
+        generatedSnapshot,
         referenceToken,
         generatedToken,
         tokenExpirySeconds,
@@ -657,7 +740,6 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         triggerMultiTableGenerate,
         generateRelationalFromSpec,
         generateDocumentsFromSpec,
-        loadRelationalDemo,
         loadCommerceRelational,
         loadBankingRelational,
       }}

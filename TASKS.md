@@ -4,6 +4,14 @@
 
 Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 
+## Active repair follow-up milestones (details in REPAIR_PLAN.md)
+- [DONE] S8 — One active input and consistent output lifecycle (2026-10-08).
+  Source/prompt identity, revisions, snapshot ownership, stale-response guards and
+  tab preview invalidation; normal actions no longer substitute demos.
+  Verified: backend 159 passed / 1 skipped, 10 React lifecycle tests, frontend
+  type check/production build, live banking -> seed edit -> tabular sample flow.
+- S9-S12 are PLANNED in REPAIR_PLAN.md. Historical tasks below remain superseded.
+
 ---
 
 ## Phase 0: Foundation & Setup

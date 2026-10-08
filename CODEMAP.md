@@ -62,9 +62,10 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `services/api.ts` | Typed fetch wrappers for all backend endpoints |
 | `services/v2.ts` | Typed fetch wrappers for AI/relational/document job endpoints |
 | `services/relationalDemo.ts` | Multi-table relational and reconciled document demo models |
-| `services/fixtures.ts` | Demo dataset definitions |
 | `services/samples.ts` | Sample column presets |
 | `services/qualityLabels.ts` | Quality score threshold and label definitions |
 | `services/features.ts` | Feature flags |
 | `types/` | Shared TypeScript interfaces mirroring backend schemas |
 | `context/` | React context providers (job state, locale, spec) |
+| `context/StudioContext.tsx` | Active source identity, model/generation revision, snapshot ownership and stale-response guards |
+| `tests/studio-lifecycle.test.cjs` | Real React lifecycle tests for source replacement, stale jobs/results and tab preview invalidation |

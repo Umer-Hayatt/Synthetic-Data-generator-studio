@@ -4,6 +4,25 @@
 REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
 
 ## Active Task
+S8 complete: one active input with consistent output lifecycle.
+- S8-S12 and the seven owner decisions are recorded in `REPAIR_PLAN.md`.
+- Next slice: S9, analyze and normalize the full generated tabular snapshot.
+- Source identity/prompt, revisions and snapshot ownership are retained. New input,
+  model edits and regeneration clear old outputs and ignore superseded responses.
+- Normal relational/document actions use the current spec, never load fixed demos.
+  Explicit demos remain on the entry screen. S1-S7 remain completed milestones.
+- Relational normalizes the full generated tabular snapshot after user review;
+  unclear relationships trigger questions. Documents use the same resulting rows.
+- Scope: current upload/prompt flow, invoices/statements, required-field mapping;
+  requested counts apply to the named main entity with related counts reviewed.
+- Audit found prompt drafts truncated to one table, no upload relationship planner,
+  and document actions replacing the active input with demo specifications.
+- Verification: backend 159 passed / 1 skipped; 10 React lifecycle tests passed;
+  frontend type check and production build passed. Browser verified banking demo,
+  seed invalidation and switching to customer-churn sample without stale documents.
+- Local backend: 127.0.0.1:8000; built frontend: localhost:3000 (configured CORS origin).
+
+## Last Completed Milestone
 Combined Slice 6 & 7 complete: Documents and Relational tabs unified in the classic studio.
 - Relational workspace: Table switcher, relationship map, integrity badges (zero orphan FKs, PK uniqueness, DAG verification), candidate FK configuration, paged multi-table preview.
 - Documents workspace: Invoices & bank statements generated with guaranteed reconciliation invariants, visual cards, PDF/ZIP/CSV/JSON export.

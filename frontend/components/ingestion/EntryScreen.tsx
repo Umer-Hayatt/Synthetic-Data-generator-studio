@@ -15,7 +15,7 @@ export const EntryScreen: React.FC = () => {
     handleFileUpload,
     loadSampleDataset,
     loadFromAiPrompt,
-    loadRelationalDemo,
+    loadCommerceRelational,
     loadBankingRelational,
     isIngesting,
     error,
@@ -190,7 +190,7 @@ export const EntryScreen: React.FC = () => {
               ))}
 
               <button
-                onClick={loadRelationalDemo}
+                onClick={loadCommerceRelational}
                 disabled={isIngesting}
                 style={{
                   display: 'flex',

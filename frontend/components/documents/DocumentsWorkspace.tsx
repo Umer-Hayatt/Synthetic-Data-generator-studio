@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStudio } from '../../context/StudioContext';
 import { api } from '../../services/api';
-import { COMMERCE_RELATIONAL_SPEC, BANKING_RELATIONAL_SPEC } from '../../services/relationalDemo';
 import {
   FileText,
   Download,
@@ -24,11 +23,8 @@ export const DocumentsWorkspace: React.FC = () => {
     datasetSpec,
     documentManifestId,
     tableArtifactMap,
-    generatedToken,
     isGenerating,
     generateDocumentsFromSpec,
-    loadCommerceRelational,
-    loadBankingRelational,
   } = useStudio();
 
   // Document Kind Toggle
@@ -85,30 +81,8 @@ export const DocumentsWorkspace: React.FC = () => {
     };
   }, [activeArtifactId, activeKind]);
 
-  // Handle generating documents with demo specs if none exist
-  const handleGenerateInvoices = async () => {
-    setLoadingDocs(true);
-    setErrorMsg(null);
-    try {
-      await loadCommerceRelational();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to generate invoices.');
-    } finally {
-      setLoadingDocs(false);
-    }
-  };
-
-  const handleGenerateStatements = async () => {
-    setLoadingDocs(true);
-    setErrorMsg(null);
-    try {
-      await loadBankingRelational();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to generate bank statements.');
-    } finally {
-      setLoadingDocs(false);
-    }
-  };
+  const handleGenerateDocuments = () => { void generateDocumentsFromSpec(); };
+  const hasActiveMapping = activeKind === 'invoice' ? hasInvoicesConfigured : hasStatementsConfigured;
 
   const currentInvoice = invoices[invoiceIndex];
   const currentStatement = statements[statementIndex];
@@ -357,12 +331,14 @@ export const DocumentsWorkspace: React.FC = () => {
 
           <div>
             <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
-              {activeKind === 'invoice'
+              {!hasActiveMapping ? 'No document mapping configured' : activeKind === 'invoice'
                 ? 'Generate Reconciled Invoices'
                 : 'Generate Continuous Bank Statements'}
             </h3>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '520px', margin: '0 auto' }}>
-              {activeKind === 'invoice'
+              {!hasActiveMapping
+                ? 'The current dataset needs a document field mapping before it can produce this document type.'
+                : activeKind === 'invoice'
                 ? 'Synthesize customer invoices with line items, tax, discounts, and guaranteed mathematical reconciliation invariants.'
                 : 'Synthesize bank statements with opening balance, chronologically ordered credit/debit transactions, and continuous balance integrity.'}
             </p>
@@ -371,23 +347,23 @@ export const DocumentsWorkspace: React.FC = () => {
           <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
             {activeKind === 'invoice' ? (
               <button
-                onClick={handleGenerateInvoices}
-                disabled={loadingDocs || isGenerating}
+                onClick={handleGenerateDocuments}
+                disabled={!hasActiveMapping || loadingDocs || isGenerating}
                 className="btn btn-synth"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 18px' }}
               >
                 {loadingDocs ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                <span>Generate Invoices from E-Commerce Data</span>
+                <span>Generate Invoices from Current Dataset</span>
               </button>
             ) : (
               <button
-                onClick={handleGenerateStatements}
-                disabled={loadingDocs || isGenerating}
+                onClick={handleGenerateDocuments}
+                disabled={!hasActiveMapping || loadingDocs || isGenerating}
                 className="btn btn-synth"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 18px' }}
               >
                 {loadingDocs ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                <span>Generate Bank Statements</span>
+                <span>Generate Statements from Current Dataset</span>
               </button>
             )}
           </div>

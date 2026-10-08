@@ -14,8 +14,9 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
   const {
-    referenceToken,
+    datasetSpec,
     generatedToken,
+    generatedSnapshot,
     backendOnline,
     clearSession,
   } = useStudio();
@@ -67,11 +68,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
         </div>
 
         {/* Action Buttons */}
-        {referenceToken && (
+        {datasetSpec && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
               onClick={onOpenExport}
-              disabled={!generatedToken}
+              disabled={!generatedToken || generatedSnapshot?.storage !== 'frame'}
               className="btn btn-synth btn-sm"
               title="Download synthetic data as CSV or JSON"
             >

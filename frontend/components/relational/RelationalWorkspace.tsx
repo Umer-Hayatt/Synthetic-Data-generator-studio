@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useStudio } from '../../context/StudioContext';
 import { api } from '../../services/api';
-import { COMMERCE_RELATIONAL_SPEC, BANKING_RELATIONAL_SPEC } from '../../services/relationalDemo';
 import {
   Network,
   Table2,
   Key,
-  Link as LinkIcon,
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  Plus,
-  Trash2,
   Sparkles,
   Loader2,
   Download,
@@ -20,7 +16,6 @@ import {
   Database,
   ArrowRight,
 } from 'lucide-react';
-import { ForeignKeySpec, TableSpec } from '../../types';
 
 export const RelationalWorkspace: React.FC = () => {
   const {
@@ -29,8 +24,6 @@ export const RelationalWorkspace: React.FC = () => {
     tableArtifactMap,
     isGenerating,
     generateRelationalFromSpec,
-    loadCommerceRelational,
-    loadBankingRelational,
     relationalPreviews,
   } = useStudio();
 
@@ -56,6 +49,7 @@ export const RelationalWorkspace: React.FC = () => {
   // Fetch or resolve preview rows for active table
   useEffect(() => {
     if (!currentTable) return;
+    let cancelled = false;
 
     // Check if we already have preview in context or state
     if (relationalPreviews[currentTable.name]) {
@@ -68,15 +62,17 @@ export const RelationalWorkspace: React.FC = () => {
       api
         .getArtifact(currentArtifactId, 50)
         .then((art) => {
+          if (cancelled) return;
           setTableRows((prev) => ({ ...prev, [currentTable.name]: (art.preview as any) || [] }));
         })
         .catch(() => {
           // non-fatal
         })
         .finally(() => {
-          setLoadingPreview(false);
+          if (!cancelled) setLoadingPreview(false);
         });
     }
+    return () => { cancelled = true; };
   }, [currentTable?.name, currentArtifactId, relationalPreviews]);
 
   // Collect all relationships
@@ -169,7 +165,7 @@ export const RelationalWorkspace: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const hasAnyGenerated = Object.keys(tableArtifactMap).length > 0 || Object.keys(tableRows).length > 0;
+  const hasAnyGenerated = Object.keys(tableArtifactMap).length > 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '32px' }}>
@@ -213,21 +209,9 @@ export const RelationalWorkspace: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {tables.length <= 1 && (
-            <button
-              onClick={loadCommerceRelational}
-              disabled={isGenerating}
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-            >
-              <Sparkles size={13} />
-              <span>Load 5-Table DAG</span>
-            </button>
-          )}
-
           <button
             onClick={handleGenerate}
-            disabled={isGenerating || tables.length === 0}
+            disabled={isGenerating || tables.length < 2}
             className="btn btn-synth btn-sm"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
@@ -264,7 +248,7 @@ export const RelationalWorkspace: React.FC = () => {
           </span>
           {tables.length <= 1 && (
             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              Currently single table • Load multi-table model or configure foreign keys below
+              No multi-table relationships are configured for the current dataset.
             </span>
           )}
         </div>
@@ -356,7 +340,7 @@ export const RelationalWorkspace: React.FC = () => {
               }}
             >
               <CheckCircle2 size={12} />
-              <span>Zero Orphan FKs</span>
+              <span>{hasAnyGenerated ? 'Foreign keys validated at generation' : 'Foreign keys: not generated'}</span>
             </div>
 
             <div
@@ -374,7 +358,7 @@ export const RelationalWorkspace: React.FC = () => {
               }}
             >
               <Key size={12} />
-              <span>PK Uniqueness: 100%</span>
+              <span>{hasAnyGenerated ? 'Primary keys validated at generation' : 'Primary keys: not generated'}</span>
             </div>
 
             <div
@@ -392,7 +376,7 @@ export const RelationalWorkspace: React.FC = () => {
               }}
             >
               <ShieldCheck size={12} />
-              <span>DAG Verified</span>
+              <span>{hasAnyGenerated ? 'DAG validated at generation' : 'DAG: not generated'}</span>
             </div>
           </div>
         </div>
@@ -409,7 +393,7 @@ export const RelationalWorkspace: React.FC = () => {
               textAlign: 'center',
             }}
           >
-            No foreign key relationships declared yet. Select columns below to establish parent-child links or load the 5-table DAG demo.
+            No foreign key relationships are configured for this dataset.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -444,7 +428,7 @@ export const RelationalWorkspace: React.FC = () => {
                     Cardinality: {rel.cardinality}
                   </span>
                   <span className="badge badge-synth" style={{ fontSize: '10px' }}>
-                    Zero Orphans Guaranteed
+                    {hasAnyGenerated ? 'Validated at generation' : 'Configured constraint'}
                   </span>
                 </div>
               </div>
