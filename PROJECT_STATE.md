@@ -4,7 +4,7 @@
 REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
 
 ## Active Task
-S3 complete (Synthetic Quality summary with real checks, centralized label thresholds, QualityChartsModal and ExportModal). Next: S4 — Hide the link to /v2.
+S4 complete (link to /v2 removed from Header and EntryScreen). Next: S5 — AI generator in the classic studio (tabular).
 
 ## Baseline
 - Frontend: `npx tsc --noEmit` passes with 0 errors.

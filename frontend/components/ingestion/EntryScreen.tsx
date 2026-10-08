@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import Link from 'next/link';
 import { useStudio } from '../../context/StudioContext';
 import { SAMPLE_DATASETS } from '../../services/samples';
 import {
@@ -43,7 +42,6 @@ export const EntryScreen: React.FC = () => {
       {/* Primary Heading */}
       <div className="entry-hero">
         <h1 className="entry-title">Create synthetic data</h1>
-        <Link href="/v2" style={{ color: 'var(--synth)', display: 'inline-block', marginBottom: 12 }}>Open AI, relational and document studio →</Link>
         <p className="entry-desc">
           Upload an existing structured file or explore pre-built reference benchmarks to generate privacy-safe synthetic tabular datasets.
         </p>
