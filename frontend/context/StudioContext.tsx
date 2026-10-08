@@ -52,6 +52,9 @@ interface StudioContextType {
   isEvaluatingQuality: boolean;
   error: { message: string; isSessionExpired?: boolean } | null;
 
+  schemaNotice: string | null;
+  loadFromAiPrompt: (prompt: string) => Promise<boolean>;
+  clearSchemaNotice: () => void;
   // Actions
   checkBackendHealth: () => Promise<boolean>;
   handleFileUpload: (file: File) => Promise<boolean>;
@@ -112,6 +115,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     message: string;
     isSessionExpired?: boolean;
   } | null>(null);
+  const [schemaNotice, setSchemaNotice] = useState<string | null>(null);
 
   const checkBackendHealth = useCallback(async (): Promise<boolean> => {
     try {
@@ -148,16 +152,22 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setQualityResults(null);
     setActiveTab('preview');
     setError(null);
+    setSchemaNotice(null);
   }, []);
 
   const dismissError = useCallback(() => {
     setError(null);
   }, []);
 
+  const clearSchemaNotice = useCallback(() => {
+    setSchemaNotice(null);
+  }, []);
+
   const handleFileUpload = useCallback(
     async (file: File): Promise<boolean> => {
       setIsIngesting(true);
       setError(null);
+      setSchemaNotice(null);
       try {
         const resp = await api.ingestFile(file);
 
@@ -234,6 +244,89 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       return handleFileUpload(file);
     },
     [handleFileUpload]
+  );
+
+  const loadFromAiPrompt = useCallback(
+    async (prompt: string): Promise<boolean> => {
+      setIsIngesting(true);
+      setError(null);
+      setSchemaNotice(null);
+      try {
+        const resp = await api.promptSpec(prompt);
+
+        if (resp.status === 'unavailable' || !resp.spec) {
+          const errMsg = resp.detail || resp.fallback || 'Unable to draft schema specification from prompt.';
+          setError({
+            message: errMsg,
+          });
+          return false;
+        }
+
+        const table = resp.spec.tables[0];
+        if (!table || !table.columns.length) {
+          setError({
+            message: 'Drafted specification did not contain any valid columns.',
+          });
+          return false;
+        }
+
+        // Reset reference data (since this is prompt-only generation)
+        setReferenceToken(null);
+        setReferenceRowCount(0);
+        setReferenceColumns([]);
+        setReferencePreview([]);
+
+        // Set dataset name and spec
+        setDatasetName(resp.spec.name || 'AI Generated Dataset');
+        setDatasetSpec(resp.spec);
+
+        // Derive inferred schema summary & sensitive columns
+        const schemaSummary = table.columns.map((col) => ({
+          name: col.name,
+          dtype: col.dtype,
+          semantic_type: col.semantic_type,
+          is_sensitive:
+            ['email', 'phone', 'person_name', 'address'].includes(col.semantic_type) ||
+            /email|phone|ssn|credit_card|address|name/i.test(col.name),
+        }));
+        setInferredSchema(schemaSummary);
+        const sensitiveNames = schemaSummary.filter((c) => c.is_sensitive).map((c) => c.name);
+        setSensitiveColumns(sensitiveNames);
+
+        // Reset generated outputs until user triggers generation
+        setGeneratedToken(null);
+        setGeneratedRowCount(0);
+        setGeneratedColumns([]);
+        setGeneratedPreview([]);
+        setQualityResults(null);
+        setPreviewViewMode('generated');
+
+        // Capture notices if fallback was used or warnings were issued
+        const notices: string[] = [];
+        if (resp.fallback_used || resp.notice) {
+          notices.push(resp.notice || 'Deterministic rule-based draft generated from prompt.');
+        }
+        if (resp.warnings && resp.warnings.length > 0) {
+          notices.push(...resp.warnings);
+        }
+        if (notices.length > 0) {
+          setSchemaNotice(notices.join(' '));
+        }
+
+        // Navigate directly to the Schema & Privacy summary tab
+        setActiveTab('schema');
+        return true;
+      } catch (err: any) {
+        setError({
+          message: err.message || 'Failed to generate specification from prompt.',
+          isSessionExpired: err.isSessionExpired,
+        });
+        return false;
+      } finally {
+        setIsIngesting(false);
+      }
+    },
+    []
   );
 
   const updateSpec = useCallback((spec: DatasetSpec) => {
@@ -382,6 +475,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         clearSession,
         dismissError,
         reportError: setError,
+        schemaNotice,
+        loadFromAiPrompt,
+        clearSchemaNotice,
       }}
     >
       {children}

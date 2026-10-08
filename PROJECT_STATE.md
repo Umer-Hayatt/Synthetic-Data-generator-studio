@@ -4,12 +4,12 @@
 REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
 
 ## Active Task
-S4 complete (link to /v2 removed from Header and EntryScreen). Next: S5 — AI generator in the classic studio (tabular).
+S5 complete (AI generator in classic studio tabular, prompt-driven, fallback and 10 domain tests, test_intelligence.py passing). S4 complete (link to /v2 hidden). Next: S6 — Documents tab in the classic studio.
 
 ## Baseline
 - Frontend: `npx tsc --noEmit` passes with 0 errors.
-- Backend: `pytest` passes with 117 passed, 1 skipped, 11 failed (quality privacy & integrity tests added; remaining 11 failures scheduled for S5 and S7).
-- Classic studio workflow verified: upload/ingest -> generate -> preview -> quality -> export (CSV/JSON) all functional.
+- Backend: `pytest` passes with 133 passed, 1 skipped, 5 failed (exact 5 known baseline failures from job sanitization, locale and email collision tests scheduled for S7).
+- Classic studio workflow verified: upload/ingest or AI prompt -> generate -> preview -> quality -> export (CSV/JSON) all functional.
 - Repo: https://github.com/Umer-Hayatt/Synthetic-Data-generator-studio (branch `main`).
 
 

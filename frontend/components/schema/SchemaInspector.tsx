@@ -1,11 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { useStudio } from '../../context/StudioContext';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle, Info, X } from 'lucide-react';
 import { SchemaModal } from './SchemaModal';
 import { PrivacyModal } from './PrivacyModal';
 
 export const SchemaInspector: React.FC = () => {
-  const { datasetSpec, inferredSchema, sensitiveColumns } = useStudio();
+  const {
+    datasetSpec,
+    inferredSchema,
+    sensitiveColumns,
+    schemaNotice,
+    clearSchemaNotice,
+  } = useStudio();
   const [isSchemaModalOpen, setIsSchemaModalOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
@@ -66,6 +72,37 @@ export const SchemaInspector: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '640px', margin: '20px 0' }}>
+      {schemaNotice && (
+        <div
+          style={{
+            marginBottom: '16px',
+            padding: '12px 16px',
+            background: 'var(--surface-muted)',
+            border: '1px solid var(--border-medium)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '12px',
+            color: 'var(--text-body)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Info size={15} style={{ color: 'var(--text-primary)', flexShrink: 0 }} />
+            <span>{schemaNotice}</span>
+          </div>
+          <button
+            onClick={clearSchemaNotice}
+            className="btn btn-ghost btn-sm"
+            style={{ padding: '2px', color: 'var(--text-muted)' }}
+            title="Dismiss notice"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <div
         className="card"
         style={{

@@ -12,6 +12,7 @@ export const ConfigPanel: React.FC = () => {
     updateGlobalConfig,
     triggerGenerate,
     isGenerating,
+    generatedRowCount,
   } = useStudio();
 
   if (!datasetSpec || !datasetSpec.tables.length) {
@@ -54,17 +55,17 @@ export const ConfigPanel: React.FC = () => {
           </div>
           <input
             type="range"
-            min={50}
-            max={5000}
-            step={50}
+            min={1}
+            max={Math.max(50000, rowCount)}
+            step={rowCount < 50 ? 1 : 50}
             value={rowCount}
-            onChange={(e) => updateGlobalConfig({ rowCount: Number(e.target.value) })}
+            onChange={(e) => updateGlobalConfig({ rowCount: Math.max(1, Number(e.target.value)) })}
             className="range-slider"
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: 'var(--text-muted)' }}>
-            <span>50</span>
-            <span>2,500</span>
-            <span>5,000</span>
+            <span>1</span>
+            <span>25,000</span>
+            <span>{Math.max(50000, rowCount).toLocaleString()}</span>
           </div>
         </div>
 
@@ -104,7 +105,7 @@ export const ConfigPanel: React.FC = () => {
           style={{ width: '100%', padding: '10px', fontSize: '13px' }}
         >
           <RefreshCw size={14} className={isGenerating ? 'animate-spin' : ''} />
-          <span>{isGenerating ? 'Synthesizing...' : 'Regenerate Dataset'}</span>
+          <span>{isGenerating ? 'Synthesizing...' : (generatedRowCount > 0 ? 'Regenerate Dataset' : 'Generate Dataset')}</span>
         </button>
       </div>
     </aside>

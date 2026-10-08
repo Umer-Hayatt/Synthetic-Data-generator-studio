@@ -5,11 +5,24 @@ import {
   UploadCloud,
   FileSpreadsheet,
   ArrowRight,
+  Sparkles,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 
 export const EntryScreen: React.FC = () => {
-  const { handleFileUpload, loadSampleDataset, isIngesting } = useStudio();
+  const {
+    handleFileUpload,
+    loadSampleDataset,
+    loadFromAiPrompt,
+    isIngesting,
+    error,
+    dismissError,
+  } = useStudio();
   const [dragActive, setDragActive] = useState(false);
+  const [promptText, setPromptText] = useState('');
+  const [isSubmittingPrompt, setIsSubmittingPrompt] = useState(false);
+  const [promptLocalError, setPromptLocalError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -37,13 +50,28 @@ export const EntryScreen: React.FC = () => {
     }
   };
 
+  const handleDraftFromPrompt = async () => {
+    const trimmed = promptText.trim();
+    if (!trimmed) return;
+    setIsSubmittingPrompt(true);
+    setPromptLocalError(null);
+    dismissError();
+    try {
+      await loadFromAiPrompt(trimmed);
+    } catch (err: any) {
+      setPromptLocalError(err.message || 'Failed to generate specification from prompt.');
+    } finally {
+      setIsSubmittingPrompt(false);
+    }
+  };
+
   return (
     <div className="entry-container">
       {/* Primary Heading */}
       <div className="entry-hero">
         <h1 className="entry-title">Create synthetic data</h1>
         <p className="entry-desc">
-          Upload an existing structured file or explore pre-built reference benchmarks to generate privacy-safe synthetic tabular datasets.
+          Upload an existing structured file, describe what you need with an AI prompt, or explore pre-built reference benchmarks to generate privacy-safe synthetic tabular datasets.
         </p>
       </div>
 
@@ -160,6 +188,124 @@ export const EntryScreen: React.FC = () => {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Option 3: AI Prompt Generator (Below Upload/Paste Area) */}
+      <div
+        className="card"
+        style={{
+          marginTop: '20px',
+          background: 'var(--surface)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-md)',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Sparkles size={16} style={{ color: 'var(--text-primary)' }} />
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+              Generate from AI Prompt
+            </h3>
+          </div>
+          <span className="badge badge-synth" style={{ fontSize: '9px' }}>
+            Prompt Only • No File Required
+          </span>
+        </div>
+
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+          Describe your tabular dataset and features. The AI engine drafts a complete schema specification with sensible data types, constraints, and privacy protections without needing any uploaded file.
+        </p>
+
+        {(promptLocalError || (error && !error.isSessionExpired)) && (
+          <div
+            style={{
+              padding: '10px 14px',
+              background: 'var(--error-bg)',
+              border: '1px solid var(--error-border)',
+              borderRadius: 'var(--radius-xs)',
+              fontSize: '12px',
+              color: 'var(--error)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <AlertCircle size={15} style={{ flexShrink: 0 }} />
+            <span>{promptLocalError || error?.message}</span>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <textarea
+            value={promptText}
+            onChange={(e) => {
+              setPromptText(e.target.value);
+              if (promptLocalError) setPromptLocalError(null);
+              if (error) dismissError();
+            }}
+            placeholder="5000 university students with GPA, semester, attendance and fee status"
+            rows={3}
+            disabled={isSubmittingPrompt}
+            className="input-text"
+            style={{
+              width: '100%',
+              resize: 'vertical',
+              fontFamily: 'inherit',
+              lineHeight: 1.5,
+              fontSize: '13px',
+              padding: '10px 12px',
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                handleDraftFromPrompt();
+              }
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
+            <span>Example:</span>
+            <button
+              type="button"
+              onClick={() => {
+                setPromptText('5000 university students with GPA, semester, attendance and fee status');
+                if (promptLocalError) setPromptLocalError(null);
+                if (error) dismissError();
+              }}
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize: '11px', padding: '3px 8px', color: 'var(--text-primary)', textDecoration: 'underline' }}
+            >
+              5000 university students with GPA, semester, attendance and fee status
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleDraftFromPrompt}
+            disabled={isSubmittingPrompt || !promptText.trim()}
+            className="btn btn-synth"
+            style={{ padding: '8px 18px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            {isSubmittingPrompt ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Drafting Specification...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={14} />
+                <span>Draft Specification</span>
+                <ArrowRight size={14} />
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

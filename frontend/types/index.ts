@@ -66,6 +66,17 @@ export interface DatasetSpec {
   tables: TableSpec[];
 }
 
+export interface PromptSpecResponse {
+  status: 'review_required' | 'ok' | 'unavailable';
+  spec?: DatasetSpec;
+  notice?: string;
+  warnings?: string[];
+  fallback_used?: boolean;
+  reason?: string;
+  detail?: string;
+  fallback?: string;
+}
+
 export interface IngestResponse {
   dataset_id: string; // reference_token
   expires_in_seconds: number;

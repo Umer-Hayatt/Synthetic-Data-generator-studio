@@ -113,23 +113,7 @@ def _repair_draft(draft: _DatasetSpecDraft) -> _DatasetSpecDraft:
     tables_by_norm = {_normalize(t.name): t for t in draft.tables}
     tables_by_name = {t.name: t for t in draft.tables}
 
-    # 1. Ratio-based row counts
-    # Find best anchor (largest table that matches a ratio key)
-    anchor_rows = 0
-    for t in draft.tables:
-        norm = _normalize(t.name)
-        if norm in _ROW_RATIOS and t.row_count > anchor_rows:
-            anchor_rows = t.row_count
-
-    if anchor_rows < _MIN_ROOT_ROWS:
-        # Scale up so the anchor ("customers"/"users") is at least _MIN_ROOT_ROWS
-        scale = _MIN_ROOT_ROWS / max(anchor_rows, 1)
-        for t in draft.tables:
-            norm = _normalize(t.name)
-            if norm in _ROW_RATIOS:
-                t.row_count = max(int(_ROW_RATIOS[norm] * _MIN_ROOT_ROWS), 1)
-            elif t.row_count < 50:
-                t.row_count = max(int(t.row_count * scale), 10)
+    # (Heuristic row count scaling removed to honor requested row counts)
 
     # 2. Infer missing FKs from column name patterns
     all_col_names = {}
@@ -261,9 +245,12 @@ def _draft_to_spec(draft: _DatasetSpecDraft) -> tuple[DatasetSpec, list[str]]:
                 target_column = c.name
             columns.append(col)
 
+        rc = t.row_count
+        if rc > 50000:
+            warnings.append(f"Table '{t.name}' requests {rc} rows, which exceeds the single-job generation limit of 50,000. Up to 50,000 rows will be generated per run.")
         tables.append({
             'name': t.name,
-            'row_count': max(1, min(t.row_count, 50000)),
+            'row_count': rc,
             'columns': columns,
             'primary_key': primary_key,
             'foreign_keys': foreign_keys,
@@ -351,13 +338,223 @@ _SPEC_PROMPT_PREFIX = (
 )
 
 
+def _extract_requested_row_count(prompt: str) -> int | None:
+    m_neg = re.search(r'(?:^|\s)(-\d+)\b', prompt)
+    if m_neg:
+        return int(m_neg.group(1))
+
+    patterns = [
+        r'\b(\d+)\s*(?:rows?|records?|entries|items|students|customers|users|patients|employees|products|orders|readings|listings|books|flights|transactions)\b',
+        r'(?:create|generate|produce|make|synthesize)\s+(\d+)\b',
+        r'\b(\d+)\s+(?:university\s+)?(?:students|customers|users|patients|employees|products|orders|readings|listings|books|flights)\b',
+    ]
+    for pattern in patterns:
+        m = re.search(pattern, prompt, re.IGNORECASE)
+        if m:
+            return int(m.group(1))
+
+    m_all = re.findall(r'\b(\d+)\b', prompt)
+    for m in m_all:
+        val = int(m)
+        if val > 10_000_000 or val == 0:
+            return val
+        if val not in (2020, 2021, 2022, 2023, 2024, 2025, 2026):
+            return val
+    return None
+
+
+def generate_fallback_draft(prompt: str, requested_rows: int | None = None) -> tuple[_DatasetSpecDraft, list[str]]:
+    """Deterministic rule-based draft generator when AI is unavailable."""
+    p = prompt.lower()
+    warnings = []
+    rows = requested_rows if requested_rows is not None and requested_rows > 0 else 100
+
+    # Domain 1: University Students
+    if any(k in p for k in ('student', 'university', 'college', 'gpa', 'semester', 'attendance', 'grade', 'school', 'course')):
+        table_name = 'Students'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='full_name', dtype='string', semantic_type='person_name', nullable=False),
+            _DraftColumn(name='email', dtype='string', semantic_type='email', nullable=False),
+            _DraftColumn(name='semester', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=8),
+            _DraftColumn(name='gpa', dtype='float', semantic_type='numeric', has_bounds=True, min_value=1.0, max_value=4.0),
+            _DraftColumn(name='attendance', dtype='float', semantic_type='numeric', has_bounds=True, min_value=50.0, max_value=100.0),
+            _DraftColumn(name='fee_status', dtype='string', semantic_type='categorical'),
+        ]
+    # Domain 2: Restaurant & Food Orders
+    elif any(k in p for k in ('restaurant', 'dining', 'meal', 'food', 'menu', 'dish', 'delivery', 'restaurant order')):
+        table_name = 'RestaurantOrders'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='customer_name', dtype='string', semantic_type='person_name', nullable=False),
+            _DraftColumn(name='item_name', dtype='string', semantic_type='generic_text', nullable=False),
+            _DraftColumn(name='category', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='quantity', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=10),
+            _DraftColumn(name='total_price', dtype='float', semantic_type='money', has_bounds=True, min_value=5.0, max_value=200.0),
+            _DraftColumn(name='order_status', dtype='string', semantic_type='categorical'),
+        ]
+    # Domain 3: Bank Customers
+    elif any(k in p for k in ('bank', 'account', 'balance', 'credit_score', 'credit score', 'loan', 'finance', 'deposit')):
+        table_name = 'BankCustomers'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='full_name', dtype='string', semantic_type='person_name', nullable=False),
+            _DraftColumn(name='email', dtype='string', semantic_type='email', nullable=False),
+            _DraftColumn(name='account_number', dtype='string', semantic_type='id', nullable=False),
+            _DraftColumn(name='account_type', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='balance', dtype='float', semantic_type='money', has_bounds=True, min_value=50.0, max_value=100000.0),
+            _DraftColumn(name='credit_score', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=300, max_value=850),
+        ]
+    # Domain 4: Retail Products
+    elif any(k in p for k in ('product', 'retail', 'catalog', 'sku', 'inventory', 'merchandise', 'store', 'shop')):
+        table_name = 'Products'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='product_name', dtype='string', semantic_type='generic_text', nullable=False),
+            _DraftColumn(name='category', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='sku', dtype='string', semantic_type='id', nullable=False),
+            _DraftColumn(name='unit_price', dtype='float', semantic_type='money', has_bounds=True, min_value=2.0, max_value=1000.0),
+            _DraftColumn(name='stock_quantity', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=0, max_value=500),
+        ]
+    elif any(k in p for k in ('patient', 'hospital', 'clinic', 'medical', 'diagnosis', 'health', 'doctor')):
+        table_name = 'Patients'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='patient_name', dtype='string', semantic_type='person_name', nullable=False),
+            _DraftColumn(name='gender', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='diagnosis', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='room_number', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=101, max_value=599),
+            _DraftColumn(name='admission_date', dtype='datetime', semantic_type='datetime'),
+        ]
+    elif any(k in p for k in ('employee', 'staff', 'payroll', 'worker', 'hr', 'salary', 'hire')):
+        table_name = 'Employees'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='full_name', dtype='string', semantic_type='person_name', nullable=False),
+            _DraftColumn(name='email', dtype='string', semantic_type='email', nullable=False),
+            _DraftColumn(name='department', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='job_title', dtype='string', semantic_type='generic_text'),
+            _DraftColumn(name='salary', dtype='float', semantic_type='money', has_bounds=True, min_value=30000.0, max_value=180000.0),
+            _DraftColumn(name='hire_date', dtype='datetime', semantic_type='datetime'),
+        ]
+    elif any(k in p for k in ('flight', 'airline', 'airport', 'aviation', 'plane')):
+        table_name = 'Flights'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='flight_number', dtype='string', semantic_type='generic_text', nullable=False),
+            _DraftColumn(name='airline', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='origin', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='destination', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='departure_time', dtype='datetime', semantic_type='datetime'),
+            _DraftColumn(name='status', dtype='string', semantic_type='categorical'),
+        ]
+    elif any(k in p for k in ('book', 'library', 'author', 'isbn', 'publication', 'novel')):
+        table_name = 'Books'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='title', dtype='string', semantic_type='generic_text', nullable=False),
+            _DraftColumn(name='author', dtype='string', semantic_type='person_name', nullable=False),
+            _DraftColumn(name='isbn', dtype='string', semantic_type='generic_text'),
+            _DraftColumn(name='genre', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='publication_year', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1950, max_value=2025),
+            _DraftColumn(name='is_available', dtype='boolean', semantic_type='categorical'),
+        ]
+    elif any(k in p for k in ('real estate', 'real_estate', 'property', 'listing', 'realtor', 'house', 'apartment', 'home', 'rental')):
+        table_name = 'RealEstate'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='address', dtype='string', semantic_type='address', nullable=False),
+            _DraftColumn(name='city', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='property_type', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='price', dtype='float', semantic_type='money', has_bounds=True, min_value=80000.0, max_value=2500000.0),
+            _DraftColumn(name='bedrooms', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=6),
+            _DraftColumn(name='bathrooms', dtype='float', semantic_type='numeric', has_bounds=True, min_value=1.0, max_value=4.0),
+        ]
+    elif any(k in p for k in ('iot', 'sensor', 'reading', 'telemetry', 'device', 'temperature', 'humidity')):
+        table_name = 'SensorReadings'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='device_id', dtype='string', semantic_type='id', nullable=False),
+            _DraftColumn(name='timestamp', dtype='datetime', semantic_type='datetime'),
+            _DraftColumn(name='temperature', dtype='float', semantic_type='numeric', has_bounds=True, min_value=-20.0, max_value=60.0),
+            _DraftColumn(name='humidity', dtype='float', semantic_type='numeric', has_bounds=True, min_value=10.0, max_value=100.0),
+            _DraftColumn(name='battery_level', dtype='float', semantic_type='numeric', has_bounds=True, min_value=0.0, max_value=100.0),
+            _DraftColumn(name='status', dtype='string', semantic_type='categorical'),
+        ]
+    elif any(k in p for k in ('restaurant', 'order', 'dining', 'meal', 'food', 'menu', 'dish', 'delivery')):
+        table_name = 'RestaurantOrders'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='customer_name', dtype='string', semantic_type='person_name', nullable=False),
+            _DraftColumn(name='item_name', dtype='string', semantic_type='generic_text', nullable=False),
+            _DraftColumn(name='category', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='quantity', dtype='integer', semantic_type='numeric', has_bounds=True, min_value=1, max_value=10),
+            _DraftColumn(name='total_price', dtype='float', semantic_type='money', has_bounds=True, min_value=5.0, max_value=200.0),
+            _DraftColumn(name='order_status', dtype='string', semantic_type='categorical'),
+        ]
+    else:
+        table_name = 'Records'
+        cols = [
+            _DraftColumn(name='id', dtype='integer', semantic_type='id', is_primary_key=True, nullable=False),
+            _DraftColumn(name='name', dtype='string', semantic_type='person_name', nullable=False),
+            _DraftColumn(name='category', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='status', dtype='string', semantic_type='categorical'),
+            _DraftColumn(name='value', dtype='float', semantic_type='numeric', has_bounds=True, min_value=10.0, max_value=1000.0),
+            _DraftColumn(name='created_at', dtype='datetime', semantic_type='datetime'),
+        ]
+
+    if any(phrase in p for phrase in (' and orders', ' and products', ' and line_items', 'multi-table', 'multiple tables', 'related tables')):
+        warnings.append(f"Multi-table schema requested in prompt. Primary table '{table_name}' selected. Relational generation arrives in the Relational tab.")
+
+    draft = _DatasetSpecDraft(
+        name=table_name.lower(),
+        locale='en_US',
+        seed=42,
+        tables=[_DraftTable(name=table_name, row_count=rows, columns=cols)],
+    )
+    return draft, warnings
+
+
 @router.post('/spec')
 def prompt_spec(request: PromptRequest):
+    req_count = _extract_requested_row_count(request.prompt)
+    if req_count is not None and (req_count <= 0 or req_count > 10_000_000):
+        return {
+            'status': 'unavailable',
+            'reason': 'malformed_output',
+            'detail': f"Invalid row count: {req_count}. Row counts must be between 1 and 10,000,000.",
+            'fallback': 'Deterministic rule-based draft or manual schema configuration.',
+        }
+
     prompt = _SPEC_PROMPT_PREFIX + request.prompt
     try:
         draft = get_router().generate_structured(prompt, _DatasetSpecDraft)
+        if not draft.tables:
+            return {
+                'status': 'unavailable',
+                'reason': 'malformed_output',
+                'detail': 'Draft contains no tables.',
+                'fallback': 'Deterministic rule-based draft or manual schema configuration.',
+            }
+        for t in draft.tables:
+            if t.row_count <= 0 or t.row_count > 10_000_000:
+                return {
+                    'status': 'unavailable',
+                    'reason': 'malformed_output',
+                    'detail': f"Invalid row count: {t.row_count}. Row counts must be between 1 and 10,000,000.",
+                    'fallback': 'Deterministic rule-based draft or manual schema configuration.',
+                }
+
+        multi_table_warnings = []
+        if len(draft.tables) > 1:
+            main_name = draft.tables[0].name
+            draft.tables = draft.tables[:1]
+            multi_table_warnings.append(
+                f"Multi-table relational schema requested. Primary table '{main_name}' selected for tabular generation. Multi-table relational generation arrives in the Relational tab."
+            )
+
         draft = _repair_draft(draft)
-        warnings = getattr(draft, '_repair_warnings', [])
+        warnings = getattr(draft, '_repair_warnings', []) + multi_table_warnings
         try:
             spec, conv_warnings = _draft_to_spec(draft)
             all_warnings = warnings + conv_warnings
@@ -366,7 +563,7 @@ def prompt_spec(request: PromptRequest):
                 'status': 'unavailable',
                 'reason': 'malformed_output',
                 'detail': f'Draft conversion failed: {conv_err}',
-                'fallback': 'Use manual schema or deterministic uploaded-data profiling.',
+                'fallback': 'Deterministic rule-based draft or manual schema configuration.',
             }
         return {
             'status': 'review_required',
@@ -375,11 +572,27 @@ def prompt_spec(request: PromptRequest):
             'warnings': all_warnings,
         }
     except AIError as exc:
-        return {
-            'status': 'unavailable',
-            'reason': exc.kind,
-            'fallback': 'Use manual schema or deterministic uploaded-data profiling.',
-        }
+        fallback_draft, fb_warnings = generate_fallback_draft(request.prompt, req_count)
+        try:
+            spec, conv_warnings = _draft_to_spec(fallback_draft)
+            all_warnings = [
+                f"AI unavailable ({exc.kind.replace('_', ' ')}). Deterministic domain draft generated from prompt.",
+            ] + fb_warnings + conv_warnings
+            return {
+                'status': 'review_required',
+                'reason': exc.kind,
+                'spec': spec.model_dump(mode='json'),
+                'notice': 'AI service unavailable. Deterministic rule-based draft generated from prompt.',
+                'fallback_used': True,
+                'warnings': all_warnings,
+            }
+        except Exception:
+            return {
+                'status': 'unavailable',
+                'reason': exc.kind,
+                'detail': 'AI unavailable and fallback could not be constructed.',
+                'fallback': 'Use manual schema or deterministic uploaded-data profiling.',
+            }
 
 
 @router.post('/suggestions')

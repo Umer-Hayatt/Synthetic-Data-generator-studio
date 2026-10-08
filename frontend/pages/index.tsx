@@ -9,7 +9,7 @@ import { SessionExpiredModal } from '../components/common/SessionExpiredModal';
 import { NotificationToast } from '../components/common/NotificationToast';
 
 export default function Home() {
-  const { referenceToken } = useStudio();
+  const { referenceToken, datasetSpec } = useStudio();
   const [isExportOpen, setIsExportOpen] = useState(false);
 
   return (
@@ -29,7 +29,7 @@ export default function Home() {
 
         {/* Dynamic Display: Entry Screen if no active dataset; Studio Workspace once ingested */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          {!referenceToken ? (
+          {!referenceToken && !datasetSpec ? (
             <div style={{ flex: 1, overflowY: 'auto' }}>
               <EntryScreen />
             </div>

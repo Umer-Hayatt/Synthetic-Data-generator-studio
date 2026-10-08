@@ -3,6 +3,7 @@ import {
   GenerateResponse,
   IngestResponse,
   PreviewResponse,
+  PromptSpecResponse,
   QualityResponse,
 } from '../types';
 
@@ -102,6 +103,15 @@ export const api = {
       body: formData,
     });
     return await handleResponse<IngestResponse>(res);
+  },
+
+  async promptSpec(prompt: string): Promise<PromptSpecResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/ai/spec`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt }),
+    });
+    return await handleResponse<PromptSpecResponse>(res);
   },
 
   async validateSpec(spec: DatasetSpec): Promise<DatasetSpec> {

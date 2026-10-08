@@ -50,7 +50,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `pages/index.tsx` | **Classic studio** root page (upload -> generate -> preview -> quality -> export) |
 | `pages/v2.tsx` | Separate /v2 page (kept until S5-S7 complete, link hidden in S4) |
 | `pages/_app.tsx` | Next.js app wrapper; global styles |
-| **components/ingestion/** | File upload + demo dataset selector (classic studio step 1) |
+| **components/ingestion/** | File upload, demo dataset selector & AI prompt generator (classic studio step 1) |
 | **components/configuration/** | Schema/privacy editors (classic studio step 2) |
 | **components/preview/** | Generated-data table preview (classic studio step 3) |
 | **components/quality/** | Quality charts and summary card (classic studio step 4) |

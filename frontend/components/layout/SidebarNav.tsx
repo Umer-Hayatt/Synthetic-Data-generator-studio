@@ -14,6 +14,7 @@ export const SidebarNav: React.FC = () => {
   const {
     datasetName,
     datasetSpec,
+    referenceToken,
     referenceRowCount,
     generatedRowCount,
   } = useStudio();
@@ -40,7 +41,9 @@ export const SidebarNav: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px', borderTop: '1px solid var(--border-subtle)', paddingTop: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Source:</span>
-                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>CSV / Sample</span>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                  {referenceToken ? 'CSV / Sample' : 'AI Prompt'}
+                </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>Real Records:</span>
