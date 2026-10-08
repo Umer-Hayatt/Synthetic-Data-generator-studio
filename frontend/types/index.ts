@@ -72,6 +72,8 @@ export interface IngestResponse {
   row_count: number;
   columns: string[];
   schema: Record<string, any>;
+  sensitive_columns?: string[];
+  sensitive_count?: number;
   spec: DatasetSpec;
   preview: Record<string, any>[];
 }

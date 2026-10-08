@@ -4,11 +4,11 @@
 REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
 
 ## Active Task
-S1 complete (TSTR removed completely). Next: S2 — Schema & Privacy summary (classic studio).
+S2 complete (Schema & Privacy summary with sensitive detection & modals). Next: S3 — Synthetic Quality summary (classic studio).
 
 ## Baseline
 - Frontend: `npx tsc --noEmit` passes with 0 errors.
-- Backend: `pytest` passes with 113 passed, 1 skipped, 11 failed (all 8 TSTR tests removed cleanly; the remaining 11 failures are baseline issues scheduled for S5 and S7).
+- Backend: `pytest` passes with 116 passed, 1 skipped, 11 failed (3 sensitive detection tests added; remaining 11 failures scheduled for S5 and S7).
 - Classic studio workflow verified: upload/ingest -> generate -> preview -> quality -> export (CSV/JSON) all functional.
 - Repo: https://github.com/Umer-Hayatt/Synthetic-Data-generator-studio (branch `main`).
 

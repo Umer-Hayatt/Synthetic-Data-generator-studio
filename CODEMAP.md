@@ -1,4 +1,4 @@
-# CODEMAP.md — One-line guide to where code lives
+# CODEMAP.md â€” One-line guide to where code lives
 
 Keep this updated whenever a slice adds, moves, or deletes files.
 
@@ -55,7 +55,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | **components/preview/** | Generated-data table preview (classic studio step 3) |
 | **components/quality/** | Quality charts and summary card (classic studio step 4) |
 | **components/export/** | Export buttons CSV/JSON (classic studio step 5) |
-| **components/schema/** | Column-type editor, drawer |
+| **components/schema/** | Schema & Privacy summary card, SchemaModal, PrivacyModal |
 | **components/layout/** | Page shell, sidebar, tabs |
 | **components/common/** | Shared UI primitives (buttons, badges, loaders) |
 | **components/v2/** | V2-only components (AI generator, documents, relational panels) |

@@ -6,7 +6,7 @@ from app.core.inference import infer_schema
 from app.models.spec import DatasetSpec
 
 
-def fit_spec(frame: pd.DataFrame, name: str = 'dataset', seed: int = 42, categorical_columns: tuple[str, ...] = ()) -> DatasetSpec:
+def fit_spec(frame: pd.DataFrame, name: str = 'dataset', seed: int = 42, categorical_columns: tuple[str, ...] = (), auto_privacy: bool = False) -> DatasetSpec:
     columns, latent = [], {}
     for info in infer_schema(frame):
         if info['name'] in categorical_columns:
@@ -37,6 +37,12 @@ def fit_spec(frame: pd.DataFrame, name: str = 'dataset', seed: int = 42, categor
             counts = normalized.dropna().value_counts(normalize=True).sort_index()
             column['distribution'] = {'type': 'categorical', 'values': counts.index.tolist(), 'probabilities': counts.tolist()}
             latent[info['name']] = normalized.map({value: i for i, value in enumerate(counts.index)})
+        if auto_privacy and info.get('is_sensitive'):
+            is_unique = column.get('constraints', {}).get('unique', False) or (info.get('unique_count') == len(values) and len(values) > 1)
+            if is_unique:
+                column['privacy_rule'] = {'method': 'hash'}
+            else:
+                column['privacy_rule'] = {'method': 'mask', 'mask_value': '***'}
         columns.append(column)
     # Pairwise rank correlations projected onto the PSD cone, avoiding invalid covariance.
     names = [name for name, series in latent.items() if series.nunique() > 1]

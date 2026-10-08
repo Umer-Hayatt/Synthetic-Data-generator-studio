@@ -1,19 +1,13 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useStudio } from '../../context/StudioContext';
-import { ColumnSpec } from '../../types';
-import {
-  Key,
-  Shield,
-  Hash,
-  Type,
-  Calendar,
-  DollarSign,
-  User,
-  Sliders,
-} from 'lucide-react';
+import { Check, AlertCircle } from 'lucide-react';
+import { SchemaModal } from './SchemaModal';
+import { PrivacyModal } from './PrivacyModal';
 
 export const SchemaInspector: React.FC = () => {
-  const { datasetSpec, updateColumnConfig } = useStudio();
+  const { datasetSpec, inferredSchema, sensitiveColumns } = useStudio();
+  const [isSchemaModalOpen, setIsSchemaModalOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
   if (!datasetSpec || !datasetSpec.tables.length) {
     return (
@@ -24,143 +18,160 @@ export const SchemaInspector: React.FC = () => {
   }
 
   const table = datasetSpec.tables[0];
+  const columnsCount = table.columns.length;
 
-  const handlePrivacyChange = (colName: string, method: string) => {
-    if (method === 'none') {
-      updateColumnConfig(colName, { privacy_rule: null });
-    } else if (method === 'mask') {
-      updateColumnConfig(colName, { privacy_rule: { method: 'mask', mask_value: '***' } });
-    } else if (method === 'hash') {
-      updateColumnConfig(colName, { privacy_rule: { method: 'hash' } });
-    } else if (method === 'noise') {
-      updateColumnConfig(colName, { privacy_rule: { method: 'noise', noise_std: 1.0 } });
+  // Determine sensitive column names from context or inferred schema
+  const detectedSensitiveSet = useMemo(() => {
+    const set = new Set<string>();
+    if (sensitiveColumns && sensitiveColumns.length > 0) {
+      sensitiveColumns.forEach((c) => set.add(c));
     }
-  };
+    if (Array.isArray(inferredSchema)) {
+      inferredSchema.forEach((col: any) => {
+        if (col.is_sensitive) set.add(col.name);
+      });
+    }
+    // Fallback: check table columns semantic types or names if inferredSchema metadata was not available
+    table.columns.forEach((col) => {
+      const lower = col.name.toLowerCase();
+      if (
+        ['email', 'phone', 'person_name', 'address'].includes(col.semantic_type) ||
+        lower.includes('email') ||
+        lower.includes('phone') ||
+        lower.includes('ssn') ||
+        lower.includes('credit_card')
+      ) {
+        set.add(col.name);
+      }
+    });
+    return set;
+  }, [sensitiveColumns, inferredSchema, table.columns]);
 
-  const getPrivacyValue = (col: ColumnSpec): string => {
-    if (!col.privacy_rule) return 'none';
-    if (typeof col.privacy_rule === 'string') return col.privacy_rule;
-    return col.privacy_rule.method;
-  };
+  const sensitiveCount = detectedSensitiveSet.size;
+
+  // Privacy protection is configured when all detected sensitive fields have a privacy action applied (or there are no sensitive fields)
+  const isPrivacyConfigured = useMemo(() => {
+    if (sensitiveCount === 0) return true;
+    for (const colName of Array.from(detectedSensitiveSet)) {
+      const col = table.columns.find((c) => c.name === colName);
+      if (!col) continue;
+      const rule = col.privacy_rule;
+      const method = typeof rule === 'string' ? rule : rule?.method;
+      if (!method || !['mask', 'hash', 'noise'].includes(method)) {
+        return false;
+      }
+    }
+    return true;
+  }, [detectedSensitiveSet, sensitiveCount, table.columns]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-        <div>
-          <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
-            Column Schema & Statistical Properties
-          </h2>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-            Inferred semantic types, distribution parameters, bounds, and column-level privacy rules.
-          </p>
-        </div>
-        <span className="badge badge-slate" style={{ fontSize: '11px', padding: '3px 8px' }}>
-          {table.columns.length} columns defined
-        </span>
-      </div>
+    <div style={{ maxWidth: '640px', margin: '20px 0' }}>
+      <div
+        className="card"
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-md)',
+          padding: '24px 28px',
+        }}
+      >
+        {/* Title */}
+        <h2
+          style={{
+            fontSize: '16px',
+            fontWeight: 600,
+            color: 'var(--text-primary)',
+            marginBottom: '18px',
+          }}
+        >
+          Schema &amp; Privacy
+        </h2>
 
-      <div className="schema-grid">
-        {table.columns.map((col) => {
-          const isNumeric = col.dtype === 'integer' || col.dtype === 'float';
-          const privacyVal = getPrivacyValue(col);
-          const categories = col.constraints.categories ?? col.distribution?.values;
+        {/* Checklist */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+          {/* 1. Columns detected */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+            <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center' }}>
+              <Check size={16} strokeWidth={2.5} />
+            </span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+              {columnsCount} columns detected
+            </span>
+          </div>
 
-          return (
-            <div key={col.name} className="schema-field-card">
-              {/* Column Name & Type Pill */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '220px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {col.constraints.unique && (
-                    <span title="Unique Key">
-                      <Key size={13} style={{ color: 'var(--warning)' }} />
-                    </span>
-                  )}
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
-                    {col.name}
-                  </span>
-                </div>
+          {/* 2. Schema configured */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+            <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center' }}>
+              <Check size={16} strokeWidth={2.5} />
+            </span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+              Schema automatically configured
+            </span>
+          </div>
 
-                <span
-                  className={`badge ${
-                    isNumeric
-                      ? 'badge-blue'
-                      : col.semantic_type === 'categorical'
-                      ? 'badge-purple'
-                      : 'badge-slate'
-                  }`}
-                >
-                  {col.semantic_type}
+          {/* 3. Sensitive fields detected */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+            <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center' }}>
+              <Check size={16} strokeWidth={2.5} />
+            </span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+              {sensitiveCount} sensitive {sensitiveCount === 1 ? 'field' : 'fields'} detected
+            </span>
+          </div>
+
+          {/* 4. Privacy protection configured */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
+            {isPrivacyConfigured ? (
+              <>
+                <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center' }}>
+                  <Check size={16} strokeWidth={2.5} />
                 </span>
-              </div>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                  Privacy protection configured
+                </span>
+              </>
+            ) : (
+              <>
+                <span style={{ color: 'var(--warning)', display: 'inline-flex', alignItems: 'center' }}>
+                  <AlertCircle size={16} strokeWidth={2.5} />
+                </span>
+                <span style={{ color: 'var(--warning)', fontWeight: 500 }}>
+                  Privacy protection not configured
+                </span>
+              </>
+            )}
+          </div>
+        </div>
 
-              {/* Statistical / Range Properties */}
-              <div className="field-meta-group">
-                {isNumeric ? (
-                  <>
-                    <div className="field-stat">
-                      <span className="field-stat-label">Observed Range</span>
-                      <span className="field-stat-val">
-                        {col.constraints.min != null && col.constraints.max != null
-                          ? `${col.constraints.min} – ${col.constraints.max}`
-                          : 'Dynamic'}
-                      </span>
-                    </div>
-
-                    <div className="field-stat">
-                      <span className="field-stat-label">Mean</span>
-                      <span className="field-stat-val">
-                        {col.distribution?.mean != null
-                          ? col.distribution.mean.toFixed(2)
-                          : '—'}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="field-stat">
-                      <span className="field-stat-label">Categories</span>
-                      <span className="field-stat-val" style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {categories?.slice(0, 3).join(' / ') || 'Dynamic'}
-                        {(categories?.length || 0) > 3 ? '...' : ''}
-                      </span>
-                    </div>
-
-                    <div className="field-stat">
-                      <span className="field-stat-label">Unique Values</span>
-                      <span className="field-stat-val">
-                        {categories?.length || '—'}
-                      </span>
-                    </div>
-                  </>
-                )}
-
-                <div className="field-stat">
-                  <span className="field-stat-label">Missing</span>
-                  <span className="field-stat-val">
-                    {((col.null_rate || 0) * 100).toFixed(0)}%
-                  </span>
-                </div>
-              </div>
-
-              {/* Privacy Transformation Control */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Shield size={13} style={{ color: privacyVal !== 'none' ? 'var(--success)' : 'var(--text-muted)' }} />
-                <select
-                  value={privacyVal}
-                  onChange={(e) => handlePrivacyChange(col.name, e.target.value)}
-                  className="select-box font-mono"
-                  style={{ fontSize: '11px', padding: '4px 8px' }}
-                >
-                  <option value="none">Privacy: None</option>
-                  <option value="mask">Mask (***)</option>
-                  <option value="hash">Hash (SHA-256)</option>
-                  {isNumeric && <option value="noise">Gaussian Noise (1.0σ)</option>}
-                </select>
-              </div>
-            </div>
-          );
-        })}
+        {/* Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={() => setIsSchemaModalOpen(true)}
+            className="btn btn-secondary"
+            style={{ fontSize: '12px', padding: '7px 14px' }}
+          >
+            View / Edit Schema
+          </button>
+          <button
+            onClick={() => setIsPrivacyModalOpen(true)}
+            className="btn btn-secondary"
+            style={{ fontSize: '12px', padding: '7px 14px' }}
+          >
+            Privacy Settings
+          </button>
+        </div>
       </div>
+
+      {/* Modals */}
+      <SchemaModal
+        isOpen={isSchemaModalOpen}
+        onClose={() => setIsSchemaModalOpen(false)}
+      />
+      <PrivacyModal
+        isOpen={isPrivacyModalOpen}
+        onClose={() => setIsPrivacyModalOpen(false)}
+        sensitiveColumns={detectedSensitiveSet}
+      />
     </div>
   );
 };

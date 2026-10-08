@@ -24,6 +24,7 @@ interface StudioContextType {
 
   // Inferred & Configured Data Spec
   inferredSchema: Record<string, any> | null;
+  sensitiveColumns: string[];
   datasetSpec: DatasetSpec | null;
 
   // Previews & Metadata
@@ -79,6 +80,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [inferredSchema, setInferredSchema] = useState<Record<string, any> | null>(
     null
   );
+  const [sensitiveColumns, setSensitiveColumns] = useState<string[]>([]);
   const [datasetSpec, setDatasetSpec] = useState<DatasetSpec | null>(null);
 
   const [referencePreview, setReferencePreview] = useState<Record<string, any>[]>(
@@ -135,6 +137,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     setTokenExpirySeconds(null);
     setDatasetName('Untitled Dataset');
     setInferredSchema(null);
+    setSensitiveColumns([]);
     setDatasetSpec(null);
     setReferencePreview([]);
     setReferenceRowCount(0);
@@ -163,6 +166,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         setTokenExpirySeconds(resp.expires_in_seconds);
         setDatasetName(file.name.replace(/\.[^/.]+$/, ''));
         setInferredSchema(resp.schema);
+        const detectedSensitives = resp.sensitive_columns || (
+          Array.isArray(resp.schema)
+            ? resp.schema.filter((col: any) => col.is_sensitive).map((col: any) => col.name)
+            : []
+        );
+        setSensitiveColumns(detectedSensitives);
         setDatasetSpec(resp.spec);
         setReferencePreview(resp.preview || []);
         setReferenceRowCount(resp.row_count);
@@ -344,6 +353,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         tokenExpirySeconds,
         datasetName,
         inferredSchema,
+        sensitiveColumns,
         datasetSpec,
         referencePreview,
         referenceRowCount,
