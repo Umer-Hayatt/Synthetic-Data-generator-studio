@@ -4,12 +4,15 @@
 REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
 
 ## Active Task
-Prompt-only synthetic table generation complete. Tabular engine creates rows from spec hints alone with cross-column coherence (total=price*qty, start_date<=end_date, email/name coherence), reference-free quality evaluation, deterministic offline fallback across 10 domains, and preview with Edit schema. Next: S6 — Documents tab in the classic studio.
+Combined Slice 6 & 7 complete: Documents and Relational tabs unified in the classic studio.
+- Relational workspace: Table switcher, relationship map, integrity badges (zero orphan FKs, PK uniqueness, DAG verification), candidate FK configuration, paged multi-table preview.
+- Documents workspace: Invoices & bank statements generated with guaranteed reconciliation invariants, visual cards, PDF/ZIP/CSV/JSON export.
+- Retired /v2 route and redundant v2 panel components.
 
 ## Baseline
 - Frontend: `npx tsc --noEmit` passes with 0 errors.
-- Backend: `pytest` passes with 159 passed, 1 skipped, 0 failures (including 13 prompt generation tests).
-- Classic studio workflow verified: file upload OR AI prompt -> generate rows -> preview table -> quality summary ("Not applicable (generated from prompt)" without reference) -> export (CSV/JSON).
+- Backend: `pytest` passes with 159 passed, 1 skipped, 0 failures.
+- Unified studio workspace verified: Tabular (Preview, Schema & Privacy, Quality), Relational (multi-table DAG), and Documents (invoices & bank statements).
 - Repo: https://github.com/Umer-Hayatt/Synthetic-Data-generator-studio (branch `main`).
 
 

@@ -504,3 +504,6 @@ export const FIXTURE_CHURN_QUALITY: QualityResponse = {
   ],
 };
 
+import commerceExample from './v2-example.json';
+export const FIXTURE_COMMERCE_SPEC: DatasetSpec = commerceExample as unknown as DatasetSpec;
+

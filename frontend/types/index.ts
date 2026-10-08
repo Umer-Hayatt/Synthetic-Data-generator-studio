@@ -1,5 +1,5 @@
 export type DataTypeMode = 'tabular' | 'relational' | 'documents';
-export type WorkspaceTab = 'preview' | 'schema' | 'quality';
+export type WorkspaceTab = 'preview' | 'schema' | 'quality' | 'relational' | 'documents';
 
 export type ColumnDType = 'integer' | 'float' | 'boolean' | 'string' | 'datetime';
 export type SemanticType =
@@ -7,11 +7,39 @@ export type SemanticType =
   | 'email'
   | 'phone'
   | 'person_name'
+  | 'address'
   | 'money'
   | 'categorical'
   | 'numeric'
   | 'datetime'
   | 'generic_text';
+
+export interface InvoiceRecord {
+  entity_id: string | number;
+  entity: Record<string, any>;
+  lines: {
+    source: Record<string, any>;
+    line_total: string;
+  }[];
+  subtotal: string;
+  tax: string;
+  discount: string;
+  total: string;
+}
+
+export interface BankStatementRecord {
+  entity_id: string | number;
+  entity: Record<string, any>;
+  opening_balance: string;
+  transactions: {
+    source: Record<string, any>;
+    date: string;
+    credit: string;
+    debit: string;
+    balance: string;
+  }[];
+  closing_balance: string;
+}
 
 export interface Constraints {
   unique?: boolean;
@@ -50,21 +78,54 @@ export interface ColumnSpec {
   outlier_scale: number;
 }
 
+export interface ForeignKeySpec {
+  column: string;
+  reference_table: string;
+  reference_column: string;
+  cardinality: string;
+  min_children?: number;
+  max_children?: number;
+}
+
 export interface TableSpec {
   name: string;
   row_count: number;
   columns: ColumnSpec[];
   primary_key?: string | null;
+  target_column?: string | null;
+  foreign_keys?: ForeignKeySpec[];
   correlation_columns?: string[];
   correlation_matrix?: number[][];
 }
 
+export interface DocumentRequest {
+  kind: 'invoice' | 'bank_statement';
+  parent_table: string;
+  child_table: string;
+  foreign_key: string;
+  amount_column?: string | null;
+  quantity_column?: string | null;
+  price_column?: string | null;
+  date_column?: string | null;
+  credit_column?: string | null;
+  debit_column?: string | null;
+  opening_balance_column?: string | null;
+  tax_rate?: number;
+  discount_rate?: number;
+  date_from?: string | null;
+  date_to?: string | null;
+}
+
 export interface DatasetSpec {
   name: string;
-  version: '1.0';
+  version: '1.0' | '2.0';
   locale: string;
   seed: number;
   tables: TableSpec[];
+  documents?: DocumentRequest[];
+  reconciliations?: unknown[];
+  business_rules?: string[];
+  edge_cases?: string[];
 }
 
 export interface PromptSpecResponse {
@@ -174,4 +235,3 @@ export interface QualityResponse {
     valid_row_count?: boolean;
   };
 }
-

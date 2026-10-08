@@ -47,8 +47,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 
 | Path | What it does |
 |---|---|
-| `pages/index.tsx` | **Classic studio** root page (upload -> generate -> preview -> quality -> export) |
-| `pages/v2.tsx` | Separate /v2 page (kept until S5-S7 complete, link hidden in S4) |
+| `pages/index.tsx` | **Classic studio** root page (single workspace: tabular, relational, documents) |
 | `pages/_app.tsx` | Next.js app wrapper; global styles |
 | **components/ingestion/** | File upload, demo dataset selector & AI prompt generator (classic studio step 1) |
 | **components/configuration/** | Schema/privacy editors (classic studio step 2) |
@@ -56,11 +55,13 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | **components/quality/** | Quality charts and summary card (classic studio step 4) |
 | **components/export/** | Export buttons CSV/JSON (classic studio step 5) |
 | **components/schema/** | Schema & Privacy summary card, SchemaModal, PrivacyModal |
+| **components/relational/** | Relational workspace (table switcher, relationship map, integrity badges) |
+| **components/documents/** | Reconciled documents workspace (invoices, bank statements, visual cards, PDF/ZIP/CSV/JSON export) |
 | **components/layout/** | Page shell, sidebar, tabs |
 | **components/common/** | Shared UI primitives (buttons, badges, loaders) |
-| **components/v2/** | V2-only components (AI generator, documents, relational panels) |
 | `services/api.ts` | Typed fetch wrappers for all backend endpoints |
-| `services/v2.ts` | Typed fetch wrappers for AI/relational/document endpoints |
+| `services/v2.ts` | Typed fetch wrappers for AI/relational/document job endpoints |
+| `services/relationalDemo.ts` | Multi-table relational and reconciled document demo models |
 | `services/fixtures.ts` | Demo dataset definitions |
 | `services/samples.ts` | Sample column presets |
 | `services/qualityLabels.ts` | Quality score threshold and label definitions |

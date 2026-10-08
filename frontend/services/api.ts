@@ -170,7 +170,6 @@ export const api = {
   },
 
   getExportUrl(format: 'csv' | 'json', datasetId: string): string {
-
     return `${API_BASE_URL}/api/v1/export/${format}?dataset_id=${encodeURIComponent(
       datasetId
     )}`;
@@ -180,5 +179,69 @@ export const api = {
     const res = await fetch(api.getExportUrl(format, datasetId));
     if (!res.ok) await handleResponse<never>(res);
     return res.blob();
+  },
+
+  async submitGenerationJob(plan: {
+    spec: DatasetSpec;
+    engine?: string;
+    accepted?: boolean;
+    source_artifact?: string | null;
+  }): Promise<{ job_id: string; status: string; stage: string; progress: number; artifacts: string[] }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/jobs/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        spec: plan.spec,
+        engine: plan.engine || 'statistical',
+        accepted: plan.accepted ?? true,
+        source_artifact: plan.source_artifact || null,
+      }),
+    });
+    return await handleResponse(res);
+  },
+
+  async getJobStatus(jobId: string): Promise<{
+    job_id: string;
+    status: string;
+    stage: string;
+    progress: number;
+    error: string | null;
+    artifacts: string[];
+  }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return await handleResponse(res);
+  },
+
+  async getArtifact(artifactId: string, previewRows: number = 50): Promise<{
+    id: string;
+    format: string;
+    size: number;
+    expires_at: number;
+    preview?: Record<string, unknown>[];
+  }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/artifacts/${artifactId}?preview_rows=${previewRows}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return await handleResponse(res);
+  },
+
+  getDocumentUrl(
+    artifactId: string,
+    docKey: string,
+    format: 'json' | 'csv' | 'pdf' | 'zip',
+    index: number = 0,
+    zipFormat: 'pdf' | 'json' = 'pdf'
+  ): string {
+    if (format === 'pdf') {
+      return `${API_BASE_URL}/api/v1/documents/${artifactId}/${docKey}/pdf/${index}`;
+    }
+    if (format === 'zip') {
+      return `${API_BASE_URL}/api/v1/documents/${artifactId}/${docKey}/zip?format=${zipFormat}`;
+    }
+    return `${API_BASE_URL}/api/v1/documents/${artifactId}/${docKey}/${format}`;
   },
 };

@@ -17,9 +17,11 @@ export const SidebarNav: React.FC = () => {
     referenceToken,
     referenceRowCount,
     generatedRowCount,
+    setActiveTab,
   } = useStudio();
 
   const columnsCount = datasetSpec?.tables[0]?.columns?.length || 0;
+  const docsCount = datasetSpec?.documents?.length || 0;
 
   return (
     <aside className="sidebar-left">
@@ -69,14 +71,24 @@ export const SidebarNav: React.FC = () => {
 
         {/* Tables & Schema Structure */}
         <div>
-          <div style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '8px' }}>
-            Tables in Scope
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', fontWeight: 600 }}>
+              Tables in Scope
+            </span>
+            <button
+              onClick={() => setActiveTab('relational')}
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize: '10px', padding: '1px 6px', color: 'var(--text-primary)' }}
+            >
+              Relational View →
+            </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {datasetSpec?.tables.map((table, i) => (
               <div
                 key={i}
+                onClick={() => setActiveTab('relational')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -86,6 +98,14 @@ export const SidebarNav: React.FC = () => {
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-xs)',
                   fontSize: '11px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-medium)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -101,6 +121,51 @@ export const SidebarNav: React.FC = () => {
             ))}
           </div>
         </div>
+
+        {/* Reconciled Documents in Scope */}
+        {docsCount > 0 && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Documents ({docsCount})
+              </span>
+              <button
+                onClick={() => setActiveTab('documents')}
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: '10px', padding: '1px 6px', color: 'var(--text-primary)' }}
+              >
+                View Docs →
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {datasetSpec?.documents?.map((doc, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => setActiveTab('documents')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 10px',
+                    background: 'var(--surface-muted)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                    {doc.kind === 'invoice' ? '🧾 Invoices' : '🏦 Bank Statements'}
+                  </span>
+                  <span className="badge badge-synth" style={{ fontSize: '9px' }}>
+                    Reconciled
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Subtle Technical Footer */}

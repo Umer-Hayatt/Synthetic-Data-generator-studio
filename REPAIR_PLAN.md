@@ -68,16 +68,13 @@ Quality: NN% <label>      Privacy: Protected      Integrity: Passed
 - Fix the 6 failing tests in test_intelligence.py as part of this slice.
 - Verify with 10 varied prompts (students, bank, retail, hospital, etc.).
 
-### S6 — Documents tab in the classic studio
-- Invoices and bank statements generated from the studio's data.
-- Visual cards; PDF/ZIP/CSV/JSON export; reconciliation invariants hold.
-
-### S7 — Relational tab in the classic studio
-- Input: uploaded file(s) or prompt. Infers tables, PK/FK and cardinalities.
-- Table switcher, relationship map, integrity badges (zero orphan FKs).
-- Fix remaining failing tests (job error sanitization, locale tests, email collision test).
-- After this slice, delete the /v2 route.
+### S6 & S7 — Documents and Relational tabs in classic studio (retired /v2)
+- Combined Slice: Both Documents and Relational features fully integrated into the classic studio workspace.
+- Documents tab: Invoices and bank statements generated from the studio's data. Visual cards; PDF/ZIP/CSV/JSON export; reconciliation invariants hold.
+- Relational tab: Multi-table relational view with table switcher, relationship map, integrity badges (zero orphan FKs, unique PKs, reconciliation), candidate FK configuration, and paged previews.
+- Retired /v2: Deleted `pages/v2.tsx` and unused v2 components.
+- Verification: Pytest passes (159 passed, 1 skipped), frontend tsc passes with 0 errors.
 
 ## Status log
-S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6 TODO | S7 TODO
+S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE
 

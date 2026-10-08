@@ -15,6 +15,8 @@ export const EntryScreen: React.FC = () => {
     handleFileUpload,
     loadSampleDataset,
     loadFromAiPrompt,
+    loadRelationalDemo,
+    loadBankingRelational,
     isIngesting,
     error,
     dismissError,
@@ -186,6 +188,88 @@ export const EntryScreen: React.FC = () => {
                   <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
                 </button>
               ))}
+
+              <button
+                onClick={loadRelationalDemo}
+                disabled={isIngesting}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-xs)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-medium)';
+                  e.currentTarget.style.background = 'var(--surface-muted)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                  e.currentTarget.style.background = 'var(--surface)';
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      Commerce & Invoices
+                    </span>
+                    <span className="badge badge-synth" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                      Relational & Docs
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                    5 relational tables • Reconciled PDF/ZIP invoices
+                  </span>
+                </div>
+
+                <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
+              </button>
+
+              <button
+                onClick={loadBankingRelational}
+                disabled={isIngesting}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-xs)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-medium)';
+                  e.currentTarget.style.background = 'var(--surface-muted)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                  e.currentTarget.style.background = 'var(--surface)';
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      Banking & Statements
+                    </span>
+                    <span className="badge badge-synth" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                      Relational & Docs
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                    Accounts & transactions • Continuous bank statements
+                  </span>
+                </div>
+
+                <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
+              </button>
             </div>
           </div>
         </div>

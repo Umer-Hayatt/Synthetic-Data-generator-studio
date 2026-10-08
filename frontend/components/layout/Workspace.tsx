@@ -5,12 +5,16 @@ import { ConfigPanel } from '../configuration/ConfigPanel';
 import { DataPreviewCanvas } from '../preview/DataPreviewCanvas';
 import { SchemaInspector } from '../schema/SchemaInspector';
 import { QualityDashboard } from '../quality/QualityDashboard';
+import { RelationalWorkspace } from '../relational/RelationalWorkspace';
+import { DocumentsWorkspace } from '../documents/DocumentsWorkspace';
 import {
   Eye,
   Sliders,
   Activity,
   Database,
   CheckCircle2,
+  Network,
+  FileText,
 } from 'lucide-react';
 import { WorkspaceTab } from '../../types';
 
@@ -20,6 +24,7 @@ export const Workspace: React.FC = () => {
     setActiveTab,
     qualityResults,
     datasetName,
+    datasetSpec,
     generatedRowCount,
   } = useStudio();
 
@@ -47,6 +52,24 @@ export const Workspace: React.FC = () => {
         qualityResults?.overall_score !== null &&
         qualityResults?.overall_score !== undefined
           ? `${Math.round(qualityResults.overall_score)}%`
+          : undefined,
+    },
+    {
+      id: 'relational',
+      label: 'Relational',
+      icon: <Network size={13} />,
+      badge:
+        datasetSpec?.tables && datasetSpec.tables.length > 1
+          ? `${datasetSpec.tables.length} tables`
+          : undefined,
+    },
+    {
+      id: 'documents',
+      label: 'Documents',
+      icon: <FileText size={13} />,
+      badge:
+        datasetSpec?.documents && datasetSpec.documents.length > 0
+          ? `${datasetSpec.documents.length}`
           : undefined,
     },
   ];
@@ -101,6 +124,8 @@ export const Workspace: React.FC = () => {
           {activeTab === 'preview' && <DataPreviewCanvas />}
           {activeTab === 'schema' && <SchemaInspector />}
           {activeTab === 'quality' && <QualityDashboard />}
+          {activeTab === 'relational' && <RelationalWorkspace />}
+          {activeTab === 'documents' && <DocumentsWorkspace />}
         </div>
 
       </main>
