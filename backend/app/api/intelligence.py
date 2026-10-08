@@ -517,33 +517,71 @@ def generate_fallback_draft(prompt: str, requested_rows: int | None = None) -> t
 
 @router.post('/spec')
 def prompt_spec(request: PromptRequest):
+    # Map internal AIError kinds to safe user-visible reason codes
+    _REASON_MAP = {
+        'missing_credential': 'no_key',
+        'invalid_credential': 'auth_failed',
+        'invalid_configuration': 'no_key',
+        'rate_limit': 'rate_limited',
+        'timeout': 'timeout',
+        'network': 'timeout',
+        'concurrency_limit': 'timeout',
+        'malformed_output': 'invalid_output',
+        'malformed_request': 'invalid_output',
+        'provider_error': 'invalid_output',
+        'unavailable': 'invalid_output',
+    }
+
+    def _safe_reason(kind: str) -> str:
+        return _REASON_MAP.get(kind, 'invalid_output')
+
+    def _notice_for_reason(safe_reason: str) -> str:
+        messages = {
+            'no_key': 'AI unavailable (no API key configured). A basic draft was generated from your prompt — you can edit the schema.',
+            'auth_failed': 'AI unavailable (authentication failed). A basic draft was generated from your prompt — you can edit the schema.',
+            'rate_limited': 'AI unavailable (rate limited). A basic draft was generated from your prompt — you can edit the schema.',
+            'timeout': 'AI unavailable (request timed out). A basic draft was generated from your prompt — you can edit the schema.',
+            'invalid_output': 'AI unavailable (invalid output). A basic draft was generated from your prompt — you can edit the schema.',
+        }
+        return messages.get(safe_reason, 'AI unavailable. A basic draft was generated from your prompt — you can edit the schema.')
+
+    def _run_fallback(raw_reason: str, extra_warnings: list[str]):
+        """Always returns a response dict; never raises."""
+        safe = _safe_reason(raw_reason)
+        try:
+            fb_draft, fb_warnings = generate_fallback_draft(request.prompt, req_count)
+            spec, conv_warnings = _draft_to_spec(fb_draft)
+            return {
+                'status': 'review_required',
+                'reason': safe,
+                'spec': spec.model_dump(mode='json'),
+                'notice': _notice_for_reason(safe),
+                'fallback_used': True,
+                'warnings': extra_warnings + fb_warnings + conv_warnings,
+            }
+        except Exception:
+            return {
+                'status': 'unavailable',
+                'reason': safe,
+                'detail': 'Could not generate a draft specification from the prompt.',
+            }
+
     req_count = _extract_requested_row_count(request.prompt)
     if req_count is not None and (req_count <= 0 or req_count > 10_000_000):
         return {
             'status': 'unavailable',
-            'reason': 'malformed_output',
+            'reason': 'invalid_output',
             'detail': f"Invalid row count: {req_count}. Row counts must be between 1 and 10,000,000.",
-            'fallback': 'Deterministic rule-based draft or manual schema configuration.',
         }
 
     prompt = _SPEC_PROMPT_PREFIX + request.prompt
     try:
         draft = get_router().generate_structured(prompt, _DatasetSpecDraft)
         if not draft.tables:
-            return {
-                'status': 'unavailable',
-                'reason': 'malformed_output',
-                'detail': 'Draft contains no tables.',
-                'fallback': 'Deterministic rule-based draft or manual schema configuration.',
-            }
+            return _run_fallback('malformed_output', ['AI returned an empty schema; using rule-based draft.'])
         for t in draft.tables:
             if t.row_count <= 0 or t.row_count > 10_000_000:
-                return {
-                    'status': 'unavailable',
-                    'reason': 'malformed_output',
-                    'detail': f"Invalid row count: {t.row_count}. Row counts must be between 1 and 10,000,000.",
-                    'fallback': 'Deterministic rule-based draft or manual schema configuration.',
-                }
+                return _run_fallback('malformed_output', [f"AI returned invalid row count {t.row_count}; using rule-based draft."])
 
         multi_table_warnings = []
         if len(draft.tables) > 1:
@@ -558,13 +596,8 @@ def prompt_spec(request: PromptRequest):
         try:
             spec, conv_warnings = _draft_to_spec(draft)
             all_warnings = warnings + conv_warnings
-        except Exception as conv_err:
-            return {
-                'status': 'unavailable',
-                'reason': 'malformed_output',
-                'detail': f'Draft conversion failed: {conv_err}',
-                'fallback': 'Deterministic rule-based draft or manual schema configuration.',
-            }
+        except Exception:
+            return _run_fallback('malformed_output', ['AI draft could not be converted; using rule-based draft.'])
         return {
             'status': 'review_required',
             'spec': spec.model_dump(mode='json'),
@@ -572,27 +605,7 @@ def prompt_spec(request: PromptRequest):
             'warnings': all_warnings,
         }
     except AIError as exc:
-        fallback_draft, fb_warnings = generate_fallback_draft(request.prompt, req_count)
-        try:
-            spec, conv_warnings = _draft_to_spec(fallback_draft)
-            all_warnings = [
-                f"AI unavailable ({exc.kind.replace('_', ' ')}). Deterministic domain draft generated from prompt.",
-            ] + fb_warnings + conv_warnings
-            return {
-                'status': 'review_required',
-                'reason': exc.kind,
-                'spec': spec.model_dump(mode='json'),
-                'notice': 'AI service unavailable. Deterministic rule-based draft generated from prompt.',
-                'fallback_used': True,
-                'warnings': all_warnings,
-            }
-        except Exception:
-            return {
-                'status': 'unavailable',
-                'reason': exc.kind,
-                'detail': 'AI unavailable and fallback could not be constructed.',
-                'fallback': 'Use manual schema or deterministic uploaded-data profiling.',
-            }
+        return _run_fallback(exc.kind, [])
 
 
 @router.post('/suggestions')

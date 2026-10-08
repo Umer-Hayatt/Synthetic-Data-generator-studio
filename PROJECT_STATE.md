@@ -23,5 +23,5 @@ S5 complete (AI generator in classic studio tabular, prompt-driven, fallback and
 ## Known open issues (not in the active slice)
 - Render deploy crashed on missing module `app.models.relational_rules` (likely uncommitted)
   and used Python 3.14.3 instead of 3.12.10. Deferred (S0 skipped).
-- Prompt-to-spec has no deterministic offline fallback (handled in S5).
+- Prompt-to-spec offline & failure path returns deterministic rule-based draft with safe reason code (`no_key`, `rate_limited`, `auth_failed`, `timeout`, `invalid_output`) and helpful note, never mentions uploading a file or manual schema.
 - Untracked scratch files: `backend/_baseline.py`, `backend/_check.py`, `qa/`.

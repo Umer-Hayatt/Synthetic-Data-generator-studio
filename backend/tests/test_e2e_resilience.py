@@ -12,7 +12,7 @@ def test_core_flow_remains_available_without_ai(monkeypatch):
     with TestClient(app) as client:
         ai = client.post('/api/v1/ai/spec', json={'prompt': 'Create ten customers'})
         assert ai.status_code == 200
-        assert ai.json()['reason'] == 'missing_credential'
+        assert ai.json()['reason'] == 'no_key'
         upload = client.post('/api/v1/ingest', files={'file': ('small.csv', b'id,amount\n1,10\n2,20\n3,30')})
         assert upload.status_code == 200
         generated = client.post('/api/v1/generate', json={'spec': upload.json()['spec']})

@@ -1,9 +1,10 @@
 from fastapi.testclient import TestClient
 from app.main import app
-from app.core.ai import AIRouter
+from app.core.ai import AIRouter, AIError
 from app.api import intelligence
 from test_ai import Fake
 import pytest
+import json
 
 
 def test_prompt_spec_review_and_outage(monkeypatch):
@@ -15,15 +16,25 @@ def test_prompt_spec_review_and_outage(monkeypatch):
     result = client.post('/api/v1/ai/spec',json={'prompt':'Create 100000 customers'}).json()
     assert result['status'] == 'review_required'
     assert result['spec']['tables'][0]['row_count'] == 100000
+    # When no key, reason is safe code 'no_key' and a fallback draft is returned
     monkeypatch.setattr(intelligence,'get_router',lambda:AIRouter([]))
-    assert client.post('/api/v1/ai/spec',json={'prompt':'x'}).json()['reason'] == 'missing_credential'
+    no_key = client.post('/api/v1/ai/spec',json={'prompt':'100 bank customers'}).json()
+    assert no_key['status'] == 'review_required'
+    assert no_key['reason'] == 'no_key'
+    assert no_key.get('fallback_used') is True
+    assert 'spec' in no_key
     assert client.post('/api/v1/ai/suggestions',json={'spec':spec}).json()['status'] == 'deterministic'
 
 
-def test_malformed_spec_rejected(monkeypatch):
-    monkeypatch.setattr(intelligence,'get_router',lambda:AIRouter([Fake([{'tables':[]}])]))
-    result = TestClient(app).post('/api/v1/ai/spec',json={'prompt':'x'}).json()
-    assert result['status'] == 'unavailable' and result['reason'] == 'malformed_output'
+def test_malformed_spec_falls_back_to_draft(monkeypatch):
+    """AI returns an empty table list — endpoint must return fallback draft, not an error."""
+    monkeypatch.setattr(intelligence, 'get_router', lambda: AIRouter([Fake([{'tables': []}])]))
+    result = TestClient(app).post('/api/v1/ai/spec', json={'prompt': '50 hospital patients'}).json()
+    # Should be review_required with fallback, NOT unavailable
+    assert result['status'] == 'review_required'
+    assert result.get('fallback_used') is True
+    assert 'spec' in result
+    assert result['spec']['tables'][0]['name'] == 'Patients'
 
 
 @pytest.mark.parametrize('rows', [1, 5001, 100000])
@@ -42,8 +53,55 @@ def test_invalid_draft_counts_are_rejected_not_silently_changed(monkeypatch, row
         'columns': [{'name': 'id', 'dtype': 'integer', 'is_primary_key': True}]}]}
     monkeypatch.setattr(intelligence, 'get_router', lambda: AIRouter([Fake([draft])]))
     result = TestClient(app).post('/api/v1/ai/spec', json={'prompt': 'Create customers'}).json()
-    assert result['status'] == 'unavailable'
-    assert result['reason'] == 'malformed_output'
+    # AI returned invalid rows → falls back to rule-based draft (review_required)
+    assert result['status'] == 'review_required'
+    assert result.get('fallback_used') is True
+
+
+# ---------------------------------------------------------------------------
+# Per-reason-code fallback tests (no live API)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize('ai_error_kind,expected_safe_reason', [
+    ('missing_credential', 'no_key'),
+    ('invalid_credential', 'auth_failed'),
+    ('invalid_configuration', 'no_key'),
+    ('rate_limit', 'rate_limited'),
+    ('timeout', 'timeout'),
+    ('network', 'timeout'),
+    ('malformed_output', 'invalid_output'),
+    ('provider_error', 'invalid_output'),
+])
+def test_all_ai_failure_reasons_return_fallback_draft(monkeypatch, ai_error_kind, expected_safe_reason):
+    class FailingRouter:
+        def generate_structured(self, *args, **kwargs):
+            raise AIError(ai_error_kind)
+
+    monkeypatch.setattr(intelligence, 'get_router', lambda: FailingRouter())
+    client = TestClient(app)
+    result = client.post('/api/v1/ai/spec', json={'prompt': '100 bank customers with balance and credit score'}).json()
+    response_text = json.dumps(result).lower()
+
+    # Must be a usable draft
+    assert result['status'] == 'review_required', f"Expected review_required, got: {result}"
+    assert result.get('fallback_used') is True
+    assert result['reason'] == expected_safe_reason
+    assert 'spec' in result
+    assert len(result['spec']['tables']) > 0
+    assert len(result['spec']['tables'][0]['columns']) > 0
+
+    # Notice must mention AI unavailability — but must never tell user to upload a file
+    notice = result.get('notice', '').lower()
+    assert 'ai unavailable' in notice
+    assert 'upload' not in notice
+    assert 'manual schema' not in notice
+    assert 'uploaded-data' not in notice
+
+    # Verify wording across entire response
+    assert 'upload a file' not in response_text
+    assert 'upload an existing' not in response_text
+    assert 'use manual schema' not in response_text
+    assert 'uploaded-data profiling' not in response_text
 
 
 @pytest.mark.parametrize('prompt,expected_rows,expected_table,expected_cols', [
@@ -89,4 +147,5 @@ def test_fallback_generator_varied_prompts(monkeypatch, prompt, expected_rows, e
     response_text = json.dumps(result).lower()
     assert 'upload a file' not in response_text
     assert 'upload an existing' not in response_text
-
+    assert 'use manual schema' not in response_text
+    assert 'uploaded-data profiling' not in response_text
