@@ -5,6 +5,7 @@ from email.utils import parsedate_to_datetime
 import json
 import os
 import random
+import re
 from threading import BoundedSemaphore, RLock
 import time
 from typing import Protocol
@@ -14,8 +15,9 @@ from app.core import config  # root .env loading precedes environment reads
 
 
 class AIError(Exception):
-    def __init__(self, kind, retry_after=0):
+    def __init__(self, kind, retry_after=0, quota_scope='pool'):
         self.kind, self.retry_after = kind, max(0, retry_after)
+        self.quota_scope = quota_scope
         super().__init__(kind)
 
 
@@ -37,6 +39,30 @@ class AIProvider(Protocol):
     def generate_structured(self, prompt: str, schema: type[BaseModel], timeout: float): ...
     def health(self) -> dict: ...
     def capabilities(self) -> dict: ...
+
+
+def gemini_quota_details(payload, model):
+    """Narrow quota scope only when every reported violation proves it."""
+    error = payload.get('error', payload) if isinstance(payload, dict) else {}
+    details = error.get('details', []) if isinstance(error, dict) else []
+    violations, delay = [], 0
+    for detail in details if isinstance(details, list) else []:
+        if not isinstance(detail, dict):
+            continue
+        if detail.get('@type') == 'type.googleapis.com/google.rpc.QuotaFailure':
+            items = detail.get('violations', [])
+            if isinstance(items, list):
+                violations.extend(items)
+        if detail.get('@type') == 'type.googleapis.com/google.rpc.RetryInfo':
+            duration = detail.get('retryDelay', '')
+            if isinstance(duration, str) and len(duration) < 32 and re.fullmatch(r'\d+(?:\.\d+)?s', duration):
+                delay = max(delay, float(duration[:-1]))
+    scoped = bool(violations) and all(
+        isinstance(v, dict) and 'PerModel' in str(v.get('quotaId', ''))
+        and isinstance(v.get('quotaDimensions'), dict)
+        and v['quotaDimensions'].get('model') == model.removeprefix('models/')
+        for v in violations)
+    return ('model' if scoped else 'pool'), delay
 
 
 class GeminiProvider:
@@ -73,7 +99,11 @@ class GeminiProvider:
             kind = ('invalid_credential' if code in (401, 403) else 'rate_limit' if code == 429
                     else 'model_unavailable' if code == 404 else 'timeout' if code == 504
                     else 'provider_error' if code and code >= 500 else 'malformed_request')
-            raise AIError(kind, delay) from None
+            scope = 'pool'
+            if code == 429:
+                scope, body_delay = gemini_quota_details(exc.details, self.model)
+                delay = max(delay, body_delay)
+            raise AIError(kind, delay, scope) from None
         except httpx.TimeoutException:
             raise AIError('timeout') from None
         except httpx.TransportError:
@@ -102,12 +132,22 @@ class AIRouter:
         self.request_timeout = request_timeout
         self.clock, self.sleep, self.jitter = clock, sleep, jitter
         self.semaphore, self.lock, self.pools = BoundedSemaphore(concurrency), RLock(), {}
+        self.model_pools = {}
+
+    def _model_pool(self, provider):
+        return provider.quota_pool, getattr(provider, 'model', None)
+
+    def _quota_until(self, provider):
+        return max(self.pools.get(provider.quota_pool, 0), self.model_pools.get(self._model_pool(provider), 0))
+
+    def _cooldown_until(self, state):
+        return max(state.cooldown_until, self._quota_until(state.provider))
 
     def health(self):
         with self.lock:
             return [{'provider': state.provider.name, 'credential_slot': i,
                      'disabled': state.disabled, 'failures': state.failures,
-                     'cooling_down': max(state.cooldown_until, self.pools.get(state.provider.quota_pool, 0)) > self.clock()}
+                     'cooling_down': self._cooldown_until(state) > self.clock()}
                     for i, state in enumerate(self.states)]
 
     def generate_structured(self, prompt, schema):
@@ -118,18 +158,25 @@ class AIRouter:
             raise AIError('concurrency_limit')
         try:
             last = 'unavailable'
+            last_error = AIError(last)
             for index, state in enumerate(self.states):
                 for attempt in range(self.retries+1):
                     remaining = deadline - self.clock()
                     if remaining <= 0:
                         raise AIError('timeout')
                     with self.lock:
-                        if state.disabled or max(state.cooldown_until, self.pools.get(state.provider.quota_pool, 0)) > self.clock():
+                        if state.disabled:
+                            break
+                        if self._cooldown_until(state) > self.clock():
+                            quota_wait = self._quota_until(state.provider) - self.clock()
+                            if quota_wait > 0 and last in ('unavailable', 'rate_limit'):
+                                wait = min(last_error.retry_after, quota_wait) if last == 'rate_limit' else quota_wait
+                                last, last_error = 'rate_limit', AIError('rate_limit', wait)
                             break
                         model = getattr(state.provider, 'model', None)
                         has_alternate = model is not None and any(
                             getattr(other.provider, 'model', model) != model and not other.disabled
-                            and max(other.cooldown_until, self.pools.get(other.provider.quota_pool, 0)) <= self.clock()
+                            and self._cooldown_until(other) <= self.clock()
                             for other in self.states[index + 1:])
                     try:
                         # Reserve time for an available alternate model if this one stalls.
@@ -146,14 +193,19 @@ class AIRouter:
                     except Exception:
                         error = AIError('provider_error')
                     last = error.kind
+                    last_error = error
                     with self.lock:
                         state.failures += 1
                         if last == 'invalid_credential':
                             state.disabled = True
                             break
                         if last == 'rate_limit':
-                            # All configured Gemini keys share a pool unless a future adapter proves otherwise.
-                            self.pools[state.provider.quota_pool] = self.clock() + max(self.cooldown, error.retry_after)
+                            # Keys still share quota. Only evidenced per-model limits permit another model.
+                            until = self.clock() + max(self.cooldown, error.retry_after)
+                            if error.quota_scope == 'model' and model is not None:
+                                self.model_pools[self._model_pool(state.provider)] = until
+                            else:
+                                self.pools[state.provider.quota_pool] = until
                             break
                         if last == 'malformed_request':
                             raise error
@@ -171,7 +223,7 @@ class AIRouter:
                             state.cooldown_until = self.clock() + delay
                         break
                     self.sleep(delay)
-            raise AIError(last)
+            raise last_error
         finally:
             self.semaphore.release()
 

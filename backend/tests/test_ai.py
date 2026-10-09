@@ -34,6 +34,73 @@ def test_rate_limit_cools_entire_pool_and_respects_retry_after():
     assert b.calls == 0 and router.pools['shared'] == 120
 
 
+def test_model_quota_uses_alternate_and_cools_same_model_across_keys():
+    now = [0]
+    exhausted = AIError('rate_limit', 36000, quota_scope='model')
+    primary, same_model, alternate = Fake([exhausted]), Fake([]), Fake([{'status': 'ok'}] * 2)
+    primary.model = same_model.model = 'primary'
+    alternate.model = 'alternate'
+    router = AIRouter([primary, same_model, alternate], clock=lambda: now[0])
+    assert router.generate_structured('x', Result).status == 'ok'
+    assert primary.calls == 1 and same_model.calls == 0 and alternate.calls == 1
+    assert [h['cooling_down'] for h in router.health()] == [True, True, False]
+    now[0] = 35999
+    assert router.generate_structured('x', Result).status == 'ok'
+    assert primary.calls == 1 and same_model.calls == 0
+
+
+def test_repeated_quota_failure_retains_rate_limit_and_remaining_delay():
+    now = [0]
+    provider = Fake([AIError('rate_limit', 120)])
+    router = AIRouter([provider], clock=lambda: now[0])
+    with pytest.raises(AIError, match='rate_limit'):
+        router.generate_structured('x', Result)
+    now[0] = 30
+    with pytest.raises(AIError, match='rate_limit') as failure:
+        router.generate_structured('x', Result)
+    assert failure.value.retry_after == 90
+    assert provider.calls == 1
+
+
+@pytest.mark.parametrize('quota_ids,scope', [
+    (['GenerateRequestsPerDayPerProjectPerModel-FreeTier'], 'model'),
+    (['GenerateRequestsPerDayPerProject'], 'pool'),
+    (['GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'GenerateRequestsPerDayPerProject'], 'pool'),
+    (['UnknownLimit'], 'pool'),
+    ([], 'pool'),
+])
+def test_gemini_quota_scope_and_body_retry_delay(monkeypatch, quota_ids, scope):
+    from google import genai
+    from google.genai import errors
+    from app.core.ai import GeminiProvider
+    payload = {'error': {'code': 429, 'details': [
+        {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [
+            {'quotaId': q, 'quotaDimensions': {'model': 'primary'}} for q in quota_ids]},
+        {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '36000.5s'},
+    ]}}
+    class Client:
+        def __init__(self, **kwargs): self.models = self
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def generate_content(self, **kwargs): raise errors.ClientError(429, payload)
+    monkeypatch.setattr(genai, 'Client', Client)
+    with pytest.raises(AIError, match='rate_limit') as failure:
+        GeminiProvider('test-only', 'primary').generate_structured('x', Result, 10)
+    assert failure.value.quota_scope == scope
+    assert failure.value.retry_after == 36000.5
+
+
+def test_unknown_model_dimensions_and_invalid_retry_delay_are_conservative():
+    from app.core.ai import gemini_quota_details
+    payload = {'error': {'details': [
+        {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [
+            {'quotaId': 'RequestsPerModel', 'quotaDimensions': {'model': 'another-model'}}]},
+        {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': 'not-a-duration'},
+    ]}}
+    assert gemini_quota_details(payload, 'primary') == ('pool', 0)
+    assert gemini_quota_details({'error': {'details': None}}, 'primary') == ('pool', 0)
+
+
 @pytest.mark.parametrize('kind', ['timeout','network','provider_error'])
 def test_transient_retry(kind):
     sleeps = []

@@ -76,7 +76,7 @@ Quality: NN% <label>      Privacy: Protected      Integrity: Passed
 - Verification: Pytest passes (159 passed, 1 skipped), frontend tsc passes with 0 errors.
 
 ## Status log
-S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S10-S12 PLANNED
+S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S9C DONE | S10-S12 PLANNED
 
 ## Input-driven follow-up repair — planned, 2026-10-08
 
@@ -86,7 +86,7 @@ working end to end, Documents must assess whether that same data supports a
 document and render it without substituting or regenerating unrelated entities.
 S1-S7 remain completed historical milestones. This extends this active plan;
 it does not resume the superseded V2 work order. Product choices are recorded
-below. S8-S9B are complete; S10 is next after the verified S9B commit.
+below. S8-S9C are complete locally; S10 is next. Remote push awaits owner approval.
 
 ### Confirmed causes and baseline
 - `backend/app/api/intelligence.py` truncates multi-table AI drafts to the first
@@ -285,6 +285,25 @@ relationships or silently modify source values to make a proposed model pass.
   4 Categories; four nested FKs, unique keys, zero orphans and exact full export
   reconstruction of all 120 source rows. All table previews and no page errors
   verified. Synthetic proof: qa/debug/multiple-relations/RESULTS.md (local only).
+
+### S9C — Model-specific quota failover — DONE
+- Owner reported the 5,000-student AI failure after S9B. Live primary returned
+  HTTP 429 for a daily per-project/per-model quota (20 requests); the configured
+  alternate succeeded. Router incorrectly cooled every model in the shared pool.
+- Respect evidenced per-model quota failures across keys of that model; preserve
+  shared cooldown for unspecified/project-wide limits. Honor provider RetryInfo
+  and retain rate-limit status during cooldown instead of generic unavailable.
+- Verify model failover, same-model key cooldown, conservative quota parsing,
+  retry delays and the original 5,000-row browser flow. Preserve API contracts
+  and source rows. Commit locally and stop; remote push still awaits approval.
+- Implemented evidenced per-model quota scope, same-model cooldown across keys,
+  RetryInfo parsing and truthful cached rate-limit errors. Unspecified/mixed/
+  project-wide limits remain shared; request deadlines and contracts preserved.
+- Verification: 213 backend passed / 1 skipped, 15 React tests, frontend type
+  check/build passed. Live 5,000-student upload and actual AI prompt both returned
+  AI available/single_table, exact complete export equality and zero orphans.
+  Relationship requests took 6.6s/10.8s; prompt used no rule-based fallback.
+  Original red browser repro is green. Local proof: qa/debug/STUDENT_QUOTA_RESULTS.md.
 
 ### S10 — Compact relational inspection with truthful results — PLANNED
 - Default: a short source/model summary, table selector and paged data preview.

@@ -25,7 +25,12 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
   Verified: 205 backend / 1 skipped, 15 React tests, type check/build; original
   live prompt -> 120 LineItems, 20 Orders, 8 Customers, 12 Products, 4 Categories,
   four nested links, zero orphans and exact full export/rejoin, no AI fallback.
-- S10-S12 are PLANNED after S9B in REPAIR_PLAN.md. Historical tasks remain superseded.
+- [DONE] S9C — Model-specific quota failover (2026-10-09).
+  Primary daily quota no longer blocks a healthy alternate; provider retry
+  durations and cached rate-limit status retained, shared limits preserved.
+  Verified: 213 backend / 1 skipped, 15 React tests, type check/build; live
+  5,000-student upload and actual AI prompt -> AI results with exact full exports.
+- S10-S12 are PLANNED after S9C in REPAIR_PLAN.md. Historical tasks remain superseded.
 
 ---
 

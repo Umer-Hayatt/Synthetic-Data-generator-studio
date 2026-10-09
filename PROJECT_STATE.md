@@ -4,10 +4,14 @@
 REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
 
 ## Active Task
-S9B DONE: empty AI drafts are rejected before accepting a schema response.
+S9C DONE: evidenced model quota no longer blocks a healthy alternate.
+- Primary returned HTTP 429 for its daily per-model quota (20 requests). Alternate
+  was available. Router now scopes that cooldown to the model across keys, honors
+  RetryInfo and retains rate-limit errors during cooldown. Unknown/mixed/project
+  limits remain shared. No credentials logged; source rows/contracts unchanged.
 - Owner-requested fix before S10: required tables/columns, names and types are
   validated inside the provider/router boundary so alternate-model routing runs.
-- S9A-S9B are complete locally; S9B push awaits explicit owner approval.
+- S9A-S9C are complete locally; remote push awaits explicit owner approval.
   S10 and document suitability/rendering (S11-S12) remain pending.
 - AI owns discovering, selecting and applying the model from generated snapshot
   metadata, prompt intent and full-row dependency counts. No manual map is required.
@@ -24,9 +28,13 @@ S9B DONE: empty AI drafts are rejected before accepting a schema response.
 - Local AI: gemini-3.8-flash with verified gemini-3.5-flash failover, low thinking,
   120-second attempt limit and 180-second total budget (including retries/queue).
   SDK 504 is classified as timeout; overload/timeouts prefer the alternate model.
-  Shared quota cooldown and strict local output validation remain enforced.
-- Verification: 205 backend passed / 1 skipped; 15 real React lifecycle tests;
-  frontend type check and production build passed. Original five-entity prompt
+  Shared/project and evidenced model cooldowns and strict output validation remain.
+- Verification: 213 backend passed / 1 skipped; 15 real React lifecycle tests;
+  frontend type check/build passed. Live 5,000-student upload and actual AI prompt
+  both returned AI available/single_table, exact full export equality and zero
+  orphans. Requests took 6.6s/10.8s; prompt used no fallback. Proof in
+  qa/debug/STUDENT_QUOTA_RESULTS.md. Restarted backend; old snapshots need regeneration.
+- S9B browser baseline: original five-entity prompt
   -> real AI draft without fallback -> 120 LineItems, 20 Orders, 8 Customers,
   12 Products, 4 Categories. Four nested FKs, unique keys, zero orphans and exact
   reconstruction of all 120 exported source rows; all table previews verified.
@@ -36,13 +44,13 @@ S9B DONE: empty AI drafts are rejected before accepting a schema response.
 - Proof artifacts are local in qa/debug/ (synthetic data; not committed).
 
 ## Last Completed Milestone
-S9B complete (2026-10-09): permissive draft fields accepted empty AI tables and
-bypassed model failover. Required provider fields now reject those responses.
-The original five-entity prompt passes live generation and automatic AI discovery
-with requested counts, four nested links and exact full-row reconstruction.
+S9C complete (2026-10-09): router treated a per-model daily quota as shared,
+blocking the available alternate. Evidence-based quota scope and provider retry
+durations now enable failover. Original 5,000-student browser repro and actual
+prompt both return live AI results with exact full source preservation.
 
 ## Baseline
-- Backend: 205 passed, 1 skipped, 0 failures.
+- Backend: 213 passed, 1 skipped, 0 failures.
 - Frontend: 15 React lifecycle tests, type check and production build pass.
 - Repo: https://github.com/Umer-Hayatt/Synthetic-Data-generator-studio (main).
 
@@ -63,7 +71,7 @@ with requested counts, four nested links and exact full-row reconstruction.
   headless Chrome verified the actual browser/API/data flow.
 
 ## Blockers
-Live AI prompt, generation and nested relationship building passed. Automatic
-approval review rejected pushing S9B to origin/main because it requires explicit
-authorization for sending source/docs to that remote. Local commit is complete;
-await owner approval to push. No workaround attempted.
+Live AI flows pass using the available alternate; primary daily quota remains
+exhausted until provider reset. Automatic approval review previously rejected
+pushing to origin/main because source/docs egress needs explicit authorization.
+Local repairs are complete; await owner approval to push. No workaround attempted.

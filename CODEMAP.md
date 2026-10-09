@@ -20,7 +20,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `api/health.py` | `/health` liveness probe |
 | **core/** | Shared utilities |
 | `core/jobs.py` | In-memory **job store** (create, update, fetch) |
-| `core/ai.py` | Gemini structured calls, deadline budgets, shared quota cooldown and configured model failover |
+| `core/ai.py` | Gemini structured calls, deadlines, evidenced model quota/shared cooldown, retry durations and configured failover |
 | `core/inference.py` | Schema inference (column types, nullable flags) |
 | `core/relationship_analysis.py` | AI-owned model planning/correction, aggregate full-row dependencies and exact rejoin verification |
 | `core/tabular_entities.py` | Retain observed upload dependencies and generate consistent repeated entities |
@@ -82,5 +82,6 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 |---|---|
 | `test_relationship_analysis.py` | Hybrid proposals, full-data conflicts, lossless joins, source ownership, exports and prompt/upload dependencies |
 | `test_intelligence.py` | Prompt schema validation/failover, usable draft repair, entity count preservation and explicit offline fallback |
+| `test_ai.py` | Provider failover/deadlines, quota scope and retry parsing, shared-key cooldown and cached quota errors |
 | `relational_fixture.py` | Self-contained fixture builder for existing relational engine regressions |
 | `fixtures/commerce.json` | Historical minimal commerce model used only by regression tests |
