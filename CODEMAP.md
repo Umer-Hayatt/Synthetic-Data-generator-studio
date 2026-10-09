@@ -10,7 +10,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | **api/** | HTTP route handlers |
 | `api/ingest.py` | Classic studio **upload/demo**: parses CSV/JSON, stores dataset in job store |
 | `api/generate.py` | Classic studio **generate**: dispatches tabular/relational/document job |
-| `api/intelligence.py` | **AI generator**: prompt -> spec -> generated table (tabular) |
+| `api/intelligence.py` | **AI generator**: validates non-empty provider drafts, preserves prompt entity counts and flattens specs for tabular generation |
 | `api/relationships.py` | Automatic AI build plus compatible analysis/normalization; atomic lossless tables from the snapshot |
 | `api/evaluate.py` | Classic studio **quality**: triggers statistical evaluation |
 | `api/export.py` | Classic studio **export**: returns CSV/JSON of generated rows |
@@ -81,5 +81,6 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | Path | What it does |
 |---|---|
 | `test_relationship_analysis.py` | Hybrid proposals, full-data conflicts, lossless joins, source ownership, exports and prompt/upload dependencies |
+| `test_intelligence.py` | Prompt schema validation/failover, usable draft repair, entity count preservation and explicit offline fallback |
 | `relational_fixture.py` | Self-contained fixture builder for existing relational engine regressions |
 | `fixtures/commerce.json` | Historical minimal commerce model used only by regression tests |

@@ -76,7 +76,7 @@ Quality: NN% <label>      Privacy: Protected      Integrity: Passed
 - Verification: Pytest passes (159 passed, 1 skipped), frontend tsc passes with 0 errors.
 
 ## Status log
-S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S10-S12 PLANNED
+S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S10-S12 PLANNED
 
 ## Input-driven follow-up repair — planned, 2026-10-08
 
@@ -86,7 +86,7 @@ working end to end, Documents must assess whether that same data supports a
 document and render it without substituting or regenerating unrelated entities.
 S1-S7 remain completed historical milestones. This extends this active plan;
 it does not resume the superseded V2 work order. Product choices are recorded
-below. S8-S9A are complete; S10 is next after committing S9A.
+below. S8-S9B are complete; S10 is next after the verified S9B commit.
 
 ### Confirmed causes and baseline
 - `backend/app/api/intelligence.py` truncates multi-table AI drafts to the first
@@ -263,6 +263,28 @@ relationships or silently modify source values to make a proposed model pass.
   a valid one-table model without mapping controls. Local proof lives in qa/debug/.
 - No application files became unreferenced; removed the obsolete manual form and
   its unused CSS selectors. Legacy analysis/normalize contracts remain compatible.
+
+### S9B — Reject empty AI drafts and preserve multi-entity prompts — DONE
+- Owner-requested correction (2026-10-09) before S10: an empty AI table list was
+  accepted as a valid structured response, bypassing model failover and replacing
+  the requested five-entity model with an incomplete rule-based draft.
+- Require non-empty tables/columns with actual names and data types at the provider
+  boundary and in its schema. Existing bounded routing then tries an alternate
+  model before the endpoint's explicit offline fallback.
+- Preserve repair of otherwise usable drafts and existing endpoint contracts.
+- Verify missing/empty collections, alternate-model success, offline fallback,
+  requested counts and full live five-entity prompt -> generated snapshot ->
+  nested relational model -> exact export/rejoin. Then commit, push and stop.
+- Required fields/non-empty lists now reject unusable drafts in provider/router
+  validation, enabling alternate-model routing before explicit offline fallback.
+  Removed the unreachable endpoint-only empty-table check; usable draft repair
+  and public API contracts remain intact.
+- Verification: 205 backend passed / 1 skipped; 15 React tests, frontend type
+  check and production build passed. Original failing prompt in the browser used
+  real AI without fallback: 120 LineItems, 20 Orders, 8 Customers, 12 Products,
+  4 Categories; four nested FKs, unique keys, zero orphans and exact full export
+  reconstruction of all 120 source rows. All table previews and no page errors
+  verified. Synthetic proof: qa/debug/multiple-relations/RESULTS.md (local only).
 
 ### S10 — Compact relational inspection with truthful results — PLANNED
 - Default: a short source/model summary, table selector and paged data preview.

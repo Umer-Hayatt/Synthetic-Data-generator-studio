@@ -37,6 +37,54 @@ def test_malformed_spec_falls_back_to_draft(monkeypatch):
     assert result['spec']['tables'][0]['name'] == 'Patients'
 
 
+def test_empty_ai_schema_uses_alternate_and_keeps_all_five_entities(monkeypatch):
+    def column(name, dtype='string', **extra):
+        return dict(name=name, dtype=dtype, **extra)
+    def pk(): return column('id', 'integer', is_primary_key=True)
+    def fk(name, parent):
+        return column(name, 'integer', is_foreign_key=True, reference_table=parent, reference_column='id')
+    valid = {'name': 'Shop', 'main_table': 'LineItems', 'tables': [
+        {'name': 'Customers', 'row_count': 8, 'columns': [pk(), column('name', semantic_type='person_name'), column('email', semantic_type='email')]},
+        {'name': 'Categories', 'row_count': 4, 'columns': [pk(), column('name')]},
+        {'name': 'Products', 'row_count': 12, 'columns': [pk(), column('name'), column('sku'), fk('category_id', 'Categories')]},
+        {'name': 'Orders', 'row_count': 20, 'columns': [pk(), column('status'), fk('customer_id', 'Customers')]},
+        {'name': 'LineItems', 'row_count': 120, 'columns': [pk(), fk('order_id', 'Orders'), fk('product_id', 'Products'), column('quantity', 'integer')]},
+    ]}
+    primary, alternate = Fake([{'tables': []}]), Fake([valid])
+    primary.model, alternate.model = 'primary', 'alternate'
+    router = AIRouter([primary, alternate], sleep=lambda _: None)
+    monkeypatch.setattr(intelligence, 'get_router', lambda: router)
+    result = TestClient(app).post('/api/v1/ai/spec', json={'prompt':
+        '120 LineItems with 20 Orders, 8 Customers, 12 Products and 4 Categories'}).json()
+    assert result['status'] == 'review_required'
+    assert not result.get('fallback_used'), result
+    assert primary.calls == 1 and alternate.calls == 1
+    assert result['spec']['tables'][0]['name'] == 'LineItems'
+    assert result['spec']['tables'][0]['row_count'] == 120
+    assert {e['name']: e['entity_count'] for e in result['spec']['tabular_entities']} == {
+        'Customers': 8, 'Categories': 4, 'Orders': 20, 'Products': 12}
+
+
+@pytest.mark.parametrize('invalid', [{}, {'tables': []}, {'tables': [{'name': 'MissingColumns'}]},
+    {'tables': [{'name': 'EmptyColumns', 'columns': []}]},
+    {'tables': [{'columns': [{'name': 'id', 'dtype': 'integer'}]}]},
+    {'tables': [{'name': 'EmptyColumn', 'columns': [{}]}]},
+    {'tables': [{'name': 'MissingType', 'columns': [{'name': 'id'}]}]},
+    {'tables': [{'name': 'BlankName', 'columns': [{'name': '', 'dtype': 'integer'}]}]}])
+def test_missing_or_empty_ai_tables_are_invalid_at_the_provider_boundary(invalid):
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):
+        intelligence._DatasetSpecDraft.model_validate(invalid)
+
+
+def test_provider_schema_requires_actual_tables_and_column_definitions():
+    schema = intelligence._DatasetSpecDraft.model_json_schema()
+    assert 'tables' in schema['required'] and schema['properties']['tables']['minItems'] == 1
+    table = schema['$defs']['_DraftTable']
+    assert {'name', 'columns'} <= set(table['required']) and table['properties']['columns']['minItems'] == 1
+    assert {'name', 'dtype'} <= set(schema['$defs']['_DraftColumn']['required'])
+
+
 @pytest.mark.parametrize('rows', [1, 5001, 100000])
 def test_draft_preserves_requested_row_count(monkeypatch, rows):
     draft = {'name': 'customers', 'tables': [{'name': 'customers', 'row_count': rows,

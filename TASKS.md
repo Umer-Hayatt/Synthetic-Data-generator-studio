@@ -20,7 +20,12 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
   Fixed provider deadline/overload failures with low thinking and verified model
   failover. Verified: 195 backend / 1 skipped, 15 React tests, type check/build;
   live commerce normalized/rejoined/exported, students explained as one table.
-- S10-S12 are PLANNED after S9A in REPAIR_PLAN.md. Historical tasks remain superseded.
+- [DONE] S9B — Reject empty AI drafts before model failover (2026-10-09).
+  Require real tables, columns, names and types at the AI validation boundary.
+  Verified: 205 backend / 1 skipped, 15 React tests, type check/build; original
+  live prompt -> 120 LineItems, 20 Orders, 8 Customers, 12 Products, 4 Categories,
+  four nested links, zero orphans and exact full export/rejoin, no AI fallback.
+- S10-S12 are PLANNED after S9B in REPAIR_PLAN.md. Historical tasks remain superseded.
 
 ---
 

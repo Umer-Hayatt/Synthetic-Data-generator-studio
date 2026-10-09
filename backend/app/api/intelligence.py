@@ -43,8 +43,8 @@ class Suggestions(Model):
 
 class _DraftColumn(BaseModel):
     model_config = ConfigDict(extra='ignore')
-    name: str = ''
-    dtype: str = 'string'          # integer | float | boolean | string | datetime
+    name: str = Field(min_length=1)
+    dtype: str = Field(min_length=1)  # integer | float | boolean | string | datetime
     semantic_type: str = 'generic_text'
     nullable: bool = True
     null_rate: float = 0.0
@@ -70,9 +70,9 @@ class _DraftColumn(BaseModel):
 
 class _DraftTable(BaseModel):
     model_config = ConfigDict(extra='ignore')
-    name: str = ''
+    name: str = Field(min_length=1)
     row_count: int = 100
-    columns: list[_DraftColumn] = Field(default_factory=list)
+    columns: list[_DraftColumn] = Field(min_length=1)
 
 
 class _DraftEntity(BaseModel):
@@ -88,7 +88,7 @@ class _DatasetSpecDraft(BaseModel):
     name: str = 'dataset'
     locale: str = 'en_US'
     seed: int = 42
-    tables: list[_DraftTable] = Field(default_factory=list)
+    tables: list[_DraftTable] = Field(min_length=1)
     main_table: str = ''
     entities: list[_DraftEntity] = Field(default_factory=list)
     edge_cases: list[str] = Field(default_factory=list)
@@ -760,8 +760,6 @@ def prompt_spec(request: PromptRequest):
     prompt = _SPEC_PROMPT_PREFIX + request.prompt
     try:
         draft = get_router().generate_structured(prompt, _DatasetSpecDraft)
-        if not draft.tables:
-            return _run_fallback('malformed_output', ['AI returned an empty schema; using rule-based draft.'])
         for t in draft.tables:
             if t.row_count <= 0 or t.row_count > 10_000_000:
                 return _run_fallback('malformed_output', [f"AI returned invalid row count {t.row_count}; using rule-based draft."])

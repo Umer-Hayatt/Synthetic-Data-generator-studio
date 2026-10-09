@@ -4,9 +4,11 @@
 REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
 
 ## Active Task
-S9A DONE: automatic AI relationship building and resilient provider requests.
-- Next slice is S10 (compact relational inspection and linked-record navigation).
-  Stop after committing S9A; document suitability/rendering remains S11-S12.
+S9B DONE: empty AI drafts are rejected before accepting a schema response.
+- Owner-requested fix before S10: required tables/columns, names and types are
+  validated inside the provider/router boundary so alternate-model routing runs.
+- S9A-S9B are complete locally; S9B push awaits explicit owner approval.
+  S10 and document suitability/rendering (S11-S12) remain pending.
 - AI owns discovering, selecting and applying the model from generated snapshot
   metadata, prompt intent and full-row dependency counts. No manual map is required.
 - Validation rejects conflicting/missing fields and cycles, provides AI correction
@@ -23,20 +25,24 @@ S9A DONE: automatic AI relationship building and resilient provider requests.
   120-second attempt limit and 180-second total budget (including retries/queue).
   SDK 504 is classified as timeout; overload/timeouts prefer the alternate model.
   Shared quota cooldown and strict local output validation remain enforced.
-- Verification: 195 backend passed / 1 skipped; 15 real React lifecycle tests;
-  frontend type check and production build passed. Live browser: 60 commerce rows
-  -> 5 buyers + 10 products, exact full export/rejoin equality, pagination and
-  narrow layout. Students -> explained single-table model, no mapping required.
+- Verification: 205 backend passed / 1 skipped; 15 real React lifecycle tests;
+  frontend type check and production build passed. Original five-entity prompt
+  -> real AI draft without fallback -> 120 LineItems, 20 Orders, 8 Customers,
+  12 Products, 4 Categories. Four nested FKs, unique keys, zero orphans and exact
+  reconstruction of all 120 exported source rows; all table previews verified.
+- S9A browser baseline: commerce exact rejoin/export/pagination/narrow layout;
+  students explained as one table without mapping.
 - Local services running: backend 127.0.0.1:8000; frontend localhost:3000.
 - Proof artifacts are local in qa/debug/ (synthetic data; not committed).
 
 ## Last Completed Milestone
-S9A complete (2026-10-09): AI chooses the relational model automatically, validates
-all rows and preserves source values/duplicates. Resolved the live verification
-blocker with supported thinking settings, deadline budgets and model failover.
+S9B complete (2026-10-09): permissive draft fields accepted empty AI tables and
+bypassed model failover. Required provider fields now reject those responses.
+The original five-entity prompt passes live generation and automatic AI discovery
+with requested counts, four nested links and exact full-row reconstruction.
 
 ## Baseline
-- Backend: 195 passed, 1 skipped, 0 failures.
+- Backend: 205 passed, 1 skipped, 0 failures.
 - Frontend: 15 React lifecycle tests, type check and production build pass.
 - Repo: https://github.com/Umer-Hayatt/Synthetic-Data-generator-studio (main).
 
@@ -57,5 +63,7 @@ blocker with supported thinking settings, deadline budgets and model failover.
   headless Chrome verified the actual browser/API/data flow.
 
 ## Blockers
-None for S9A. The previous provider 503/504 blocker is resolved for the verified
-flows; both live browser models returned AI available with validated results.
+Live AI prompt, generation and nested relationship building passed. Automatic
+approval review rejected pushing S9B to origin/main because it requires explicit
+authorization for sending source/docs to that remote. Local commit is complete;
+await owner approval to push. No workaround attempted.
