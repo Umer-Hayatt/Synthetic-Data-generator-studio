@@ -137,6 +137,7 @@ export interface RelationshipEntity extends EntityMapping {
 export interface RelationshipProposal {
   source_dataset_id: string; row_count: number; columns: string[];
   ai_status: string; status: string; entities: RelationshipEntity[]; questions: string[];
+  explanation?: string;
 }
 export interface RelationshipResult {
   source_dataset_id: string; spec: DatasetSpec;

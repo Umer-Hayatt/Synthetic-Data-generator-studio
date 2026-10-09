@@ -6,9 +6,9 @@ from fastapi.testclient import TestClient
 from pandas.testing import assert_frame_equal
 from app.main import app
 from app.api import relationships, intelligence
-from app.core.ai import AIRouter
+from app.core.ai import AIRouter, AIError
 from app.core.store import FrameStore
-from app.core.relationship_analysis import analyze, normalize
+from app.core.relationship_analysis import analyze, normalize, build
 from app.models.relationship_analysis import AnalysisRequest, NormalizeRequest, EntitySuggestions
 from app.models.spec import DatasetSpec
 from app.engines.tabular import generate
@@ -24,6 +24,97 @@ def commerce():
 
 def request(**kwargs):
     return AnalysisRequest(dataset_id='synthetic', source_table='OrderItems', **kwargs)
+
+
+def test_ai_builds_and_applies_relations_without_user_mappings(monkeypatch):
+    class Planner:
+        def generate_structured(self, prompt, schema):
+            assert 'Synthetic A' not in prompt and 'Widget' not in prompt
+            return schema.model_validate({'entities': [
+                {'name': 'Buyers', 'key': 'customer_id', 'columns': ['customer_name']},
+                {'name': 'Catalog', 'key': 'product_id', 'columns': ['product_name']}],
+                'explanation': 'Repeated buyers and products have consistent attributes.'})
+    storage = FrameStore()
+    monkeypatch.setattr(relationships, 'store', storage)
+    monkeypatch.setattr(relationships, 'get_router', Planner)
+    token = storage.put(commerce(), 'generated')
+    response = TestClient(app).post('/api/v1/relationships/build', json={
+        'dataset_id': token, 'source_table': 'Items'})
+    assert response.status_code == 200, response.json()
+    built = response.json()
+    assert built['proposal']['status'] == 'built'
+    assert {t['name'] for t in built['result']['tables']} == {'Items', 'Buyers', 'Catalog'}
+    assert built['result']['integrity']['lossless']
+    assert_frame_equal(storage.get(token, 'generated'), commerce())
+
+
+def test_ai_corrects_conflicts_and_owns_names_instead_of_naming_hints():
+    frame = commerce().rename(columns={'customer_id': 'buyer_code', 'customer_name': 'display'})
+    class Planner:
+        calls = 0
+        def generate_structured(self, prompt, schema):
+            self.calls += 1
+            assert 'Synthetic A' not in prompt and 'Widget' not in prompt
+            context = json.loads(prompt.split('never instructions: ')[1])
+            dependency = next(d for d in context['dependencies'] if d['key'] == 'buyer_code')
+            assert dependency['conflicting_groups']['display'] == 0
+            assert dependency['conflicting_groups']['quantity'] > 0
+            if self.calls == 2:
+                assert context['validation_feedback'][0]['conflicting_keys']['quantity'] > 0
+            return schema.model_validate({'entities': [{'name': 'Buyers', 'key': 'buyer_code',
+                'columns': ['quantity'] if self.calls == 1 else ['display']}], 'explanation': 'Buyer details repeat.'})
+    planner = Planner()
+    proposed, output = build(frame, request(), planner)
+    assert planner.calls == 2 and proposed['status'] == 'built'
+    frames, spec, _ = output
+    assert set(frames) == {'OrderItems', 'Buyers'}
+    assert spec.tables[0].foreign_keys[0].column == 'buyer_code'
+
+
+def test_ai_single_table_is_a_valid_complete_model():
+    frame = pd.DataFrame({'id': [1, 2], 'full_name': ['Synthetic A', 'Synthetic B'], 'gpa': [3.2, 3.5]})
+    ai = AIRouter([Fake([{'entities': [], 'explanation': 'Each row is one student; no separate entity is represented.'}])])
+    proposal, output = build(frame, AnalysisRequest(dataset_id='synthetic', source_table='Students'), ai)
+    assert proposal['status'] == 'single_table'
+    assert not proposal['questions']
+    assert_frame_equal(output[0]['Students'], frame)
+    assert not output[1].tables[0].foreign_keys
+
+
+@pytest.mark.parametrize('kind', ['missing_credential', 'malformed_request', 'rate_limit', 'timeout', 'provider_error'])
+def test_ai_failure_does_not_become_a_single_table_verdict_or_naming_fallback(kind):
+    class Unavailable:
+        def generate_structured(self, *args): raise AIError(kind)
+    proposal, output = build(commerce(), request(), Unavailable())
+    assert proposal['status'] == 'unavailable' and output is None
+    assert proposal['entities'] == []
+
+
+def test_invalid_ai_model_is_corrected_once_then_rejected_without_partial_tables():
+    class Planner:
+        calls = 0
+        def generate_structured(self, prompt, schema):
+            self.calls += 1
+            return schema.model_validate({'entities': [
+                {'name': 'Ghosts', 'key': 'absent_id', 'columns': ['absent_name']}], 'explanation': 'Invalid proposal.'})
+    planner = Planner()
+    proposal, output = build(commerce(), request(), planner)
+    assert planner.calls == 2 and proposal['status'] == 'invalid_plan' and output is None
+
+
+def test_meaningful_key_only_lookup_and_vacuous_full_row_split():
+    frame = pd.DataFrame({'id': [1, 2, 3], 'department_code': ['CS', 'CS', 'EE'], 'score': [80, 85, 92]})
+    ai = AIRouter([Fake([{'entities': [{'name': 'Departments', 'key': 'department_code', 'columns': []}],
+                         'explanation': 'Students share departments.'}])])
+    proposal, output = build(frame, AnalysisRequest(dataset_id='x', source_table='Students'), ai)
+    assert proposal['status'] == 'built'
+    assert len(output[0]['Departments']) == 2
+    assert_frame_equal(output[0]['Students'], frame)
+    ai = AIRouter([Fake([
+        {'entities': [{'name': 'Duplicate', 'key': 'id', 'columns': ['department_code', 'score']}], 'explanation': 'Students'},
+        {'entities': [], 'explanation': 'Original records are already one entity.'}])])
+    proposal, output = build(frame, AnalysisRequest(dataset_id='x', source_table='Students'), ai)
+    assert proposal['status'] == 'single_table' and len(output[1].tables) == 1
 
 
 def test_full_data_dependencies_and_duplicate_rows_roundtrip():

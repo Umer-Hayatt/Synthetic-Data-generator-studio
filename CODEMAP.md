@@ -11,7 +11,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `api/ingest.py` | Classic studio **upload/demo**: parses CSV/JSON, stores dataset in job store |
 | `api/generate.py` | Classic studio **generate**: dispatches tabular/relational/document job |
 | `api/intelligence.py` | **AI generator**: prompt -> spec -> generated table (tabular) |
-| `api/relationships.py` | Analyze the complete generated snapshot; materialize accepted, lossless entity splits |
+| `api/relationships.py` | Automatic AI build plus compatible analysis/normalization; atomic lossless tables from the snapshot |
 | `api/evaluate.py` | Classic studio **quality**: triggers statistical evaluation |
 | `api/export.py` | Classic studio **export**: returns CSV/JSON of generated rows |
 | `api/documents.py` | **Document engine** routes: invoices, bank statements |
@@ -20,9 +20,9 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `api/health.py` | `/health` liveness probe |
 | **core/** | Shared utilities |
 | `core/jobs.py` | In-memory **job store** (create, update, fetch) |
-| `core/ai.py` | Gemini/OpenAI client wrapper used by AI generator |
+| `core/ai.py` | Gemini structured calls, deadline budgets, shared quota cooldown and configured model failover |
 | `core/inference.py` | Schema inference (column types, nullable flags) |
-| `core/relationship_analysis.py` | Hybrid entity proposals, full-data dependency evidence and exact rejoin verification |
+| `core/relationship_analysis.py` | AI-owned model planning/correction, aggregate full-row dependencies and exact rejoin verification |
 | `core/tabular_entities.py` | Retain observed upload dependencies and generate consistent repeated entities |
 | `core/profiling.py` | Column statistics profiling |
 | `core/locales.py` | Locale registry + curated data (PK/US/GB/DE/FR/ES/IN) |
@@ -40,7 +40,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | **models/** | Pydantic schemas |
 | `models/spec.py` | Central DataSpec, ColumnSpec, JobSpec models |
 | `models/relational_rules.py` | FK, cardinality, and referential-integrity rule models |
-| `models/relationship_analysis.py` | Typed relationship analysis, entity mapping and acceptance requests |
+| `models/relationship_analysis.py` | Typed AI plans, relationship analysis, entity mappings and acceptance requests |
 | **eval/** | **Quality evaluation** |
 | `eval/quality.py` | Statistical similarity score (fidelity %) & reference-free spec quality |
 | `eval/comparison.py` | Column-level comparison metrics |
@@ -60,8 +60,8 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | **components/export/** | Export buttons CSV/JSON (classic studio step 5) |
 | **components/schema/** | Schema & Privacy summary card, SchemaModal, PrivacyModal |
 | **components/relational/** | Relational workspace (table switcher, relationship map, integrity badges) |
-| `components/relational/RelationshipPlanner.tsx` | Review input-derived entities, clarify mappings and inspect full normalized tables |
-| `components/relational/RelationshipPlanner.module.css` | Scoped review-panel and normalized-preview styles |
+| `components/relational/RelationshipPlanner.tsx` | Automatically build the AI model; explain outcomes and inspect complete normalized tables |
+| `components/relational/RelationshipPlanner.module.css` | Scoped automatic-model and normalized-preview styles |
 | **components/documents/** | Reconciled documents workspace (invoices, bank statements, visual cards, PDF/ZIP/CSV/JSON export) |
 | **components/layout/** | Page shell, sidebar, tabs |
 | **components/common/** | Shared UI primitives (buttons, badges, loaders) |

@@ -38,6 +38,9 @@ async function mount(t, overrides = {}) {
     getArtifact: async (id) => ({ preview: artifactRows.get(id) || [] }),
     getDocumentUrl: () => '/documents/export',
     fetchPreview: async () => ({ rows: [], row_count: 0 }),
+    buildRelationships: async body => ({ source_dataset_id: body.dataset_id, result: null,
+      proposal: { source_dataset_id: body.dataset_id, status: 'unavailable', ai_status: 'no_key',
+        explanation: 'AI is unavailable.', entities: [], questions: [] } }),
     getExportUrl: (format, id) => `/export/${format}/${id}`,
     ...overrides.api,
   };
@@ -180,17 +183,67 @@ test('superseded relationship analysis and normalization cannot publish stale ou
   assert.equal(h.state.generatedToken, 'generated-New');
 });
 
-test('relationship review selects repeated entities but requires explicit choice for a unique-per-row split', async (t) => {
-  const h = await mount(t, { api: { analyzeRelationships: async body => ({ source_dataset_id: body.dataset_id,
-    row_count: 3, ai_status: 'available', questions: ['Is Records a separate entity?'], entities: [
-      { name: 'People', key: 'person_id', columns: ['name'], entity_count: 2, valid: true, cardinality: '1:N' },
-      { name: 'Records', key: 'id', columns: ['value'], entity_count: 3, valid: true, cardinality: '1:1' },
-    ] }) } });
-  await act(async () => { await h.state.loadFromAiPrompt('Current'); h.state.setActiveTab('relational'); });
-  await act(async () => { await h.state.analyzeRelationships(); });
-  const checkboxes = h.renderer.root.findAllByType('input').filter(input => input.props.type === 'checkbox');
-  assert.equal(checkboxes.find(input => input.props['aria-label'] === 'Include People').props.checked, true);
-  assert.equal(checkboxes.find(input => input.props['aria-label'] === 'Include Records').props.checked, false);
+test('opening relational builds with AI once, keeps the source and does not require manual mapping', async (t) => {
+  let calls = 0;
+  const previews = [];
+  const h = await mount(t, { api: {
+    fetchPreview: async (token, offset) => { previews.push([token, offset]); return { rows: [{ id: 1, value: 'Current' }] }; },
+    buildRelationships: async body => {
+      calls++;
+      assert.equal(body.dataset_id, 'generated-Current');
+      assert.equal(body.prompt, 'Current');
+      return { source_dataset_id: body.dataset_id,
+        proposal: { source_dataset_id: body.dataset_id, status: 'single_table', ai_status: 'available',
+          explanation: 'One entity is represented.', entities: [], questions: [] },
+        result: { source_dataset_id: body.dataset_id, spec: spec('Current'),
+          tables: [{ ...spec('Current').tables[0], row_count: 30, dataset_id: 'normalized-current' }],
+          integrity: { lossless: true, source_rows: 30, orphan_foreign_keys: 0, primary_keys_unique: true } } };
+    },
+  } });
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); });
+  const snapshot = h.state.generatedSnapshot;
+  await act(async () => h.state.setActiveTab('relational'));
+  assert.equal(calls, 1);
+  assert.equal(h.state.generatedSnapshot, snapshot);
+  assert.equal(h.renderer.root.findAllByType('textarea').length, 0);
+  assert.equal(h.renderer.root.findAllByType('input').filter(i => i.props.type === 'checkbox').length, 0);
+  await act(async () => { h.renderer.root.findAllByType('button').find(b => b.props.children === 'Next').props.onClick(); });
+  assert.deepEqual(previews.at(-1), ['normalized-current', 25]);
+  await act(async () => h.state.setActiveTab('preview'));
+  await act(async () => h.state.setActiveTab('relational'));
+  assert.equal(calls, 1);
+});
+
+test('a late automatic AI build cannot restore another snapshot', async (t) => {
+  const wait = deferred();
+  const h = await mount(t, { api: { buildRelationships: () => wait.promise } });
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); });
+  let pending;
+  act(() => { pending = h.state.buildRelationships(); });
+  await act(async () => { await h.state.loadFromAiPrompt('New'); });
+  await act(async () => { wait.resolve({ source_dataset_id: 'generated-Current',
+    proposal: { source_dataset_id: 'generated-Current' }, result: null }); assert.equal(await pending, false); });
+  assert.equal(h.state.relationshipProposal, null);
+  assert.equal(h.state.relationshipResult, null);
+  assert.equal(h.state.generatedToken, 'generated-New');
+});
+
+test('AI failure remains a retryable failure and does not loop or ask for mapping', async (t) => {
+  let calls = 0;
+  const h = await mount(t, { api: { buildRelationships: async body => {
+    calls++;
+    return { source_dataset_id: body.dataset_id, result: null, proposal: {
+      source_dataset_id: body.dataset_id, status: 'unavailable', ai_status: 'invalid_request',
+      explanation: 'The original table is retained.', entities: [], questions: [] } };
+  } } });
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); });
+  await act(async () => h.state.setActiveTab('relational'));
+  assert.equal(calls, 1);
+  assert.equal(h.state.relationshipResult, null);
+  assert.equal(h.renderer.root.findAllByType('textarea').length, 0);
+  assert.match(JSON.stringify(h.renderer.toJSON()), /provider rejected the model request/);
+  await act(async () => h.renderer.root.findAllByType('button').find(b => b.props.children === 'Build again').props.onClick());
+  assert.equal(calls, 2);
 });
 
 test('an older ingestion cannot overwrite a newer prompt or launch its generation', async (t) => {

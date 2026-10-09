@@ -7,7 +7,7 @@ from app.models.spec import Model
 class EntityMapping(Model):
     name: str = Field(min_length=1, max_length=64, pattern=r'^[A-Za-z][A-Za-z0-9_]*$')
     key: str = Field(min_length=1, max_length=128)
-    columns: list[str] = Field(min_length=1, max_length=200)
+    columns: list[str] = Field(default_factory=list, max_length=200)
 
     @model_validator(mode='after')
     def distinct_columns(self):
@@ -44,3 +44,14 @@ class EntitySuggestions(Model):
                 'required': ['name', 'key', 'columns']}},
             'questions': {'type': 'array', 'items': {'type': 'string'}}},
             'required': ['entities', 'questions']}
+
+
+class RelationshipPlan(Model):
+    entities: list[EntityMapping] = Field(default_factory=list, max_length=19)
+    explanation: str = Field(min_length=1, max_length=2000)
+
+    @classmethod
+    def model_json_schema(cls, *args, **kwargs):
+        return {'type': 'object', 'properties': {
+            'entities': EntitySuggestions.model_json_schema()['properties']['entities'],
+            'explanation': {'type': 'string'}}, 'required': ['entities', 'explanation']}

@@ -37,8 +37,8 @@ def test_sdk_json_is_parsed_and_validated(monkeypatch):
     assert result.count == 12
 
 
-@pytest.mark.parametrize('code,kind', [(400,'malformed_request'),(401,'invalid_credential'),
-    (403,'invalid_credential'),(429,'rate_limit'),(500,'provider_error')])
+@pytest.mark.parametrize('code,kind', [(400,'malformed_request'),(404,'model_unavailable'),(401,'invalid_credential'),
+    (403,'invalid_credential'),(429,'rate_limit'),(500,'provider_error'),(504,'timeout')])
 def test_sdk_api_errors_are_sanitized(monkeypatch, code, kind):
     error = errors.APIError(code, {'message':'sensitive upstream detail'},
                             httpx.Response(code, headers={'Retry-After':'120'}))
@@ -56,3 +56,30 @@ def test_sdk_transport_errors(monkeypatch, error, kind):
     sdk_result(monkeypatch, error)
     with pytest.raises(AIError, match=kind):
         GeminiProvider('test-only', 'test-model').generate_structured('test', StructuredResult, 1)
+
+
+def test_structured_schema_requests_use_low_thinking_for_gemini3(monkeypatch):
+    captured = {}
+    class Client:
+        def __init__(self, **kwargs):
+            captured['http'] = kwargs['http_options']
+            self.models = self
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def generate_content(self, **kwargs):
+            captured['config'] = kwargs['config']
+            return SimpleNamespace(text='{"count":12}')
+    monkeypatch.setattr(genai, 'Client', Client)
+    result = GeminiProvider('test-only', 'gemini-3.8-flash').generate_structured('test', StructuredResult, 120)
+    assert result.count == 12 and captured['http'].timeout == 120000
+    assert captured['http'].retry_options.attempts == 1
+    assert captured['config'].thinking_config.thinking_level.lower() == 'low'
+    assert captured['config'].response_json_schema == StructuredResult.model_json_schema()
+
+
+def test_configured_schema_deadline_default_is_not_thirty_seconds(monkeypatch):
+    from app.core.ai import configured_router
+    monkeypatch.delenv('AI_REQUEST_TIMEOUT_SECONDS', raising=False)
+    monkeypatch.setenv('GEMINI_API_KEYS', 'test-only')
+    monkeypatch.setenv('GEMINI_MODEL', 'gemini-3.8-flash')
+    assert configured_router().timeout == 120

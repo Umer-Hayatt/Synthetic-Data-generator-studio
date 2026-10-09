@@ -75,6 +75,13 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export const api = {
+  async buildRelationships(input: RelationshipInput): Promise<{
+    source_dataset_id: string; proposal: RelationshipProposal; result: RelationshipResult | null;
+  }> {
+    return handleResponse(await fetch(`${API_BASE_URL}/api/v1/relationships/build`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+    }));
+  },
   async analyzeRelationships(input: RelationshipInput): Promise<RelationshipProposal> {
     return handleResponse(await fetch(`${API_BASE_URL}/api/v1/relationships/analyze`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),

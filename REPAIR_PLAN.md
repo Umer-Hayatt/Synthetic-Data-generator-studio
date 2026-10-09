@@ -76,7 +76,7 @@ Quality: NN% <label>      Privacy: Protected      Integrity: Passed
 - Verification: Pytest passes (159 passed, 1 skipped), frontend tsc passes with 0 errors.
 
 ## Status log
-S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S10-S12 PLANNED
+S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S10-S12 PLANNED
 
 ## Input-driven follow-up repair — planned, 2026-10-08
 
@@ -86,7 +86,7 @@ working end to end, Documents must assess whether that same data supports a
 document and render it without substituting or regenerating unrelated entities.
 S1-S7 remain completed historical milestones. This extends this active plan;
 it does not resume the superseded V2 work order. Product choices are recorded
-below. Execute the following slices sequentially; S8-S9 are complete and S10 is next.
+below. S8-S9A are complete; S10 is next after committing S9A.
 
 ### Confirmed causes and baseline
 - `backend/app/api/intelligence.py` truncates multi-table AI drafts to the first
@@ -232,6 +232,37 @@ relationships or silently modify source values to make a proposed model pass.
   schema. Changing the input changes the model/output; normalizing twice keeps
   identical values; rejoining the normalized rows reproduces the tabular snapshot.
   Count checks distinguish main entities, line items and related entities.
+
+### S9A — AI-owned relationship building — DONE (owner change, 2026-10-09)
+- Supersedes decisions 1-2 and the S9 manual mapping workflow: AI discovers,
+  chooses and applies the model automatically. Users do not author entity maps.
+- Give AI column meanings, prompt intent and bounded full-snapshot dependency
+  statistics. Code validates proposals and provides correction feedback to AI.
+- Validate all rows and exact rejoin before publishing tables. Preserve values,
+  duplicates and grain; do not invent absent entities or regenerate records.
+- A valid single-table model is a complete outcome with an AI explanation.
+  Provider failure is a retryable failure, never a successful no-relation verdict.
+- Keep existing analysis/normalization contracts; add an automatic build endpoint.
+- Verify automatic building, AI correction, single-table data, provider failure,
+  snapshot ownership, complete exports, frontend checks and browser flow.
+- Document suitability remains S11-S12 after the relational slices.
+- Implemented /build, dependency context, bounded AI correction, exact rejoin,
+  key-only domain lookup support, automatic UI and explanations. Existing
+  analysis/normalization API contracts are retained. Model-not-found (404) now
+  has a sanitized model_unavailable error rather than invalid_request.
+- Resolved the observed 503/504 failures: the SDK forwards the previous 30-second
+  timeout as a server deadline; default reasoning and model overload caused slow
+  or unavailable responses. Verified supported low thinking, increased attempt
+  deadline to 120 seconds, bounded total retries/queue to 180 seconds and configured
+  the live-verified gemini-3.5-flash alternate. Transient model failure prefers
+  the alternate while retaining shared quota cooldown and strict output validation.
+- Verification: 195 backend passed / 1 skipped; 15 React lifecycle tests passed;
+  frontend type check/build passed. Live browser: 60-row commerce upload/generation
+  -> AI built 5 buyers and 10 products -> exact full export/rejoin equality, real
+  pagination, narrow layout and no page errors. Students-only input -> AI explained
+  a valid one-table model without mapping controls. Local proof lives in qa/debug/.
+- No application files became unreferenced; removed the obsolete manual form and
+  its unused CSS selectors. Legacy analysis/normalize contracts remain compatible.
 
 ### S10 — Compact relational inspection with truthful results — PLANNED
 - Default: a short source/model summary, table selector and paged data preview.

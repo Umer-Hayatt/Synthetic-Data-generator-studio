@@ -4,51 +4,58 @@
 REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
 
 ## Active Task
-S9 complete: hybrid relationship analysis and lossless normalization.
-- S8-S12 and the seven owner decisions are recorded in `REPAIR_PLAN.md`.
-- Next slice: S10, compact relational inspection and truthful complete results.
-- AI proposes mappings from metadata and retained prompt context. Full-row checks,
-  explicit review and exact reconstruction govern normalization.
-- Source identity/prompt, revisions and snapshot ownership are retained. New input,
-  model edits and regeneration clear old outputs and ignore superseded responses.
-- Normal relational/document actions use the current spec, never load fixed demos.
-  Explicit demos remain on the entry screen. S1-S7 remain completed milestones.
-- Relational normalizes the full generated tabular snapshot after user review;
-  unclear relationships trigger questions. S11-S12 will assess and render documents
-  from the same resulting rows; those repairs remain pending.
-- Scope: current upload/prompt flow, invoices/statements, required-field mapping;
-  requested counts apply to the named main entity with related counts reviewed.
-- Prompt entity intent/counts now survive flattening. Generation preserves
-  declared groups and evidenced upload dependencies, including across batches.
-- Verification: backend 176 passed / 1 skipped; 13 React lifecycle tests passed;
-  frontend type check/build passed. Browser: live AI -> 40 enrollments, 10 students,
-  5 courses -> accepted exact split; 60-row commerce upload/rejoin/export verified.
-- Local Gemini model updated to gemini-3.8-flash after the old model returned 404.
-  Provider-compatible suggestion schema and strict local validation verified live;
-  unavailable AI uses input-specific checked hints/mappings with visible status.
-- Local backend: 127.0.0.1:8000; built frontend: localhost:3000 (configured CORS origin).
+S9A DONE: automatic AI relationship building and resilient provider requests.
+- Next slice is S10 (compact relational inspection and linked-record navigation).
+  Stop after committing S9A; document suitability/rendering remains S11-S12.
+- AI owns discovering, selecting and applying the model from generated snapshot
+  metadata, prompt intent and full-row dependency counts. No manual map is required.
+- Validation rejects conflicting/missing fields and cycles, provides AI correction
+  feedback, then checks exact reconstruction before atomic publication.
+- Valid single-table data gets an AI explanation. Provider failure is retryable,
+  never a successful no-relation verdict or a fabricated model.
+- Current input identity, revision, original prompt and snapshot ownership remain
+  guarded against stale responses. New input/model edits/regeneration clear outputs.
+- Original generated rows remain authoritative. Relations never independently
+  regenerate values or silently load a fixed demo. Explicit entry demos remain.
+- Normalized tables support full exports and actual pagination; detailed links
+  and data checks are collapsed. Document repairs remain pending.
+- Local AI: gemini-3.8-flash with verified gemini-3.5-flash failover, low thinking,
+  120-second attempt limit and 180-second total budget (including retries/queue).
+  SDK 504 is classified as timeout; overload/timeouts prefer the alternate model.
+  Shared quota cooldown and strict local output validation remain enforced.
+- Verification: 195 backend passed / 1 skipped; 15 real React lifecycle tests;
+  frontend type check and production build passed. Live browser: 60 commerce rows
+  -> 5 buyers + 10 products, exact full export/rejoin equality, pagination and
+  narrow layout. Students -> explained single-table model, no mapping required.
+- Local services running: backend 127.0.0.1:8000; frontend localhost:3000.
+- Proof artifacts are local in qa/debug/ (synthetic data; not committed).
 
 ## Last Completed Milestone
-S9 complete (2026-10-09): proposals and normalized tables derive from the active
-generated snapshot, with review, full-data evidence and exact duplicate-preserving
-reconstruction. Existing regression fixtures are now self-contained backend tests.
+S9A complete (2026-10-09): AI chooses the relational model automatically, validates
+all rows and preserves source values/duplicates. Resolved the live verification
+blocker with supported thinking settings, deadline budgets and model failover.
 
 ## Baseline
-- Frontend: `npx tsc --noEmit` passes with 0 errors.
-- Backend: `pytest` passes with 176 passed, 1 skipped, 0 failures.
-- Unified studio workspace verified: Tabular (Preview, Schema & Privacy, Quality), Relational (multi-table DAG), and Documents (invoices & bank statements).
-- Repo: https://github.com/Umer-Hayatt/Synthetic-Data-generator-studio (branch `main`).
-
+- Backend: 195 passed, 1 skipped, 0 failures.
+- Frontend: 15 React lifecycle tests, type check and production build pass.
+- Repo: https://github.com/Umer-Hayatt/Synthetic-Data-generator-studio (main).
 
 ## Decisions
 - Work in vertical slices; finish, verify and commit one before starting the next.
-- TSTR is removed from the product entirely. Statistical quality evaluation stays.
-- Classic studio becomes the single workspace: Tabular, AI generator, Documents, Relational.
-- AI generator works from the prompt alone, never requires a file.
-- Honor user-requested row counts; reject invalid ones instead of silently rewriting them.
+- Owner's 2026-10-09 decision supersedes the earlier manual relational review flow.
+- TSTR is removed; measured statistical quality evaluation remains.
+- Classic studio is the single workspace. AI prompting never requires a file.
+- Honor requested main-entity counts and retain transaction grain.
+- Support current single-table uploads/prompts first. Documents: invoices and
+  statements, same snapshot values, required missing fields reviewed (S11-S12).
 
-## Known open issues (not in the active slice)
-- Render deploy crashed on missing module `app.models.relational_rules` (likely uncommitted)
-  and used Python 3.14.3 instead of 3.12.10. Deferred (S0 skipped).
-- Prompt-to-spec offline & failure path returns deterministic rule-based draft with safe reason code (`no_key`, `rate_limited`, `auth_failed`, `timeout`, `invalid_output`) and helpful note, never mentions uploading a file or manual schema.
-- Untracked scratch files: `backend/_baseline.py`, `backend/_check.py`, `qa/`.
+## Known open issues
+- S0 deploy repair remains deferred: missing app.models.relational_rules on Render
+  and Python 3.14.3 rather than 3.12.10. No deployment changes in S9A.
+- Unrelated untracked scratch files and qa/ remain outside this slice.
+- In-app browser automation cannot start due to sandbox setup errors; bundled
+  headless Chrome verified the actual browser/API/data flow.
+
+## Blockers
+None for S9A. The previous provider 503/504 blocker is resolved for the verified
+flows; both live browser models returned AI available with validated results.

@@ -33,6 +33,7 @@ interface StudioContextType {
   isAnalyzingRelationships: boolean;
   analyzeRelationships: (clarification?: string, entities?: EntityMapping[]) => Promise<boolean>;
   acceptRelationships: (entities: EntityMapping[]) => Promise<boolean>;
+  buildRelationships: () => Promise<boolean>;
   activeSource: { id: number; kind: 'upload' | 'prompt' | 'demo'; prompt?: string } | null;
   datasetRevision: number;
   generatedSnapshot: { sourceId: number; revision: number; datasetId: string; storage: 'frame' | 'artifact' } | null;
@@ -212,7 +213,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     }
   }, [isCurrent]);
 
-  const runRelationships = useCallback(async (normalize: boolean, clarification: string, entities: EntityMapping[]) => {
+  const runRelationships = useCallback(async (normalize: boolean | 'build', clarification: string, entities: EntityMapping[]) => {
     const snapshot = generatedSnapshot;
     if (!snapshot || !isCurrent(snapshot.revision)) {
       setError({ message: 'Generate the current tabular dataset before analyzing relationships.' });
@@ -222,13 +223,20 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     const current = () => isCurrent(snapshot.revision) && requestId === relationshipRequestRef.current;
     setIsAnalyzingRelationships(true);
     setRelationshipResult(null);
-    if (!normalize) setRelationshipProposal(null);
+    if (normalize !== true) setRelationshipProposal(null);
     setError(null);
     const input = { dataset_id: snapshot.datasetId, storage: snapshot.storage,
       source_table: datasetSpec?.tables[0]?.name || 'Records', prompt: activeSource?.prompt || '',
       clarification, entities };
     try {
-      if (normalize) {
+      if (normalize === 'build') {
+        const built = await api.buildRelationships(input);
+        if (!current() || built.source_dataset_id !== snapshot.datasetId ||
+            built.proposal.source_dataset_id !== snapshot.datasetId ||
+            (built.result && built.result.source_dataset_id !== snapshot.datasetId)) return false;
+        setRelationshipProposal(built.proposal);
+        setRelationshipResult(built.result);
+      } else if (normalize) {
         const result = await api.normalizeRelationships(input);
         if (!current() || result.source_dataset_id !== snapshot.datasetId) return false;
         setRelationshipResult(result);
@@ -247,6 +255,9 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     runRelationships(false, clarification, (entities ?? datasetSpec?.tabular_entities ?? []).map(({ name, key, columns }) => ({ name, key, columns }))), [runRelationships, datasetSpec]);
   const acceptRelationships = useCallback((entities: EntityMapping[]) =>
     runRelationships(true, '', entities), [runRelationships]);
+  const buildRelationships = useCallback(() => runRelationships('build', '',
+    (datasetSpec?.tabular_entities ?? []).map(({ name, key, columns }) => ({ name, key, columns }))),
+    [runRelationships, datasetSpec]);
 
   const checkBackendHealth = useCallback(async (): Promise<boolean> => {
     try {
@@ -743,7 +754,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       value={{
         activeSource,
         relationshipProposal, relationshipResult, isAnalyzingRelationships,
-        analyzeRelationships, acceptRelationships,
+        analyzeRelationships, acceptRelationships, buildRelationships,
         datasetRevision,
         generatedSnapshot,
         referenceToken,

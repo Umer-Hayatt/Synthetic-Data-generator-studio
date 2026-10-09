@@ -15,7 +15,12 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
   rejoin, prompt/upload dependency preservation, full table pagination/exports.
   Verified: backend 176 passed / 1 skipped, 13 React tests, type check/build and
   live AI enrollment plus full commerce upload/rejoin/export flow.
-- S10-S12 are PLANNED in REPAIR_PLAN.md. Historical tasks below remain superseded.
+- [DONE] S9A — AI-owned relationship building (owner change, 2026-10-09).
+  Automatic AI model selection, bounded correction and exact reconstruction.
+  Fixed provider deadline/overload failures with low thinking and verified model
+  failover. Verified: 195 backend / 1 skipped, 15 React tests, type check/build;
+  live commerce normalized/rejoined/exported, students explained as one table.
+- S10-S12 are PLANNED after S9A in REPAIR_PLAN.md. Historical tasks remain superseded.
 
 ---
 
