@@ -1,13 +1,8 @@
 import React from 'react';
-import { useDialogFocus } from '../common/useDialogFocus';
+import { displayLabel, displayType } from '../../services/displayLabels';
 import { useStudio } from '../../context/StudioContext';
-import { Key, X, Sliders } from 'lucide-react';
+import { Key, Sliders } from 'lucide-react';
 import { ColumnDType, SemanticType } from '../../types';
-
-interface SchemaModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
 
 const AVAILABLE_DTYPES: ColumnDType[] = ['integer', 'float', 'string', 'boolean', 'datetime'];
 const AVAILABLE_SEMANTICS: SemanticType[] = [
@@ -22,18 +17,15 @@ const AVAILABLE_SEMANTICS: SemanticType[] = [
   'money',
 ];
 
-export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => {
+export const SchemaEditor: React.FC = () => {
   const { datasetSpec, updateColumnConfig } = useStudio();
 
-  const dialog = useDialogFocus(isOpen && !!datasetSpec?.tables.length, onClose);
-
-  if (!isOpen || !datasetSpec || !datasetSpec.tables.length) return null;
+  if (!datasetSpec?.tables.length) return null;
 
   const table = datasetSpec.tables[0];
 
   return (
-    <div className="modal-backdrop">
-      <div ref={dialog} role="dialog" aria-modal="true" aria-label="Dataset schema" tabIndex={-1} className="modal-dialog dataset-editor" style={{ maxWidth: '720px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+      <section aria-label="Dataset Schema" className="dataset-editor workspace-editor">
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -49,9 +41,6 @@ export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => 
               </span>
             </div>
           </div>
-          <button aria-label="Close schema" onClick={onClose} className="btn-ghost" style={{ padding: '4px', cursor: 'pointer', border: 'none', background: 'transparent', color: 'var(--text-muted)' }}>
-            <X size={16} />
-          </button>
         </div>
 
         {/* Scrollable Column List */}
@@ -83,13 +72,13 @@ export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => 
                         <Key size={13} style={{ color: 'var(--warning)' }} />
                       </span>
                     )}
-                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
-                      {col.name}
+                    <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
+                      {displayLabel(col.name)}
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
                     <span className="badge badge-slate" style={{ fontSize: '9px' }}>
-                      {col.dtype}
+                      {displayType(col.dtype)}
                     </span>
                     <span
                       className={`badge ${
@@ -101,7 +90,7 @@ export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => 
                       }`}
                       style={{ fontSize: '9px' }}
                     >
-                      {col.semantic_type}
+                      {displayType(col.semantic_type)}
                     </span>
                   </div>
                 </div>
@@ -139,7 +128,7 @@ export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => 
                 {/* Edit Select Controls */}
                 <div className="editor-controls" style={{ display: 'flex', gap: '8px' }}>
                   <select
-                    aria-label={`${col.name} data type`}
+                    aria-label={`${displayLabel(col.name)} Data Type`}
                     value={col.dtype}
                     onChange={(e) => updateColumnConfig(col.name, { dtype: e.target.value as ColumnDType })}
                     className="select-box font-mono"
@@ -147,12 +136,12 @@ export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => 
                   >
                     {AVAILABLE_DTYPES.map((dt) => (
                       <option key={dt} value={dt}>
-                        {dt}
+                        {displayType(dt)}
                       </option>
                     ))}
                   </select>
                   <select
-                    aria-label={`${col.name} semantic type`}
+                    aria-label={`${displayLabel(col.name)} Semantic Type`}
                     value={col.semantic_type}
                     onChange={(e) => updateColumnConfig(col.name, { semantic_type: e.target.value as SemanticType })}
                     className="select-box font-mono"
@@ -160,7 +149,7 @@ export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => 
                   >
                     {AVAILABLE_SEMANTICS.map((sem) => (
                       <option key={sem} value={sem}>
-                        {sem}
+                        {displayType(sem)}
                       </option>
                     ))}
                   </select>
@@ -170,13 +159,6 @@ export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => 
           })}
         </div>
 
-        {/* Footer */}
-        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', flexShrink: 0 }}>
-          <button onClick={onClose} className="btn btn-secondary">
-            Done
-          </button>
-        </div>
-      </div>
-    </div>
+      </section>
   );
 };

@@ -5,6 +5,13 @@
 Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 
 ## Active repair follow-up milestones (details in REPAIR_PLAN.md)
+- [DONE] S10A4 — Main-screen Schema/Privacy/Quality, settings-only right panel and replacement hero; includes pending S10A3 refinements.
+- [TODO] S10A5 — Verified Relationships sidebar workspace and clickable map of actual generated tables.
+- [SUPERSEDED] S10A3 — Data Mine identity, readable labels, restrained accent and scroll reveals.
+  Implemented; 21 frontend tests, types/build and 221 backend / 1 skipped passed.
+  Final desktop/mobile editor confirmation, independent review verdict and
+  commit/push remain. Resume from PROJECT_STATE.md and REPAIR_PLAN.md; preserve
+  current uncommitted code/assets. S10B and S11-S12 remain planned.
 - [DONE] S10A2 — Owner-requested landing, sidebar and motion redesign.
   Verified 19 frontend tests, types/build, 221 backend / 1 skipped; live prompt,
   sample, desktop/mobile and independent design review. Higgsfield asset plan-blocked.

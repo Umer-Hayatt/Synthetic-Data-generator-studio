@@ -66,21 +66,24 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `components/ingestion/EntryScreen.tsx` | CoreShift-inspired landing; real prompt/upload/sample entry and native scroll reveals |
 | `components/layout/Header.tsx` | Compact landing navigation and entry anchors |
 | `components/layout/Sidebar.tsx` | Actual dataset controls, conditional documents/quality and accessible mobile navigation |
-| `components/common/useDialogFocus.ts` | Editor keyboard containment, Escape and return focus |
 | `styles/landing.css` | Landing composition, responsive editor layout, native motion and reduced-motion support |
-| `public/media/data-hero.png` | Decorative hero illustration delivered through responsive Next Image |
-| `public/media/data-hero.prompt.md` | Exact illustration prompt and provenance |
+| `public/media/synthetic-data.png` | Generated data tiles assembling into linked table grids; responsive Next Image hero |
+| `public/media/data-mine-mark.png` | Owner-reference-derived arrow-free bluish Data Mine mark |
+| `public/media/*.prompt.md` | Exact asset prompts/provenance, also embedded into PNG metadata |
+| `components/common/Brand.tsx` | Shared Data Mine mark and legible HTML wordmark |
+| `services/displayLabels.ts` | Presentation-only readable identifiers/types and friendly known errors |
 | **components/ingestion/** | File upload, demo dataset selector & AI prompt generator (classic studio step 1) |
 | **components/configuration/** | Schema/privacy editors (classic studio step 2) |
 | **components/preview/** | Generated-data table preview (classic studio step 3) |
-| **components/quality/** | Measured quality detail modal and charts |
-| **components/schema/** | SchemaModal and PrivacyModal editors |
+| `components/quality/QualityCharts.tsx` | Reference-backed quality charts in the main workspace |
+| `components/schema/SchemaEditor.tsx` | Inline schema type/semantic editor preserving raw field keys |
+| `components/schema/PrivacyEditor.tsx` | Inline privacy controls and sensitive-field detection |
 | `components/preview/DataWorkspace.tsx` | Unified single/multiple table inspection, full paging/exports, AI model explanation and linked-record lookup |
 | `components/layout/Workspace.tsx` | One Data workspace; Documents view only for mapped document specs |
-| `components/layout/WorkspaceInsights.tsx` | Real quality/privacy/integrity summary beside data, editor access and collapsed generation settings |
+| `components/layout/GenerationSettings.tsx` | Settings-only right panel containing the existing row/seed/generate controls |
 | `components/layout/Workspace.module.css` | Responsive unified table and insights layout |
 | **components/documents/** | Reconciled documents workspace (invoices, bank statements, visual cards, PDF/ZIP/CSV/JSON export) |
-| **components/layout/** | Page shell, unified workspace and adjacent insights |
+| **components/layout/** | Page shell, sidebar views and adjacent generation settings |
 | **components/common/** | Shared UI primitives (buttons, badges, loaders) |
 | `services/api.ts` | Typed fetch wrappers for all backend endpoints |
 | `services/v2.ts` | Typed fetch wrappers for AI/relational/document job endpoints |
@@ -97,6 +100,10 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 
 ## Product and design context
 
+- `PROJECT_STATE.md` is the current handoff: S10A4 done / S10A5 next, completed checks,
+  remaining final confirmation/publication and Git/runtime state.
+- `REPAIR_PLAN.md` owns slice scope, verification records and ordered follow-ups;
+  `TASKS.md` provides its concise status index over the historical V2 plan.
 - `PRODUCT.md` records confirmed capabilities, constraints and owner references.
 - `DESIGN.md` and `.impeccable/design.json` record implemented design tokens and motion.
 

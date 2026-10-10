@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Synthetic Data Studio</title>
+        <title>Data Mine</title>
         <meta
           name="description"
           content="General-purpose schema-aware synthetic structured data platform with statistical quality evaluation."

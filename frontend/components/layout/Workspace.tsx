@@ -1,39 +1,47 @@
-import React, { useCallback, useState } from 'react';
+import React from 'react';
 import { useStudio } from '../../context/StudioContext';
 import { DataWorkspace } from '../preview/DataWorkspace';
-import { WorkspaceInsights } from './WorkspaceInsights';
+import { GenerationSettings } from './GenerationSettings';
 import { DocumentsWorkspace } from '../documents/DocumentsWorkspace';
+import { SchemaEditor } from '../schema/SchemaEditor';
+import { PrivacyEditor } from '../schema/PrivacyEditor';
+import { QualityCharts } from '../quality/QualityCharts';
 import styles from './Workspace.module.css';
-import { Sidebar, WorkspaceTool } from './Sidebar';
-import { ChevronRight, Table2, FileText } from 'lucide-react';
+import { displayLabel } from '../../services/displayLabels';
+import { Sidebar } from './Sidebar';
+import { ChevronRight } from 'lucide-react';
 
 export const Workspace: React.FC = () => {
-  const { activeTab, setActiveTab, datasetName, datasetSpec, datasetRevision, activeSource,
-    generatedRowCount } = useStudio();
-  const hasDocuments = !!datasetSpec?.documents?.length;
-  const documentsOpen = hasDocuments && activeTab === 'documents';
-  const source = activeSource?.kind === 'prompt' ? 'AI prompt' : activeSource?.kind === 'demo' ? 'Example dataset' : 'Uploaded data';
-  const [tool, setTool] = useState<WorkspaceTool | null>(null);
-  const toolHandled = useCallback(() => setTool(null), []);
+  const { activeTab, datasetName, datasetSpec, datasetRevision, activeSource,
+    generatedRowCount, generatedSnapshot, qualityResults, isEvaluatingQuality,
+    triggerQualityEvaluation, schemaNotice, clearSchemaNotice } = useStudio();
+  const documentsOpen = !!datasetSpec?.documents?.length && activeTab === 'documents';
+  const view = documentsOpen ? 'Documents' : activeTab === 'schema' ? 'Schema' :
+    activeTab === 'privacy' ? 'Privacy' : activeTab === 'quality' ? 'Quality Details' : 'Data';
+  const source = activeSource?.kind === 'prompt' ? 'AI Prompt' : activeSource?.kind === 'demo' ? 'Example Dataset' : 'Uploaded Data';
 
   return <div className={styles.frame}>
-    <Sidebar onTool={value => { if (documentsOpen) setActiveTab('preview'); setTool(value); }} />
+    <Sidebar />
     <div className={`${styles.workspace} ${styles.side}`} id="main-content" tabIndex={-1}>
-    <div className={styles.breadcrumb}><span>Workspace</span><ChevronRight size={13} /><strong>{documentsOpen ? 'Documents' : 'Data'}</strong><span className={styles.sourceLabel}>{source}</span></div>
-    <header className={styles.header}>
-      <div><h1>{datasetName || 'Your dataset'}</h1>
-        <p>{generatedRowCount ? `${generatedRowCount.toLocaleString()} generated rows` : 'Ready to generate'} · {datasetSpec?.tables[0]?.columns.length || 0} source fields</p></div>
-      {hasDocuments && <nav aria-label="Workspace view">
-        <button className={documentsOpen ? '' : styles.selected} aria-pressed={!documentsOpen}
-          onClick={() => setActiveTab('preview')}><Table2 size={14} />Data</button>
-        <button className={documentsOpen ? styles.selected : ''} aria-pressed={documentsOpen}
-          onClick={() => setActiveTab('documents')}><FileText size={14} />Documents</button>
-      </nav>}
-    </header>
-    {documentsOpen ? <main className={styles.documentBody}><DocumentsWorkspace key={datasetRevision} /></main> :
+      <div className={styles.breadcrumb}><span>Workspace</span><ChevronRight size={13} /><strong>{view}</strong><span className={styles.sourceLabel}>{source}</span></div>
+      <header className={styles.header}>
+        <div><h1>{displayLabel(datasetName || 'Your Dataset')}</h1>
+          <p>{generatedRowCount ? `${generatedRowCount.toLocaleString()} generated rows` : 'Ready to generate'} · {datasetSpec?.tables[0]?.columns.length || 0} source fields</p></div>
+      </header>
       <div className={styles.body}>
-        <main className={styles.dataRegion}><DataWorkspace key={datasetRevision} /></main>
-        <WorkspaceInsights key={datasetRevision} tool={tool} onToolHandled={toolHandled} />
-      </div>}
-  </div></div>;
+        <main className={styles.dataRegion} aria-label={`${view} workspace`}>
+          {schemaNotice && <details className={styles.notes} open={/AI unavailable|exceeds|invalid/i.test(schemaNotice)}>
+            <summary>Generation Notes</summary><p>{schemaNotice}</p><button onClick={clearSchemaNotice}>Dismiss Notice</button>
+          </details>}
+          {documentsOpen ? <DocumentsWorkspace key={datasetRevision} /> :
+            activeTab === 'schema' ? <SchemaEditor /> : activeTab === 'privacy' ? <PrivacyEditor /> :
+            activeTab === 'quality' ? qualityResults ? <QualityCharts /> : <section className={styles.empty} role="status">
+              <p>{isEvaluatingQuality ? 'Measuring quality against your reference…' : 'Generate data, then measure quality against your reference.'}</p>
+              <button disabled={isEvaluatingQuality || generatedSnapshot?.storage !== 'frame'} onClick={() => void triggerQualityEvaluation()}>Measure Quality</button>
+            </section> : <DataWorkspace key={datasetRevision} />}
+        </main>
+        <GenerationSettings />
+      </div>
+    </div>
+  </div>;
 };

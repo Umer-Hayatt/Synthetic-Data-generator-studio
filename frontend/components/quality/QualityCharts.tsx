@@ -1,21 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useDialogFocus } from '../common/useDialogFocus';
+import { displayLabel } from '../../services/displayLabels';
 import { useStudio } from '../../context/StudioContext';
 import {
-  X,
   Layers,
   BarChart2,
 } from 'lucide-react';
 
-interface QualityChartsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, onClose }) => {
+export const QualityCharts: React.FC = () => {
   const { qualityResults } = useStudio();
-
-  const dialog = useDialogFocus(isOpen && !!qualityResults, onClose);
 
   const columns = qualityResults?.columns || [];
   const numericCols = columns.filter((c) => c.kind === 'numeric' && c.histogram);
@@ -38,7 +30,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
     }
   }, [categoricalCols, selectedCatCol]);
 
-  if (!isOpen || !qualityResults) return null;
+  if (!qualityResults) return null;
 
   const {
     overall_score,
@@ -52,17 +44,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
   const activeCatCol = categoricalCols.find((c) => c.name === selectedCatCol) || categoricalCols[0];
 
   return (
-    <div className="modal-backdrop">
-      <div
-        ref={dialog} role="dialog" aria-modal="true" aria-label="Synthetic quality details" tabIndex={-1} className="modal-dialog dataset-editor"
-        style={{
-          maxWidth: '840px',
-          maxHeight: '88vh',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '24px',
-        }}
-      >
+      <section aria-label="Synthetic Quality Details" className="dataset-editor workspace-editor">
         {/* Header */}
         <div
           style={{
@@ -97,20 +79,6 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
               </span>
             </div>
           </div>
-          <button
-            aria-label="Close quality details"
-            onClick={onClose}
-            className="btn-ghost"
-            style={{
-              padding: '4px',
-              cursor: 'pointer',
-              border: 'none',
-              background: 'transparent',
-              color: 'var(--text-muted)',
-            }}
-          >
-            <X size={16} />
-          </button>
         </div>
 
         {/* Scrollable Body */}
@@ -238,7 +206,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
                     >
                       {numericCols.map((c) => (
                         <option key={c.name} value={c.name}>
-                          {c.name}
+                          {displayLabel(c.name)}
                         </option>
                       ))}
                     </select>
@@ -336,7 +304,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
                     >
                       {categoricalCols.map((c) => (
                         <option key={c.name} value={c.name}>
-                          {c.name}
+                          {displayLabel(c.name)}
                         </option>
                       ))}
                     </select>
@@ -464,7 +432,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
                     <th style={{ width: '140px' }}>Pair</th>
                     {correlation.columns.map((colName) => (
                       <th key={colName} style={{ textAlign: 'center' }}>
-                        {colName}
+                        {displayLabel(colName)}
                       </th>
                     ))}
                   </tr>
@@ -472,7 +440,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
                 <tbody>
                   {correlation.columns.map((rCol, rIdx) => (
                     <tr key={rCol}>
-                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rCol}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{displayLabel(rCol)}</td>
                       {correlation.columns.map((cCol, cIdx) => {
                         const rVal = correlation.real_matrix?.[rIdx]?.[cIdx];
                         const sVal = correlation.synthetic_matrix?.[rIdx]?.[cIdx];
@@ -507,7 +475,6 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </section>
   );
 };

@@ -1,15 +1,16 @@
 ---
-name: Synthetic Data Studio
+name: Data Mine
 description: Restrained landing and compact workspace for structured synthetic data.
 colors:
   primary: "#191919"
   primary-hover: "#333333"
-  accent: "#2858cb"
-  accent-soft: "#eef3ff"
+  accent: "#41657b"
+  accent-soft: "#edf2f5"
   background: "#fafafa"
   surface: "#ffffff"
   surface-muted: "#f5f5f5"
-  sidebar: "#f8f8f7"
+  sidebar: "#edf1f3"
+  landing: "#f8fafb"
   border-subtle: "#e8e8e8"
   border-medium: "#d1d1d1"
   text-muted: "#656565"
@@ -94,7 +95,7 @@ components:
     height: "36px"
 ---
 
-# Design System: Synthetic Data Studio
+# Design System: Data Mine
 
 ## Overview
 
@@ -102,7 +103,7 @@ components:
 
 The owner requested a CoreShift-inspired light landing, a compact Oneleet-style
 sidebar/table workspace, and scroll and transitional motion. White surfaces,
-dark text, quiet rules and selective cobalt interaction cues implement that
+dark text, quiet rules and selective slate-blue interaction cues implement that
 direction. The landing has generous breathing room; the working view prioritizes
 scanable records and adjacent controls. Avoid generic AI design patterns as
 requested by the owner.
@@ -110,17 +111,22 @@ requested by the owner.
 This document captures implemented CSS and components, not a new visual proposal.
 Sources are `frontend/styles/globals.css`, `frontend/styles/landing.css`,
 `frontend/components/layout/Workspace.module.css`, `Header.tsx`, `Sidebar.tsx`,
-`EntryScreen.tsx` and `pages/_app.tsx`. Product constraints are in `PRODUCT.md`.
+`EntryScreen.tsx`, `Brand.tsx`, `services/displayLabels.ts` and `pages/_app.tsx`.
+Product constraints are in `PRODUCT.md`.
 The owner supplied [CoreShift](https://dribbble.com/shots/25869450-Sleek-Landing-Page-for-CoreShift)
-and a Oneleet workspace image. The decorative hero was generated with built-in
-imagegen; its exact prompt and provenance are in
-`frontend/public/media/data-hero.prompt.md`. Higgsfield generation was blocked by
-the account plan; no Higgsfield media job was submitted.
+and a Oneleet workspace image, then updated interface, geometric-logo and DNA
+references. Data Mine uses an arrow-free bluish geometric mark with a legible
+HTML wordmark and translucent synthetic records assembling into linked table grids. Both assets were generated
+with built-in imagegen; exact prompts and provenance are in
+`frontend/public/media/data-mine-mark.prompt.md` and
+`frontend/public/media/synthetic-data.prompt.md`, with exact prompts retained beside the PNGs.
+Higgsfield generation was blocked by the account plan; no Higgsfield media job
+was submitted.
 
 **Key Characteristics:**
 
 - Light neutral surfaces with compact, legible working controls.
-- Cobalt marks focus, selected tables and related-record links.
+- Slate-blue marks focus, selected tables, related-record links and selected headline terms.
 - A spacious landing becomes a dense table workspace.
 - Native motion reveals structure while content remains available without it.
 - Displayed records, counts, status and reference quality come from actual state.
@@ -132,17 +138,19 @@ state rather than filling every surface.
 
 ### Primary
 
-- **Near-black:** primary actions, titles and the identity mark.
+- **Near-black:** primary actions, titles and the Data Mine wordmark.
 - **Charcoal:** body text and primary-action hover.
-- **Cobalt:** keyboard focus, linked IDs, active navigation and selected tables.
-- **Pale cobalt:** selected table controls and upload focus/drag feedback.
+- **Muted slate-blue:** keyboard focus, linked IDs, active navigation, selected
+  tables and selective headline emphasis; the geometric mark has a quiet bluish tone.
+- **Pale blue-gray:** selected table controls and upload focus/drag feedback.
 
 ### Neutral
 
-- **White:** panels, the landing and the main workspace.
+- **White:** panels, landing navigation and the main workspace.
+- **Cool near-white:** landing background and the synthetic-data image surround.
 - **Near-white:** application background and sticky table headers.
 - **Soft gray:** muted surfaces and secondary-action hover.
-- **Warm pale gray:** compact workspace sidebar.
+- **Cool pale gray:** compact workspace sidebar, distinct from the white working surface.
 - **Light gray rules:** subtle borders; stronger gray separates input surfaces.
 - **Mid-gray:** captions, field types, secondary text and navigation labels.
 
@@ -161,6 +169,14 @@ unavailable quality is not a positive score.
 Fonts are loaded by `next/font/google` with swap behavior. The active workspace
 table uses Manrope and tabular numerals; do not force its records into the legacy
 monospaced global table styling.
+
+Titles, navigation, buttons and field labels use Title Case; explanatory prose,
+helper text and placeholders use sentence case. Preserve established acronyms
+such as ID, AI, CSV and JSON. `displayLabel` and `displayType` make technical
+identifiers and types readable for display only: `student_id` becomes `Student ID`
+and `string` becomes `Text`. Raw schema keys, select values, lookup parameters,
+records and export headers remain exact. Selected hero terms use weight and
+slate-blue emphasis while the rest of the headline retains its existing hierarchy.
 
 ### Hierarchy
 
@@ -187,6 +203,11 @@ height clamped between `280px` and `580px`. Headers carry field/type labels;
 plain-language relationships sit above records, and complete CSV/JSON downloads
 stay beside table selection.
 
+Linked Records uses a flat aligned list between thin rules. Desktop rows pair
+the field relationship and its explanation in two columns
+(`minmax(150px, .7fr) minmax(0, 1.3fr)`, with a `24px` column gap). At `900px` and
+below these rows stack into one column with a `3px` gap.
+
 At `901–1150px`, sidebar and insights narrow to `192px` and `210px`. At `900px`
 and below, insights stack above data and metric rows reflow. At `768px` and
 below, landing navigation retains the creation action, workflow becomes one
@@ -196,13 +217,16 @@ and editor controls and quality comparisons stack. Mobile tables retain internal
 horizontal scrolling and have a `420px` maximum height. These are code boundaries;
 browser verification is recorded separately in the active repair plan.
 
-Motion uses the shared decelerating curve `cubic-bezier(.16, 1, .3, 1)`. Hero and
-section arrivals use short translations, clipping and a growing workflow rule
-(`550–850ms`). Workspace arrival is `400ms`, table appearance `200ms`, and sidebar
-movement `250ms`. IntersectionObserver reveals sections once at a `0.12`
-threshold. Supporting browsers add view-timeline hero recession. Motion is
-enabled under `prefers-reduced-motion: no-preference`; reduced motion also disables
-smooth landing scrolling. Content is not hidden while waiting for an observer.
+Motion uses the shared decelerating curve `cubic-bezier(.16, 1, .3, 1)`. A
+root-specific IntersectionObserver watches the internal landing scroll container
+at a `0.08` threshold and reveals each heading, form, workflow step and example
+row once. Content assembly combines clipping, opacity and a `12px` translation
+over `380ms`; the workflow connector grows over `500ms`. Hero art arrives over
+`800ms` and actions over `650ms`. Workspace arrival is `400ms`, table appearance
+`200ms`, and sidebar movement `250ms`. Supporting browsers add view-timeline hero
+recession. Motion is enabled under `prefers-reduced-motion: no-preference`;
+reduced motion also disables smooth landing scrolling. No pre-reveal hidden
+styles are used, so content stays visible without JavaScript or an observer.
 
 ## Elevation & Depth
 
@@ -219,8 +243,9 @@ thumb and modal. The working table itself has no decorative shadow.
 ## Shapes
 
 Controls use small rounded corners, table frames use the smallest radius, and
-editors use wider corners. Landing calls to action and identity marks use `7px`
-corners; the floating header uses `12px`. The creation panel uses the large radius.
+editors use wider corners. Landing calls to action use `7px` corners; the floating
+header uses `12px`. The identity uses the owner's arrow-free geometric mark.
+The creation panel uses the large radius.
 Rules remain thin (`1px`); the upload target uses a dashed border. Circular workflow
 numbers are tied to the process illustration.
 
@@ -238,7 +263,7 @@ actions. Landing primary buttons have `12px 18px` padding, `7px` corners and a
 
 Small status badges use the smallest corners, uppercase labels and state-specific
 text/background/border assignments. Neutral counts and information remain gray.
-Selected table buttons use pale cobalt with cobalt text and a visible border.
+Selected table buttons use pale blue-gray with slate-blue text and a visible border.
 
 ### Cards / Containers
 
@@ -250,13 +275,13 @@ a rule; examples use full-width rows rather than independent boxed cards.
 
 Existing small fields use white fill, subtle borders and the smallest radius.
 The landing prompt is a borderless textarea inside the creation panel, with an
-inset cobalt focus ring. Upload focus/drag states use pale cobalt and a cobalt
+inset slate-blue focus ring. Upload focus/drag states use pale blue-gray and a slate-blue
 border. Errors are exposed as alerts; submitted input becomes busy and disabled.
 
 ### Navigation
 
 Landing anchors lead to working page sections. Workspace rows have small icons,
-compact labels, hover fill and a white active row with cobalt text. Documents and
+compact labels, hover fill and a white active row with slate-blue text. Documents and
 reference-quality controls appear only when supported by the current source.
 On mobile, navigation contains keyboard focus, closes with Escape and restores
 focus to its trigger. Prompt/upload tabs support arrow-key switching.
@@ -264,24 +289,25 @@ focus to its trigger. Prompt/upload tabs support arrow-key switching.
 ### Data inspection
 
 Sticky field headers, subtle alternating rows, tabular numerals and underlined
-cobalt links support scanning. Related-record links perform actual lookups.
+slate-blue links support scanning. Related-record links perform actual lookups.
 Pagination and full-table downloads preserve the generated snapshot. Keep quality
 details tied to a reference and retain unavailable, pending and failed states.
 
-Keyboard focus uses visible cobalt outlines: `2px` with `4px` offset on landing
+Keyboard focus uses visible slate-blue outlines: `2px` with `4px` offset on landing
 controls, `3px` in the workspace and `2px` in the sidebar. The prompt uses an inset
-ring, upload uses focus-within, and a skip link reaches main content. Editor focus
-containment and return focus live in `useDialogFocus.ts`.
+ring, upload uses focus-within, and a skip link reaches main content. Schema, Privacy and Quality occupy the main workspace. Sidebar selection uses aria-current; ordinary Tab navigation stays available.
 
 ## Do's and Don'ts
 
 ### Do:
 
 - **Do** preserve compact working controls, sticky field headers and full-table downloads.
-- **Do** use cobalt for keyboard focus, selected controls and real related-record links.
+- **Do** use slate-blue for keyboard focus, selected controls and real related-record links.
 - **Do** keep records, counts and measured quality tied to the active source and snapshot.
 - **Do** keep content available with reduced motion or unsupported animation timelines.
 - **Do** retain decorative-image provenance separately from generated dataset output.
+- **Do** use Title Case interface labels and sentence-case helper prose while preserving raw data contracts.
+- **Do** retain the arrow-free Data Mine mark, readable wordmark and translucent synthetic records assembling into linked table grids.
 
 ### Don't:
 

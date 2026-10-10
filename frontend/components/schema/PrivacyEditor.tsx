@@ -1,21 +1,24 @@
-import React from 'react';
-import { useDialogFocus } from '../common/useDialogFocus';
+import React, { useMemo } from 'react';
+import { displayLabel, displayType } from '../../services/displayLabels';
 import { useStudio } from '../../context/StudioContext';
-import { Shield, ShieldAlert, ShieldCheck, X } from 'lucide-react';
+import { Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { ColumnSpec } from '../../types';
 
-interface PrivacyModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  sensitiveColumns: Set<string>;
-}
+export const PrivacyEditor: React.FC = () => {
+  const { datasetSpec, updateColumnConfig, sensitiveColumns: detected, inferredSchema } = useStudio();
+  const sensitiveColumns = useMemo(() => {
+    const names = new Set(detected);
+    if (Array.isArray(inferredSchema)) inferredSchema.forEach((column: { name: string; is_sensitive?: boolean }) => {
+      if (column.is_sensitive) names.add(column.name);
+    });
+    datasetSpec?.tables[0]?.columns.forEach(column => {
+      if (['person_name', 'email', 'phone', 'address'].includes(column.semantic_type) ||
+        /email|phone|ssn|credit_card/i.test(column.name)) names.add(column.name);
+    });
+    return names;
+  }, [detected, inferredSchema, datasetSpec]);
 
-export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sensitiveColumns }) => {
-  const { datasetSpec, updateColumnConfig } = useStudio();
-
-  const dialog = useDialogFocus(isOpen && !!datasetSpec?.tables.length, onClose);
-
-  if (!isOpen || !datasetSpec || !datasetSpec.tables.length) return null;
+  if (!datasetSpec?.tables.length) return null;
 
   const table = datasetSpec.tables[0];
 
@@ -50,8 +53,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
   };
 
   return (
-    <div className="modal-backdrop">
-      <div ref={dialog} role="dialog" aria-modal="true" aria-label="Privacy settings" tabIndex={-1} className="modal-dialog dataset-editor" style={{ maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+      <section aria-label="Privacy Settings" className="dataset-editor workspace-editor">
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -67,9 +69,6 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
               </span>
             </div>
           </div>
-          <button aria-label="Close privacy settings" onClick={onClose} className="btn-ghost" style={{ padding: '4px', cursor: 'pointer', border: 'none', background: 'transparent', color: 'var(--text-muted)' }}>
-            <X size={16} />
-          </button>
         </div>
 
         {/* Quick action bar if sensitive fields exist */}
@@ -130,8 +129,8 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
                 {/* Column details */}
                 <div className="editor-identity" style={{ minWidth: '220px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
-                      {col.name}
+                    <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
+                      {displayLabel(col.name)}
                     </span>
                     {isSensitive ? (
                       <span className="badge badge-amber" style={{ fontSize: '9px' }}>
@@ -144,7 +143,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
                     )}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Type: {col.dtype} ({col.semantic_type})
+                    Type: {displayType(col.dtype)} ({displayType(col.semantic_type)})
                   </div>
                 </div>
 
@@ -158,16 +157,16 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
                     )}
                   </span>
                   <select
-                    aria-label={`${col.name} privacy method`}
+                    aria-label={`${displayLabel(col.name)} Privacy Method`}
                     value={privacyVal}
                     onChange={(e) => handlePrivacyChange(col.name, e.target.value)}
                     className="select-box font-mono"
                     style={{ fontSize: '11px', padding: '5px 8px', minWidth: '170px' }}
                   >
-                    <option value="none">None (Synthetic)</option>
+                    <option value="none">None — Synthetic Data</option>
                     <option value="mask">Mask (***)</option>
                     <option value="hash">Hash (SHA-256)</option>
-                    {isNumeric && <option value="noise">Gaussian Noise (1.0s)</option>}
+                    {isNumeric && <option value="noise">Gaussian Noise (Standard Deviation: 1)</option>}
                   </select>
                 </div>
               </div>
@@ -175,13 +174,6 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
           })}
         </div>
 
-        {/* Footer */}
-        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', flexShrink: 0 }}>
-          <button onClick={onClose} className="btn btn-secondary">
-            Done
-          </button>
-        </div>
-      </div>
-    </div>
+      </section>
   );
 };

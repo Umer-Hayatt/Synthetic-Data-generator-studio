@@ -1,5 +1,5 @@
 export type DataTypeMode = 'tabular' | 'relational' | 'documents';
-export type WorkspaceTab = 'preview' | 'schema' | 'quality' | 'relational' | 'documents';
+export type WorkspaceTab = 'preview' | 'schema' | 'privacy' | 'quality' | 'relational' | 'documents';
 
 export type ColumnDType = 'integer' | 'float' | 'boolean' | 'string' | 'datetime';
 export type SemanticType =

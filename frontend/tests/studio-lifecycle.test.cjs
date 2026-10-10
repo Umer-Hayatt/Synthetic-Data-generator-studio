@@ -123,15 +123,17 @@ test('one table keeps settings beside data and never invents reference quality',
     evaluateQuality: async () => ({ overall_score: 99, score_status: 'available' }),
   } });
   await act(async () => { await h.state.loadFromAiPrompt('Current'); });
-  assert.doesNotMatch(visibleText(h.renderer.toJSON()), /No reference|Quality details/);
+  assert.doesNotMatch(visibleText(h.renderer.toJSON()), /No reference|Quality Details/);
   assert.doesNotMatch(visibleText(h.renderer.toJSON()), /99%/);
   assert.equal(h.renderer.root.findAll(node => node.props['aria-label'] === 'Generated tables').length, 0);
   assert.equal(findButton(h, 'Documents'), undefined);
-  await act(async () => findButton(h, 'Privacy Settings').props.onClick());
+  await act(async () => findButton(h, 'Privacy').props.onClick());
   assert.ok(h.renderer.root.findAllByType('h3').some(node => visibleText(node).includes('Privacy Settings')));
+  assert.equal(h.renderer.root.findAllByProps({ role: 'dialog' }).length, 0);
+  await act(async () => h.state.setActiveTab('preview'));
   assert.ok(h.renderer.root.findAllByType('td').some(node => visibleText(node) === 'Current'));
   act(() => h.state.updateGlobalConfig({seed: 90}));
-  assert.match(visibleText(h.renderer.toJSON()), /Not generated/);
+  assert.match(visibleText(h.renderer.toJSON()), /Generate data to see the table/);
   assert.equal(h.renderer.root.findAllByType('a').length, 0);
 });
 
@@ -140,17 +142,25 @@ test('sidebar editors preserve the snapshot and new dataset clears the active so
   await act(async () => { await h.state.loadFromAiPrompt('Current'); });
   const snapshot = h.state.generatedSnapshot;
   const source = h.state.activeSource;
-  const nav = () => h.renderer.root.findByProps({'aria-label': 'Studio navigation'});
+  const nav = () => h.renderer.root.findByProps({'aria-label': 'Studio Navigation'});
   const navButton = name => nav().findAllByType('button').find(node => visibleText(node) === name);
   await act(async () => navButton('Schema').props.onClick());
   assert.ok(h.renderer.root.findAllByType('h3').some(node => visibleText(node).startsWith('Dataset Schema')));
-  await act(async () => h.renderer.root.findByProps({'aria-label': 'Close schema'}).props.onClick());
+  assert.equal(navButton('Schema').props['aria-current'], 'page');
+  assert.equal(h.renderer.root.findAllByProps({ role: 'dialog' }).length, 0);
   await act(async () => navButton('Privacy').props.onClick());
   assert.ok(h.renderer.root.findAllByType('h3').some(node => visibleText(node) === 'Privacy Settings'));
   assert.equal(h.state.generatedSnapshot, snapshot);
   assert.equal(h.state.activeSource, source);
-  assert.equal(navButton('Quality details'), undefined);
-  await act(async () => h.renderer.root.findAllByType('button').find(node => visibleText(node).trim() === 'New dataset').props.onClick());
+  assert.equal(navButton('Quality Details'), undefined);
+  assert.equal(navButton('Generation Settings'), undefined);
+  assert.equal(h.renderer.root.findByProps({ 'aria-label': 'Generation Settings' }).findAllByType('button').length, 0);
+  await act(async () => h.renderer.root.findByProps({ 'aria-label': 'Value Privacy Method' }).props.onChange({ target: { value: 'hash' } }));
+  assert.equal(h.state.activeTab, 'privacy');
+  assert.deepEqual(h.state.datasetSpec.tables[0].columns[1].privacy_rule, { method: 'hash' });
+  assert.equal(h.state.generatedSnapshot, null);
+  assert.equal(h.state.activeSource, source);
+  await act(async () => h.renderer.root.findAllByType('button').find(node => visibleText(node).trim() === 'New Dataset').props.onClick());
   assert.equal(h.state.generatedSnapshot, null);
   assert.equal(h.state.datasetSpec, null);
   assert.equal(h.state.activeSource, null);
@@ -161,7 +171,7 @@ test('sidebar document and data navigation keeps the generated artifact ownershi
   await act(async () => { await h.state.loadBankingRelational(); });
   const snapshot = h.state.generatedSnapshot;
   const manifest = h.state.documentManifestId;
-  const nav = () => h.renderer.root.findByProps({'aria-label': 'Studio navigation'});
+  const nav = () => h.renderer.root.findByProps({'aria-label': 'Studio Navigation'});
   await act(async () => nav().findAllByType('button').find(node => visibleText(node) === 'Documents').props.onClick());
   assert.equal(h.state.activeTab, 'documents');
   await act(async () => nav().findAllByType('button').find(node => visibleText(node).startsWith('Data')).props.onClick());
@@ -193,7 +203,7 @@ test('linked records filter complete parent data and ignore superseded page resp
   assert.ok(requests.some(request => request.id==='children' && request.offset===25));
   await act(async () => findButton(h, 'Customers (3)').props.onClick());
   await act(async () => findButton(h, 'Orders (70)').props.onClick());
-  const link=h.renderer.root.findAllByType('button').find(node=>node.props['aria-label']==='Open Customers record for value 3');
+  const link=h.renderer.root.findAllByType('button').find(node=>node.props['aria-label']==='Open Customers record for Value 3');
   await act(async () => link.props.onClick());
   assert.deepEqual(requests.at(-1).filter,{column:'id',value:3,from:'Orders'});
   assert.match(visibleText(h.renderer.toJSON()), /1 matching rows/);
@@ -329,7 +339,7 @@ test('AI failure remains a retryable failure and does not loop or ask for mappin
   assert.equal(h.state.relationshipResult, null);
   assert.equal(h.renderer.root.findAllByType('textarea').length, 0);
   assert.match(JSON.stringify(h.renderer.toJSON()), /provider rejected the model request/);
-  await act(async () => h.renderer.root.findAllByType('button').find(b => b.props.children === 'Retry relationships').props.onClick());
+  await act(async () => h.renderer.root.findAllByType('button').find(b => b.props.children === 'Retry Relationships').props.onClick());
   assert.equal(calls, 2);
 });
 
@@ -448,4 +458,47 @@ test('a cancelled generation never publishes a manifest or a success snapshot', 
   assert.equal(h.state.documentManifestId, null);
   assert.deepEqual(h.state.tableArtifactMap, {});
   assert.doesNotMatch(visibleText(h.renderer.toJSON()), /Accounts \(\d+\)/);
+});
+
+
+test('readable labels preserve raw field keys, selector values and complete export identity', async t => {
+  const raw = spec('hospital_patients_dataset');
+  raw.tables[0].name = 'linked_records';
+  raw.tables[0].columns[1].name = 'full_name';
+  raw.tables[0].columns[1].semantic_type = 'person_name';
+  const h = await mount(t, { api: {
+    promptSpec: async () => ({ status: 'review_required', spec: raw }),
+    fetchPreview: async () => ({ rows: [{ id: 1, full_name: 'Name_With_Underscores' }], row_count: 3 }),
+  } });
+  await act(async () => { await h.state.loadFromAiPrompt('A patient dataset'); });
+  assert.equal(h.state.datasetSpec.tables[0].name, 'linked_records');
+  assert.equal(h.state.datasetSpec.tables[0].columns[1].name, 'full_name');
+  assert.ok(h.renderer.root.findAllByType('th').some(node => visibleText(node).startsWith('Full Name')));
+  assert.ok(h.renderer.root.findAllByType('td').some(node => visibleText(node) === 'Name_With_Underscores'));
+  await act(async () => findButton(h, 'Schema').props.onClick());
+  assert.match(visibleText(h.renderer.toJSON()), /Full Name|Person Name/);
+  assert.ok(h.renderer.root.findAllByType('option').some(node => node.props.value === 'person_name' && visibleText(node) === 'Person Name'));
+  await act(async () => h.state.setActiveTab('preview'));
+  assert.ok(h.renderer.root.findAllByType('a').some(node => node.props.href === '/export/csv/generated-hospital_patients_dataset'));
+});
+
+
+test('readable connection errors allow preview retry without replacing the dataset', async t => {
+  let attempts = 0;
+  const h = await mount(t, { api: {
+    fetchPreview: async () => {
+      if (++attempts === 1) throw new Error('Generation error: Failed to fetch');
+      return { rows: [{ id: 1, value: 'Retained' }], row_count: 3 };
+    },
+  } });
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); });
+  const snapshot = h.state.generatedSnapshot;
+  const source = h.state.activeSource;
+  assert.match(visibleText(h.renderer.toJSON()), /Could not connect to the server/);
+  assert.doesNotMatch(visibleText(h.renderer.toJSON()), /Failed to fetch/);
+  assert.ok(h.renderer.root.findAllByType('a').some(node => node.props.href === '/export/csv/generated-Current'));
+  await act(async () => findButton(h, 'Reload Table').props.onClick());
+  assert.ok(h.renderer.root.findAllByType('td').some(node => visibleText(node) === 'Retained'));
+  assert.equal(h.state.generatedSnapshot, snapshot);
+  assert.equal(h.state.activeSource, source);
 });

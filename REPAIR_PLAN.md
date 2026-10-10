@@ -16,6 +16,73 @@ Do not invent requirements. Do not refactor unrelated working code. Never commit
 
 ## Slices
 
+### S10A4 — Main-screen workspace controls and synthetic-data hero — DONE (2026-10-10)
+- Owner supersedes the pending S10A3 confirmation with two ordered slices.
+- Carry forward the existing uncommitted S10A3 refinements; show Data, Schema,
+  Privacy and Quality in the main workspace with active sidebar navigation.
+- Right sidebar contains generation settings only; remove duplicate navigation
+  and edit/summary actions there. Replace DNA with thematic synthetic-data artwork.
+- Preserve source/snapshot invalidation, raw schema/select values, paging, full
+  exports, documents and responsive/keyboard navigation. Verify and commit first.
+- Verified 21 frontend tests, TypeScript/build and backend 221 passed / 1 skipped.
+  Live Banking 10 Accounts / 50 Transactions; desktop/mobile inline editors,
+  active sidebar, raw select values and zero dialogs passed; mobile width 390px.
+  Replaced dead modal modules with editors/charts; removed unused focus hook and
+  old hero assets. Historical frozen benchmarks remain as prior-slice evidence.
+
+### S10A5 — Verified Relationships workspace — PLANNED (2026-10-10)
+- After S10A4, add sidebar Relationships with clickable table nodes, actual counts,
+  key connections, observed cardinality and integrity evidence from generated data.
+- Reuse existing AI discovery plus full-row deterministic validation/exact rejoin.
+  Never invent edges or label declared artifact relations as fully audited.
+- Cover unavailable AI, single-table outcomes, stale output and table navigation;
+  verify, update state and commit as the second slice. S10B remains separate.
+
+### S10A3 — Data Mine wording, identity and motion refinement — SUPERSEDED BY S10A4 (2026-10-10)
+- Owner requests consistent Title Case labels and sentence-case helper prose,
+  display-only identifier cleanup, aligned Linked Records, muted blue-gray accent
+  and sidebar distinction; preserve structure, raw keys, values and functionality.
+- Data Mine wordmark and arrow-free bluish mark from supplied logo; replace old
+  hero with neutral synthetic DNA imagery, ignoring the reference green palette.
+- Progressive viewport reveals with quick restrained motion and reduced-motion
+  / no-JavaScript visibility; inspect landing/data/editors desktop and mobile.
+- Verify source/lookup/export contracts, frontend tests/type/build, backend suite,
+  bounded fresh independent review and updated design documentation; push then stop.
+- Handoff (2026-10-10): implementation is complete in the working tree; owner
+  requested updated Markdown to continue in a new chat. Keep IN_PROGRESS until
+  the remaining confirmation and publication steps below are complete.
+- Implemented displayLabels.ts and shared Brand.tsx; readable presentation in
+  workspace/table/quality/editor views with raw contracts retained. New muted
+  arrow-free mark and glass DNA PNGs have adjacent exact prompt/provenance files
+  and embedded PNG metadata. Removed the obsolete cube hero and its prompt file.
+- Quiet accent #41657b, landing #f8fafb, sidebar #edf1f3; selected headline words
+  emphasized. Linked Records uses an aligned flat list that stacks below 900px.
+  Landing observer uses its internal scroll root, threshold .08 and once-only
+  380ms content reveals; reduced-motion and visible no-JavaScript defaults remain.
+- Latest recorded verification after the correction batch: 21 frontend tests,
+  npx tsc --noEmit and production build passed; 221 backend passed / 1 skipped.
+  Tests cover readable labels while retaining raw cell/select/export identity
+  and recovery from a prefixed connection error without replacing the snapshot.
+- Live banking: 10 Accounts / 50 Transactions and one matching linked account.
+  Live prompt: retained 40 generated rows and full CSV40; latest relationship
+  request reached provider quota. This is not a fresh complete AI relationship pass.
+- First independent review requested five material corrections, now applied:
+  blend the DNA background, reveal each workflow step and the examples heading,
+  sentence-case placeholder, sans-serif editor field identities, and readable
+  known errors with the Generation error prefix. No further composition changes.
+- Final landing desktop/mobile and workflow captures refreshed; source/computed
+  style confirmed three workflow steps with 380ms animation. Current browser had
+  reduced-motion false; the reduced-motion path was source-inspected, not emulated.
+  Local screenshots: qa/refinement/. Schema/Privacy confirmations remain pending
+  after the final batch; clear incidental selection in desktop Privacy capture.
+- Next: complete the bounded desktop/mobile Data/Schema/Privacy confirmation,
+  obtain final independent disposition resolving the five findings, inspect the
+  full diff, mark DONE, commit and push origin/main. Do not resume S10B yet.
+- PRODUCT.md, DESIGN.md, .impeccable/design.json and CODEMAP.md are updated.
+  Impeccable launcher/detector failed with cache_directory_failed; no automated
+  detector success is claimed. Higgsfield remains plan-blocked; new assets used
+  built-in imagegen. Backend preview/constraint repairs remain outside this slice.
+
 ### S10A2 — Owner-requested frontend redesign — DONE (2026-10-10)
 - Owner resumed the redesign after S0A publication. Use the CoreShift landing
   reference and supplied compact sidebar/table screenshot as the visual brief.
@@ -490,4 +557,3 @@ relationships or silently modify source values to make a proposed model pass.
 - Test source changes during pending jobs and switching tabs after regeneration.
 - Update this plan, PROJECT_STATE.md, TASKS.md and CODEMAP.md as each slice's scope
   requires. Stop after the verified slice commit; S0 remains deferred.
-

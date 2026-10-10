@@ -44,9 +44,10 @@
 
   --border-default: var(--border-medium);
   --border-strong: #a3a3a3;
-  --border-focus: #2858cb;
-  --accent: #2858cb;
-  --accent-soft: #eef3ff;
+  --border-focus: #41657b;
+  --accent: #41657b;
+  --accent-soft: #edf2f5;
+  --sidebar-surface: #edf1f3;
   --motion-ease: cubic-bezier(.16, 1, .3, 1);
 
   --text-title: var(--text-primary);

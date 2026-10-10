@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStudio } from '../../context/StudioContext';
 import { api } from '../../services/api';
 import { TableSpec } from '../../types';
+import { displayLabel, displayType, displayMessage } from '../../services/displayLabels';
 import styles from '../layout/Workspace.module.css';
 
 type ViewTable = TableSpec & { dataset_id?: string; storage: 'frame' | 'artifact' };
@@ -76,47 +77,50 @@ export function DataWorkspace() {
           const count = !generatedSnapshot ? undefined : t.storage === 'frame' ? t.row_count :
             t.dataset_id ? knownCounts[t.dataset_id] : undefined;
           return <button key={t.name} className={table?.name === t.name ? styles.selected : ''}
-            aria-pressed={table?.name === t.name} onClick={() => select(t.name)}>{t.name}{count === undefined ? '' : ` (${count.toLocaleString()})`}</button>;
+            aria-pressed={table?.name === t.name} onClick={() => select(t.name)}>{displayLabel(t.name)}{count === undefined ? '' : ` (${count.toLocaleString()})`}</button>;
         })}
-      </div> : <h2>{table?.name || 'Data'}</h2>}
-      {csv && <div className={styles.downloads}><a href={csv}>Download full CSV</a>
-        <a href={json}>Download full {table?.storage === 'artifact' ? 'JSONL' : 'JSON'}</a></div>}
+      </div> : <h2>{displayLabel(table?.name || 'Data')}</h2>}
+      {csv && <div className={styles.downloads}><a href={csv}>Download Full CSV</a>
+        <a href={json}>Download Full {table?.storage === 'artifact' ? 'JSONL' : 'JSON'}</a></div>}
     </div>
-    {generatedSnapshot && (outgoing.length > 0 || incoming.length > 0) && <section className={styles.connections} aria-label="Linked records">
-      <h3>Linked records</h3>
-      {outgoing.map(fk => <p key={fk.column}>Each <strong>{table!.name}</strong> row links to one record in <strong>{fk.reference_table}</strong>.
-        {' '}Select a blue <strong>{fk.column.replace(/_/g, ' ')}</strong> below to open that record.</p>)}
-      {incoming.map(fk => <p key={`${fk.child}.${fk.column}`}>One {table!.name} record can have {fk.cardinality === '1:1' ? 'one linked row' : 'multiple linked rows'} in {fk.child}.
-        {' '}Open <button onClick={() => select(fk.child)}>{fk.child}</button> to explore those links.</p>)}
+    {generatedSnapshot && (outgoing.length > 0 || incoming.length > 0) && <section className={styles.connections} aria-label="Linked Records">
+      <h3>Linked Records</h3>
+      <ul className={styles.connectionList}>
+      {outgoing.map(fk => <li key={fk.column}><strong>{displayLabel(table!.name)} <span aria-hidden="true">→</span> {displayLabel(fk.reference_table)}</strong>
+        <p>Each row links to one record. Select a linked <strong>{displayLabel(fk.column)}</strong> below to open it.</p></li>)}
+      {incoming.map(fk => <li key={`${fk.child}.${fk.column}`}><strong>{displayLabel(table!.name)} <span aria-hidden="true">→</span> {displayLabel(fk.child)}</strong>
+        <p>Each record can have {fk.cardinality === '1:1' ? 'one linked row' : 'multiple linked rows'}.
+        {' '}Open <button onClick={() => select(fk.child)}>{displayLabel(fk.child)}</button> to explore them.</p></li>)}
+      </ul>
     </section>}
     {busy && <p className={styles.modelStatus} role="status">Checking for linked tables… Your generated rows are ready below.</p>}
     {proposal && !result && <div className={styles.notice} role="alert">
       <p>{failures[proposal.ai_status] || proposal.explanation || 'The relationship model could not be built.'} Your generated data is retained.</p>
-      <button disabled={busy} onClick={() => void buildRelationships()}>Retry relationships</button>
+      <button disabled={busy} onClick={() => void buildRelationships()}>Retry Relationships</button>
     </div>}
     {generatedSnapshot && !busy && !proposal && !result && error && <div className={styles.notice} role="alert">
       <p>The table model could not be checked. Your generated data is retained.</p>
-      <button onClick={() => void buildRelationships()}>Retry relationships</button>
+      <button onClick={() => void buildRelationships()}>Retry Relationships</button>
     </div>}
-    {filter && <div className={styles.filterStatus}><span>{table?.name}: {filter.column} = {String(filter.value)}</span>
-      <button onClick={() => select(filter.from)}>Back to {filter.from}</button>
-      <button onClick={() => { setFilter(undefined); setPage(0); }}>Show all records</button></div>}
+    {filter && <div className={styles.filterStatus}><span>{displayLabel(table?.name || 'Data')}: {displayLabel(filter.column)} = {String(filter.value)}</span>
+      <button onClick={() => select(filter.from)}>Back to {displayLabel(filter.from)}</button>
+      <button onClick={() => { setFilter(undefined); setPage(0); }}>Show All Records</button></div>}
     {!generatedSnapshot ? <div className={styles.empty} role="status">{isGenerating ? 'Generating your data…' : 'Generate data to see the table.'}</div> :
-      previewError ? <div className={styles.notice} role="alert"><p>{previewError}</p>
-        <button onClick={() => setReload(value => value + 1)}>Reload table</button></div> :
+      previewError ? <div className={styles.notice} role="alert"><p>{displayMessage(previewError)}</p>
+        <button onClick={() => setReload(value => value + 1)}>Reload Table</button></div> :
       loading ? <p className={styles.empty} role="status">Loading rows…</p> :
-      <div className={styles.tableScroll} tabIndex={0} aria-label={`${table?.name || 'Data'} rows`}>
-        <table className={styles.table}><thead><tr>{table?.columns.map(c => <th key={c.name} scope="col">{c.name}
-          <span className={styles.columnType}>{c.dtype}{table.primary_key === c.name ? ' · unique ID' :
-            outgoing.some(fk => fk.column === c.name) ? ' · linked ID' : ''}</span></th>)}</tr></thead>
+      <div className={styles.tableScroll} tabIndex={0} aria-label={`${displayLabel(table?.name || 'Data')} Rows`}>
+        <table className={styles.table}><thead><tr>{table?.columns.map(c => <th key={c.name} scope="col">{displayLabel(c.name)}
+          <span className={styles.columnType}>{displayType(c.dtype)}{table.primary_key === c.name ? ' · Unique ID' :
+            outgoing.some(fk => fk.column === c.name) ? ' · Linked ID' : ''}</span></th>)}</tr></thead>
           <tbody>{rows.map((row, index) => <tr key={index}>{table?.columns.map(c => {
             const value = row[c.name];
             const fk = table.foreign_keys?.find(link => link.column === c.name && tables.some(t => t.name === link.reference_table));
             return <td key={c.name}>{fk && value != null ? <button className={styles.keyLink}
-              aria-label={`Open ${fk.reference_table} record for ${c.name} ${String(value)}`}
+              aria-label={`Open ${displayLabel(fk.reference_table)} record for ${displayLabel(c.name)} ${String(value)}`}
               onClick={() => { setTableName(fk.reference_table); setPage(0);
                 setFilter({ column: fk.reference_column, value, from: table.name }); }}>{String(value)}</button> :
-              value == null ? <span className={styles.null}>null</span> : String(value)}</td>;
+              value == null ? <span className={styles.null}>—</span> : String(value)}</td>;
           })}</tr>)}{!rows.length && <tr><td colSpan={table?.columns.length || 1}>No records match this view.</td></tr>}</tbody>
         </table>
       </div>}
@@ -126,18 +130,18 @@ export function DataWorkspace() {
         <span>Page {page + 1} of {Math.max(1, Math.ceil(total / 25))}</span>
         <button disabled={(page + 1) * 25 >= total || loading} onClick={() => setPage(p => p + 1)}>Next</button></div>
     </div>}
-    {result && <details className={styles.relationshipDetails}><summary>Model details & original data</summary>
+    {result && <details className={styles.relationshipDetails}><summary>Model Details & Original Data</summary>
       <p>{proposal?.explanation}</p>
       {result.tables.map(t => <div key={t.name}>{t.foreign_keys?.map(fk => <p key={fk.column}>
-        <strong>{t.name}.{fk.column}</strong> → <strong>{fk.reference_table}.{fk.reference_column}</strong>.
-        {fk.min_children != null && fk.max_children != null && <> Observed: {fk.min_children}–{fk.max_children} linked rows per {fk.reference_table} record.</>}</p>)}</div>)}
+        <strong>{displayLabel(t.name)} · {displayLabel(fk.column)}</strong> → <strong>{displayLabel(fk.reference_table)} · {displayLabel(fk.reference_column)}</strong>.
+        {fk.min_children != null && fk.max_children != null && <> Observed: {fk.min_children}–{fk.max_children} linked rows per {displayLabel(fk.reference_table)} record.</>}</p>)}</div>)}
       <p>{result.integrity.primary_keys_unique ? 'Keys are unique.' : 'Duplicate keys detected.'} {result.integrity.orphan_foreign_keys} broken links.
         {' '}{result.integrity.lossless ? 'All original rows and values are preserved.' : 'Source preservation failed.'}</p>
-      <button onClick={() => { setUseOriginal(value => !value); setPage(0); }}>{useOriginal ? 'Show linked tables' : 'Original snapshot'}</button>
+      <button onClick={() => { setUseOriginal(value => !value); setPage(0); }}>{useOriginal ? 'Show Linked Tables' : 'Original Snapshot'}</button>
     </details>}
-    {referenceRowCount > 0 && <details className={styles.relationshipDetails}><summary>Original reference sample</summary>
+    {referenceRowCount > 0 && <details className={styles.relationshipDetails}><summary>Original Reference Sample</summary>
       <p>{referencePreview.length} cached rows from {referenceRowCount.toLocaleString()} reference rows.</p>
-      <div className={styles.tableScroll}><table className={styles.table}><thead><tr>{Object.keys(referencePreview[0] || {}).map(c => <th key={c}>{c}</th>)}</tr></thead>
+      <div className={styles.tableScroll}><table className={styles.table}><thead><tr>{Object.keys(referencePreview[0] || {}).map(c => <th key={c}>{displayLabel(c)}</th>)}</tr></thead>
         <tbody>{referencePreview.map((row, i) => <tr key={i}>{Object.keys(referencePreview[0] || {}).map(c => <td key={c}>{String(row[c] ?? 'null')}</td>)}</tr>)}</tbody></table></div>
     </details>}
   </section>;
