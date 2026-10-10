@@ -65,6 +65,9 @@ export function DataWorkspace() {
     api.getExportUrl('csv', table.dataset_id) : undefined;
   const json = table?.dataset_id ? table.storage === 'artifact' ? api.getArtifactExportUrl('jsonl', table.dataset_id) :
     api.getExportUrl('json', table.dataset_id) : undefined;
+  const outgoing = table?.foreign_keys?.filter(fk => tables.some(t => t.name === fk.reference_table)) || [];
+  const incoming = tables.flatMap(t => (t.foreign_keys || []).filter(fk => fk.reference_table === table?.name)
+    .map(fk => ({ child: t.name, ...fk })));
 
   return <section className={styles.tableSection} aria-label="Generated data">
     <div className={styles.tableToolbar}>
@@ -79,6 +82,13 @@ export function DataWorkspace() {
       {csv && <div className={styles.downloads}><a href={csv}>Download full CSV</a>
         <a href={json}>Download full {table?.storage === 'artifact' ? 'JSONL' : 'JSON'}</a></div>}
     </div>
+    {generatedSnapshot && (outgoing.length > 0 || incoming.length > 0) && <section className={styles.connections} aria-label="Linked records">
+      <h3>Linked records</h3>
+      {outgoing.map(fk => <p key={fk.column}>Each <strong>{table!.name}</strong> row links to one record in <strong>{fk.reference_table}</strong>.
+        {' '}Select a blue <strong>{fk.column.replace(/_/g, ' ')}</strong> below to open that record.</p>)}
+      {incoming.map(fk => <p key={`${fk.child}.${fk.column}`}>One {table!.name} record can have {fk.cardinality === '1:1' ? 'one linked row' : 'multiple linked rows'} in {fk.child}.
+        {' '}Open <button onClick={() => select(fk.child)}>{fk.child}</button> to explore those links.</p>)}
+    </section>}
     {busy && <p className={styles.modelStatus} role="status">Checking for linked tables… Your generated rows are ready below.</p>}
     {proposal && !result && <div className={styles.notice} role="alert">
       <p>{failures[proposal.ai_status] || proposal.explanation || 'The relationship model could not be built.'} Your generated data is retained.</p>
@@ -96,7 +106,9 @@ export function DataWorkspace() {
         <button onClick={() => setReload(value => value + 1)}>Reload table</button></div> :
       loading ? <p className={styles.empty} role="status">Loading rows…</p> :
       <div className={styles.tableScroll} tabIndex={0} aria-label={`${table?.name || 'Data'} rows`}>
-        <table className={styles.table}><thead><tr>{table?.columns.map(c => <th key={c.name} scope="col">{c.name}</th>)}</tr></thead>
+        <table className={styles.table}><thead><tr>{table?.columns.map(c => <th key={c.name} scope="col">{c.name}
+          <span className={styles.columnType}>{c.dtype}{table.primary_key === c.name ? ' · unique ID' :
+            outgoing.some(fk => fk.column === c.name) ? ' · linked ID' : ''}</span></th>)}</tr></thead>
           <tbody>{rows.map((row, index) => <tr key={index}>{table?.columns.map(c => {
             const value = row[c.name];
             const fk = table.foreign_keys?.find(link => link.column === c.name && tables.some(t => t.name === link.reference_table));
@@ -114,12 +126,11 @@ export function DataWorkspace() {
         <span>Page {page + 1} of {Math.max(1, Math.ceil(total / 25))}</span>
         <button disabled={(page + 1) * 25 >= total || loading} onClick={() => setPage(p => p + 1)}>Next</button></div>
     </div>}
-    {result && <details className={styles.relationshipDetails}><summary>How these tables connect</summary>
+    {result && <details className={styles.relationshipDetails}><summary>Model details & original data</summary>
       <p>{proposal?.explanation}</p>
       {result.tables.map(t => <div key={t.name}>{t.foreign_keys?.map(fk => <p key={fk.column}>
         <strong>{t.name}.{fk.column}</strong> → <strong>{fk.reference_table}.{fk.reference_column}</strong>.
-        {' '}One {fk.reference_table} record can have {fk.cardinality === '1:1' ? 'one' : 'many'} {t.name} {fk.cardinality === '1:1' ? 'record' : 'records'}.
-        {' '}Observed: {fk.min_children ?? 0}–{fk.max_children ?? 'unknown'} per parent.</p>)}</div>)}
+        {fk.min_children != null && fk.max_children != null && <> Observed: {fk.min_children}–{fk.max_children} linked rows per {fk.reference_table} record.</>}</p>)}</div>)}
       <p>{result.integrity.primary_keys_unique ? 'Keys are unique.' : 'Duplicate keys detected.'} {result.integrity.orphan_foreign_keys} broken links.
         {' '}{result.integrity.lossless ? 'All original rows and values are preserved.' : 'Source preservation failed.'}</p>
       <button onClick={() => { setUseOriginal(value => !value); setPage(0); }}>{useOriginal ? 'Show linked tables' : 'Original snapshot'}</button>

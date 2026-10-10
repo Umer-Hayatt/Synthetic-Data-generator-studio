@@ -123,7 +123,7 @@ test('one table keeps settings beside data and never invents reference quality',
     evaluateQuality: async () => ({ overall_score: 99, score_status: 'available' }),
   } });
   await act(async () => { await h.state.loadFromAiPrompt('Current'); });
-  assert.match(visibleText(h.renderer.toJSON()), /No reference/);
+  assert.doesNotMatch(visibleText(h.renderer.toJSON()), /No reference|Quality details/);
   assert.doesNotMatch(visibleText(h.renderer.toJSON()), /99%/);
   assert.equal(h.renderer.root.findAll(node => node.props['aria-label'] === 'Generated tables').length, 0);
   assert.equal(findButton(h, 'Documents'), undefined);

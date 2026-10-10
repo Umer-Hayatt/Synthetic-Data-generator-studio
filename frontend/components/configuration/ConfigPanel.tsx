@@ -32,7 +32,7 @@ export const ConfigPanel: React.FC<{ embedded?: boolean }> = ({ embedded = false
     <Container className={embedded ? 'generation-settings' : 'sidebar-right'}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
+        {!embedded && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Sliders size={14} style={{ color: 'var(--text-primary)' }} />
             <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
@@ -42,7 +42,7 @@ export const ConfigPanel: React.FC<{ embedded?: boolean }> = ({ embedded = false
           <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
             seed:{seed}
           </span>
-        </div>
+        </div>}
 
         {/* Setting 1: Row Count */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

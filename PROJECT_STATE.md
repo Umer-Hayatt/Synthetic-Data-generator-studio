@@ -4,21 +4,22 @@
 REPAIR — one verified vertical slice at a time. Active plan: REPAIR_PLAN.md.
 
 ## Active Task
-S10A DONE locally (2026-10-10); S10B is the next planned slice.
-- Owner's UI direction: one Data workspace for tabular/relational output, actual
-  quality/privacy beside the table, conditional table/document choices.
-- Frozen six-task navigation benchmark: baseline 10 actions, both candidates 5,
-  retained beside-table layout and final confirmation 5. Scripted action count
-  does not establish general usability or data quality.
-- Full frame/artifact pagination and selected-table downloads, clickable foreign
-  keys with exact parent filtering, collapsed details/settings and real metrics.
-- Prompt-only: No reference; edits clear outputs/scores/downloads; artifact audits
-  remain Not evaluated, pending S10B. No fabricated percentages or passed badges.
-- Verified: 221 backend passed / 1 skipped, 17 React lifecycle tests, type check
-  and production build. Browser university upload: real 88% quality, 40/10/5
-  tables, last page ends at row 40, student link matches exactly one parent.
-- Local experiment logs/proof: qa/autoresearch/2026-10-10-workspace/.
-- Stop after the verified S10A commit. S10B and S11-S12 remain planned.
+S10A1 DONE locally (2026-10-10); S10B is the next planned slice.
+- Prompt-only output hides reference quality and its details control; uploads
+  retain actual scores. Privacy and data checks remain beside the data.
+- Plain-language links above the selected table; technical model details are
+  secondary. Compact scrollable rows, sticky headers and field/key labels.
+- Frozen seven-task benchmark: baseline 6 actions, candidates and confirmation
+  5; irrelevant quality items 2 -> 0. Shorter candidate retained with simpler
+  copy. Scripted actions do not establish human comprehension or data quality.
+- Verified: 17 React tests, type check and production build; live prompt 40/10/5,
+  last page ends at 40, full CSV has 40 rows, student 3 matches one parent;
+  reference-backed sample retains real 85% and working quality details.
+- Mobile verification incomplete: browser viewport override had no effect
+  (actual 1280x720). Do not present the desktop capture as mobile evidence.
+- Logs/proof: qa/autoresearch/2026-10-10-inspection/. No backend changes;
+  prior S10A verification was 221 backend passed / 1 skipped.
+- Stop after the verified S10A1 commit. S10B and S11-S12 remain planned.
 
 ## Last Completed Milestones
 - S9E: fixed live university/retail/banking checks 60/70 -> 68/70; one retained

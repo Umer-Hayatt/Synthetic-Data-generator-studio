@@ -76,7 +76,7 @@ Quality: NN% <label>      Privacy: Protected      Integrity: Passed
 - Verification: Pytest passes (159 passed, 1 skipped), frontend tsc passes with 0 errors.
 
 ## Status log
-S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S9C DONE | S9D DONE | S9E DONE | S10A DONE | S10B-S12 PLANNED
+S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S9C DONE | S9D DONE | S9E DONE | S10A DONE | S10A1 DONE | S10B-S12 PLANNED
 
 ## Input-driven follow-up repair — planned, 2026-10-08
 
@@ -86,7 +86,7 @@ working end to end, Documents must assess whether that same data supports a
 document and render it without substituting or regenerating unrelated entities.
 S1-S7 remain completed historical milestones. This extends this active plan;
 it does not resume the superseded V2 work order. Product choices are recorded
-below. S8-S10A are complete locally; S10B is next. Remote push awaits owner approval.
+below. S8-S10A1 are complete locally; S10B is next. Remote push awaits owner approval.
 
 ### Confirmed causes and baseline
 - `backend/app/api/intelligence.py` truncates multi-table AI drafts to the first
@@ -378,6 +378,22 @@ relationships or silently modify source values to make a proposed model pass.
   and production build passed. Live university upload: measured 88%, 40/10/5
   tables, final page through row 40 and filtered student 3. Experiment ledger,
   snapshots and proof: qa/autoresearch/2026-10-10-workspace/ (local only).
+- S10A1 DONE (owner refinement, 2026-10-10): hide reference-only quality
+  for prompt datasets, explain links in plain language above a compact table,
+  and remove duplicated embedded settings heading. Frozen seven-task benchmark
+  frontend/benchmarks/inspection.cjs: baseline 6 actions, two irrelevant quality
+  items. At most two candidates + confirmation, 120-second trial limit. Preserve
+  measured upload scores, privacy, exact parent lookup, paging and full exports.
+  Experiment contract/logs: qa/autoresearch/2026-10-10-inspection/.
+- S10A1 results: both candidates and final confirmation 5 actions vs baseline
+  6; irrelevant quality items 2 -> 0. Shorter table/simpler copy retained on
+  equivalent navigation. Frozen harness SHA256:
+  C42DA8C9163E6F736C8B25A1361BF6D57EC059CF62A86FCF96E6A5DC5C37EE6D.
+  Verified 17 React tests/type check/production build. Live university prompt
+  yields 40/10/5, full CSV 40 rows, final page ends at 40 and student 3 lookup
+  matches one parent. Reference sample real 85% and quality modal preserved.
+  Mobile viewport override had no effect (1280x720); mobile remains unverified.
+  Optional record inspector awaits owner discussion; no extra feature added.
 - S10B PLANNED: full artifact PK/FK/cardinality/business-rule auditing remains
   pending. Artifact summary explicitly says Not evaluated and audit pending.
 - Default: a short source/model summary, table selector and paged data preview.

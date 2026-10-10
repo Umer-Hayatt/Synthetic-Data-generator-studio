@@ -37,21 +37,21 @@ export function WorkspaceInsights() {
       relationshipResult.integrity.orphan_foreign_keys === 0 ? 'Verified' : 'Failed') :
     qualityResults?.integrity?.status || 'Not evaluated';
 
-  return <aside className={styles.insights} aria-label="Dataset quality and settings">
+  return <aside className={styles.insights} aria-label="Dataset overview and settings">
     <section data-testid="quality-summary" className={styles.summary}>
-      <h2>Quality & privacy</h2>
+      <h2>{referenceToken ? 'Quality & privacy' : 'Privacy & checks'}</h2>
       <dl className={styles.metrics}>
-        <div><dt>Quality</dt><dd className={styles.score}>{quality}</dd>
+        {referenceToken && <div><dt>Quality</dt><dd className={styles.score}>{quality}</dd>
           <p>{measured ? `${getQualityLabel(Math.round(score!))} · measured against your upload` :
-            !referenceToken && generatedSnapshot ? 'Similarity needs a reference dataset.' : 'Measured after generation.'}</p></div>
+            'Measured after generation.'}</p></div>}
         <div><dt>Privacy</dt><dd>{privacy}</dd><p>{sensitive.size} sensitive {sensitive.size === 1 ? 'field' : 'fields'} detected</p></div>
         <div><dt>Data checks</dt><dd>{integrity}</dd><p>{relationshipResult ?
           `All ${relationshipResult.integrity.source_rows.toLocaleString()} source rows checked` :
           generatedSnapshot?.storage === 'artifact' ? 'Full artifact audit is pending.' : 'Checks apply to the generated snapshot.'}</p></div>
       </dl>
       <div className={styles.actions}>
-        <button disabled={!generatedSnapshot || generatedSnapshot.storage !== 'frame' || isEvaluatingQuality}
-          onClick={() => { if (!qualityResults) void triggerQualityEvaluation(); setQualityOpen(true); }}>Quality details</button>
+        {referenceToken && <button disabled={!generatedSnapshot || generatedSnapshot.storage !== 'frame' || isEvaluatingQuality}
+          onClick={() => { if (!qualityResults) void triggerQualityEvaluation(); setQualityOpen(true); }}>Quality details</button>}
         <button onClick={() => setPrivacyOpen(true)}>Privacy Settings</button>
         <button onClick={() => setSchemaOpen(true)}>Edit schema</button>
       </div>

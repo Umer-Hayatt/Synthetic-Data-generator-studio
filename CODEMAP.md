@@ -77,6 +77,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `context/StudioContext.tsx` | Active source identity, model/generation revision, snapshot ownership and stale-response guards |
 | `tests/studio-lifecycle.test.cjs` | Real React lifecycle tests for source replacement, stale jobs/results and tab preview invalidation |
 | `benchmarks/workspace.cjs` | Frozen six-task React navigation experiment with complete selected-table export guards |
+| `benchmarks/inspection.cjs` | Frozen seven-task S10A1 benchmark with relationship-disclosure cost and reference-free score guards |
 
 ## backend/tests
 

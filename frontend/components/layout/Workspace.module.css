@@ -29,10 +29,15 @@
 .tableChoices { display: flex; flex-wrap: wrap; gap: 6px; }
 .downloads { display: flex; flex-wrap: wrap; gap: 14px; }
 .downloads a { font-size: 12px; color: var(--text-primary); text-underline-offset: 4px; }
-.tableScroll { width: 100%; overflow-x: auto; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 8px; }
+.tableScroll { width: 100%; max-height: 320px; overflow: auto; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 8px; }
 .table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; font-variant-numeric: tabular-nums; }
-.table th { font-weight: 600; font-size: 12px; background: var(--surface-muted); padding: 12px 14px; white-space: nowrap; }
-.table td { padding: 11px 14px; border-top: 1px solid var(--border-subtle); white-space: nowrap; }
+.table th { position: sticky; top: 0; z-index: 1; font-weight: 600; font-size: 12px; background: var(--surface-muted); padding: 10px 14px; white-space: nowrap; }
+.columnType { display: block; font-weight: 400; color: var(--text-muted); font-size: 11px; margin-top: 4px; }
+.table td { padding: 8px 14px; border-top: 1px solid var(--border-subtle); white-space: nowrap; }
+.connections { margin-bottom: 18px; padding: 0 0 16px; border-bottom: 1px solid var(--border-subtle); }
+.connections h3 { font-size: 14px; margin: 0 0 8px; }
+.connections p { font-size: 13px; line-height: 1.6; max-width: 70ch; margin: 6px 0; }
+.connections p button { padding: 0; border: 0; color: #1d4ed8; text-decoration: underline; text-underline-offset: 4px; }
 .table tbody tr:hover { background: var(--background); }
 .table .keyLink { border: 0; padding: 0; border-radius: 0; color: #1d4ed8; text-decoration: underline; text-underline-offset: 4px; }
 .null { color: var(--text-muted); }
@@ -54,7 +59,7 @@
   .header { padding: 20px; }
   .side .body { display: flex; flex-direction: column; }
   .side .insights { order: -1; border-left: 0; border-bottom: 1px solid var(--border-subtle); }
-  .metrics { grid-template-columns: 1.2fr 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .metrics { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 16px; margin: 16px 0; }
   .metrics dd { overflow-wrap: anywhere; }
   .metrics .score { font-size: 24px; }
   .settings, .notes { margin-top: 16px; }

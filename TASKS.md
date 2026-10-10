@@ -45,6 +45,11 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
   retained by owner preference and confirmed. Complete pages/downloads, linked
   records, conditional options and truthful unavailable/stale metrics.
   Verified: 221 backend / 1 skipped, 17 React tests, type check/production build.
+- [DONE] S10A1 — Owner-requested inspection refinement (2026-10-10).
+  Reference-only quality, visible plain-language links and a shorter sticky-header
+  table. Frozen seven-task benchmark 6 -> 5; irrelevant quality items 2 -> 0.
+  Verified 17 React tests/type/build, live prompt paging/full export/exact parent
+  lookup and retained reference quality. Mobile viewport check unverified.
 - S10B complete artifact/business-rule audit and S11-S12 remain PLANNED in
   REPAIR_PLAN.md. Historical tasks remain superseded.
 
