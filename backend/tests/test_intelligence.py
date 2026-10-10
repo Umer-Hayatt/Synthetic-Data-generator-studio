@@ -95,6 +95,38 @@ def test_draft_preserves_requested_row_count(monkeypatch, rows):
     assert result['spec']['tables'][0]['row_count'] == rows
 
 
+@pytest.mark.parametrize('prompt,expected', [
+    ('Generate 40 university enrollments with 10 students and 5 courses.', 40),
+    ('Create exactly 80 retail orders with 12 customers.', 80),
+    ('Produce 120 commercial flights with 4 orders per flight.', 120),
+])
+def test_explicit_generation_count_precedes_related_counts(prompt, expected):
+    assert intelligence._extract_requested_row_count(prompt) == expected
+
+
+@pytest.mark.parametrize('offline', [False, True])
+def test_qualified_enrollment_prompt_keeps_main_and_related_counts(monkeypatch, offline):
+    prompt = 'Generate 40 university enrollments with 10 students and 5 courses.'
+    draft = {'name': 'University', 'tables': [{'name': 'enrollments', 'row_count': 40,
+        'columns': [
+            {'name': 'id', 'dtype': 'integer', 'is_primary_key': True},
+            {'name': 'student_id', 'dtype': 'integer'},
+            {'name': 'student_name', 'dtype': 'string', 'semantic_type': 'person_name'},
+            {'name': 'course_id', 'dtype': 'integer'},
+            {'name': 'course_name', 'dtype': 'string'},
+        ]}], 'entities': [
+            {'name': 'Students', 'key': 'student_id', 'columns': ['student_name'], 'entity_count': 10},
+            {'name': 'Courses', 'key': 'course_id', 'columns': ['course_name'], 'entity_count': 5},
+        ]}
+    monkeypatch.setattr(intelligence, 'get_router', lambda: AIRouter([] if offline else [Fake([draft])]))
+    result = TestClient(app).post('/api/v1/ai/spec', json={'prompt': prompt}).json()
+    assert result['status'] == 'review_required'
+    assert bool(result.get('fallback_used')) == offline
+    assert result['spec']['tables'][0]['row_count'] == 40
+    assert {entity['name']: entity['entity_count'] for entity in result['spec']['tabular_entities']} == {
+        'Students': 10, 'Courses': 5}
+
+
 @pytest.mark.parametrize('rows', [0, -1, 10000001])
 def test_invalid_draft_counts_are_rejected_not_silently_changed(monkeypatch, rows):
     draft = {'tables': [{'name': 'customers', 'row_count': rows,

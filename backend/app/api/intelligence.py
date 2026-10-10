@@ -496,8 +496,10 @@ def _extract_requested_row_count(prompt: str) -> int | None:
         return int(m_neg.group(1))
 
     patterns = [
+        # An explicit generation count names the main grain. Check it before
+        # bare entity counts so adjectives do not select a later related table.
+        r'\b(?:create|generate|produce|make|synthesize)\s+(?:exactly\s+)?(\d+)\b',
         r'\b(\d+)\s*(?:rows?|records?|entries|items|enrollments?|students|customers|users|patients|employees|products|orders|readings|listings|books|flights|transactions)\b',
-        r'(?:create|generate|produce|make|synthesize)\s+(\d+)\b',
         r'\b(\d+)\s+(?:university\s+)?(?:students|customers|users|patients|employees|products|orders|readings|listings|books|flights)\b',
     ]
     for pattern in patterns:
@@ -523,7 +525,7 @@ def generate_fallback_draft(prompt: str, requested_rows: int | None = None) -> t
 
     # Input-specific relational fallback for explicit flat record grains. Counts
     # not supplied by the user are visible draft assumptions, never hidden ratios.
-    enrollment = re.search(r'\b(\d+)\s+enrollments?\b', p)
+    enrollment = re.search(r'\b(\d+)\s+(?:university\s+)?enrollments?\b', p)
     orders = re.search(r'\b(\d+)\s+orders?\b', p)
     if (enrollment and 'student' in p and 'course' in p) or (orders and 'customer' in p):
         main_count = int((enrollment or orders).group(1))

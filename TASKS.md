@@ -30,7 +30,12 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
   durations and cached rate-limit status retained, shared limits preserved.
   Verified: 213 backend / 1 skipped, 15 React tests, type check/build; live
   5,000-student upload and actual AI prompt -> AI results with exact full exports.
-- S10-S12 are PLANNED after S9C in REPAIR_PLAN.md. Historical tasks remain superseded.
+- [DONE] S9D — Preserve explicit main counts in qualified AI prompts (2026-10-10).
+  A request for 40 university enrollments previously selected 10 related students.
+  Generation-count precedence and qualified enrollment fallback now preserve 40/10/5.
+  Verified: 218 backend / 1 skipped, 15 React tests, type check/build, live AI
+  browser counts, complete JSON/CSV exports and exact rejoin with zero orphans.
+- S10-S12 are PLANNED after S9D in REPAIR_PLAN.md. Historical tasks remain superseded.
 
 ---
 

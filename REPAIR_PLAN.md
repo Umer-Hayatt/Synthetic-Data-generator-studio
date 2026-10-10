@@ -76,7 +76,7 @@ Quality: NN% <label>      Privacy: Protected      Integrity: Passed
 - Verification: Pytest passes (159 passed, 1 skipped), frontend tsc passes with 0 errors.
 
 ## Status log
-S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S9C DONE | S10-S12 PLANNED
+S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S9C DONE | S9D DONE | S10-S12 PLANNED
 
 ## Input-driven follow-up repair — planned, 2026-10-08
 
@@ -86,7 +86,7 @@ working end to end, Documents must assess whether that same data supports a
 document and render it without substituting or regenerating unrelated entities.
 S1-S7 remain completed historical milestones. This extends this active plan;
 it does not resume the superseded V2 work order. Product choices are recorded
-below. S8-S9C are complete locally; S10 is next. Remote push awaits owner approval.
+below. S8-S9D are complete locally; S10 is next. Remote push awaits owner approval.
 
 ### Confirmed causes and baseline
 - `backend/app/api/intelligence.py` truncates multi-table AI drafts to the first
@@ -304,6 +304,24 @@ relationships or silently modify source values to make a proposed model pass.
   AI available/single_table, exact complete export equality and zero orphans.
   Relationship requests took 6.6s/10.8s; prompt used no rule-based fallback.
   Original red browser repro is green. Local proof: qa/debug/STUDENT_QUOTA_RESULTS.md.
+
+### S9D — Preserve the main count in qualified AI prompts — DONE
+- Owner reported local AI errors and uncertainty about generated results (2026-10-10).
+  Browser reproduction: "Generate 40 university enrollments with 10 students and
+  5 courses" generated 10 rows. The parser selected the related student count
+  before the explicit generation count; a direct assertion reproduces the failure.
+- Repair explicit generation-count precedence and the qualified enrollment
+  fallback. Verify real AI and offline endpoint paths, requested entity counts,
+  full generation/export/rejoin and the existing regression suite. Preserve API
+  contracts and snapshot values. Commit locally and stop before S10.
+- Verified (2026-10-10): 218 backend passed / 1 skipped; 15 frontend lifecycle
+  tests; type check and production build passed. Same live AI browser prompt now
+  yields 40 Enrollments, 10 Students and 5 Courses without fallback. Full JSON
+  exports rejoin every source row/value exactly, keys are unique, zero orphans;
+  full CSV has 40 rows and the second preview page ends at row 40.
+- Remaining observation: generic course names are sentences, not realistic
+  titles. This count repair verifies structure/fidelity, not domain realism.
+  Proof: qa/debug/S9D_RESULTS.md and s9d-enrollments.png (local only).
 
 ### S10 — Compact relational inspection with truthful results — PLANNED
 - Default: a short source/model summary, table selector and paged data preview.
