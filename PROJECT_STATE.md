@@ -33,9 +33,16 @@ superseded by the latest owner instructions.
   independently confirmed counts. Node navigation, both 25-row pages and complete
   exports retained. Desktop1440/mobile390 map/editors checked; no page overflow.
   Main tabs reset scroll. Right settings stack after main content below 900px.
-- S10A4 was verified/committed before beginning S10A5. No new live AI-provider
-  accuracy claim is made; existing discovery is regression-tested and provider
-  failures remain retryable. Deterministic live artifact inspection passed.
+- Fresh owner-requested retest: 24 frontend tests, TypeScript, and 229 backend
+  tests passed / 1 skipped. Live Privacy masking/regeneration, seed changes,
+  map navigation, both pages, full CSV/JSONL exports and linked parents passed.
+  Seed43 Banking exports independently confirm 50 rows and 3–8 children/parent.
+- Live Telco AI discovery correctly retained one table / zero relationships,
+  with exact reconstruction of all 200 rows and values. Reference Quality
+  controls passed. Desktop1440/mobile390 views have no page overflow or editor
+  dialogs; mobile Escape restores focus. Local retest proof: qa/S10_RETEST.md.
+- S10A4 was verified/committed before beginning S10A5. These live fixture results
+  do not establish accuracy for arbitrary AI models or business rules.
 
 ## Git and Local Runtime
 - Branch main, origin https://github.com/Umer-Hayatt/Synthetic-Data-generator-studio.git.
