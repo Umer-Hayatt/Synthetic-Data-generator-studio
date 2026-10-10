@@ -4,14 +4,22 @@
 REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
 
 ## Active Task
-S9D DONE: explicit AI generation count now precedes related entity counts.
+S9E DONE: bounded live AI output experiments requested by owner.
+- Fixed university/retail/banking checks improved 60/70 -> 68/70 (+8, no regressions).
+  One candidate retained; live AI/schema/exact rejoin/unique key gates passed.
+  Numeric amount ranges still fail. Single live batch, without confirmation repeat.
+- Backend 218/1; frontend unchanged from S9D checks; retained browser flow verified.
+  Ledger and full outputs: qa/autoresearch/2026-10-10-ai-output/ (local only).
+- Owner now prioritizes S10: combine tabular/relational in one Data workspace,
+  quality/privacy beside the table, fewer tabs, conditional table choices.
+- S9D DONE: explicit AI generation count now precedes related entity counts.
 - Browser/parser repro requested 40 university enrollments with 10 students and
   5 courses but generated 10 rows. Generation-count precedence and the qualified
   enrollment fallback now preserve 40/10/5, including offline drafts.
 - Verified: 218 backend / 1 skipped; 15 React tests; type check/build. Live AI
   browser counts, full JSON exact rejoin, CSV completeness and final page passed.
   All keys unique, zero orphans. Proof: qa/debug/S9D_RESULTS.md (local only).
-- S9A-S9D are complete locally; remote push awaits explicit owner approval.
+- S9A-S9E are complete locally; remote push awaits explicit owner approval.
   S10 and document suitability/rendering (S11-S12) remain pending.
 - AI owns discovering, selecting and applying the model from generated snapshot
   metadata, prompt intent and full-row dependency counts. No manual map is required.
@@ -45,9 +53,8 @@ S9D DONE: explicit AI generation count now precedes related entity counts.
 - Proof artifacts are local in qa/debug/ (synthetic data; not committed).
 
 ## Last Completed Milestone
-S9D complete (2026-10-10): qualified main-entity descriptions no longer select a
-later related-entity count. The original 40-enrollment browser repro now passes
-with 10 students and 5 courses and exact full-source preservation.
+S9E complete (2026-10-10): live output benchmark improved from 60/70 to 68/70;
+explicit user field/key names retained. Scope then redirected to the simpler UI.
 
 ## Baseline
 - Backend: 218 passed, 1 skipped, 0 failures.
@@ -64,13 +71,13 @@ with 10 students and 5 courses and exact full-source preservation.
   statements, same snapshot values, required missing fields reviewed (S11-S12).
 
 ## Known open issues
-- Live course_name values are generic sentences rather than plausible course
-  titles. Structural integrity/fidelity checks do not establish semantic realism.
+- Unconstrained course_name values can be generic sentences; explicit course
+  categories passed all live checks. Numeric range requests still failed in two
+  AI benchmark cases. Structural fidelity does not establish semantic realism.
 - S0 deploy repair remains deferred: missing app.models.relational_rules on Render
   and Python 3.14.3 rather than 3.12.10. No deployment changes in S9A.
 - Unrelated untracked scratch files and qa/ remain outside this slice.
-- In-app browser automation cannot start due to sandbox setup errors; bundled
-  headless Chrome verified the actual browser/API/data flow.
+- Current in-app browser works and verifies local browser/API/data flows.
 
 ## Blockers
 Current enrollment AI flow passes; provider availability remains quota-dependent.

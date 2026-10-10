@@ -85,3 +85,9 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `test_ai.py` | Provider failover/deadlines, quota scope and retry parsing, shared-key cooldown and cached quota errors |
 | `relational_fixture.py` | Self-contained fixture builder for existing relational engine regressions |
 | `fixtures/commerce.json` | Historical minimal commerce model used only by regression tests |
+
+## backend/benchmarks
+
+| Path | What it does |
+|---|---|
+| `ai_output.py` | Fixed three-domain live AI draft/generation output benchmark, complete exports and independent relational fidelity gates |

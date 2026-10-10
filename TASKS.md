@@ -35,7 +35,12 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
   Generation-count precedence and qualified enrollment fallback now preserve 40/10/5.
   Verified: 218 backend / 1 skipped, 15 React tests, type check/build, live AI
   browser counts, complete JSON/CSV exports and exact rejoin with zero orphans.
-- S10-S12 are PLANNED after S9D in REPAIR_PLAN.md. Historical tasks remain superseded.
+- [DONE] S9E — Bounded live AI output experiments (2026-10-10).
+  Fixed university/retail/banking checks improved 60/70 -> 68/70 with no check
+  regressions; one candidate retained, all full-data gates passed. Backend 218/1
+  and retained-version browser verification; frontend unchanged from S9D.
+  Amount-range failures remain. Owner then prioritized a simpler data workspace.
+- S10-S12 are PLANNED after S9E in REPAIR_PLAN.md. Historical tasks remain superseded.
 
 ---
 

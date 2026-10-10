@@ -76,7 +76,7 @@ Quality: NN% <label>      Privacy: Protected      Integrity: Passed
 - Verification: Pytest passes (159 passed, 1 skipped), frontend tsc passes with 0 errors.
 
 ## Status log
-S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S9C DONE | S9D DONE | S10-S12 PLANNED
+S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S9C DONE | S9D DONE | S9E DONE | S10-S12 PLANNED
 
 ## Input-driven follow-up repair — planned, 2026-10-08
 
@@ -322,6 +322,35 @@ relationships or silently modify source values to make a proposed model pass.
 - Remaining observation: generic course names are sentences, not realistic
   titles. This count repair verifies structure/fidelity, not domain realism.
   Proof: qa/debug/S9D_RESULTS.md and s9d-enrollments.png (local only).
+
+### S9E — Bounded live AI output experiments — DONE (owner request, 2026-10-10)
+- Owner explicitly requested autoresearch experiments and the best final output.
+  Measure the unresolved prompt/semantic quality observed in S9D before S10.
+- One unchanged baseline and at most three candidate evaluations; fixed university,
+  retail and banking prompts in backend/benchmarks/ai_output.py, seed 42, complete
+  generated rows, 660-second trial deadline, 30-minute session limit.
+- Primary metric: fraction of fixed field/type/non-null/count/dependency/category/
+  bound/mapping/locale/seed checks passed. Minimum gain: one additional check, with
+  no previously passing check lost. Guards: live AI (no offline fallback), valid
+  schema/generation, exact independent full rejoin, unique keys and zero orphans.
+- Editable production scope: AI drafting instructions in api/intelligence.py only.
+  Freeze evaluator and fixtures before candidates. Keep only evidenced improvements;
+  confirmation repeats count toward the three-candidate budget. Do not claim a
+  platform-wide AI score from three synthetic examples or optimize the evaluator.
+- Preserve baseline/candidates, logs, ledger and full CSV/JSON output locally;
+  run backend/frontend checks and a live browser flow for the retained version.
+  Commit locally and stop before S10; remote push still awaits owner approval.
+- Baseline: 60/70 (85.7143%); candidate 1: 68/70 (97.1429%), +8 checks with no
+  passing check lost. Live provider/schema/full-rejoin/key gates passed in all
+  three cases. Kept explicit field-name/PK preservation and constraint guidance.
+- Owner redirected the objective to a simpler merged data workspace after the
+  first candidate, so no further AI candidates or confirmation repeats ran.
+  Numeric amount ranges still failed in retail/banking; results are a single
+  stochastic live batch, not a platform-wide accuracy claim.
+- Verification: 218 backend / 1 skipped. Frontend unchanged, reusing the exact
+  S9D 15 lifecycle/type/build checks. Retained instructions also verified in the
+  browser with the 40-enrollment request. Ledger/logs/full output in
+  qa/autoresearch/2026-10-10-ai-output/ (local only).
 
 ### S10 — Compact relational inspection with truthful results — PLANNED
 - Default: a short source/model summary, table selector and paged data preview.
