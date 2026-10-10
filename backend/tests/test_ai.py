@@ -125,6 +125,39 @@ def test_malformed_and_outage():
     assert router.health()[0]['cooling_down']
 
 
+@pytest.mark.parametrize('kind', ['model_unavailable', 'provider_error', 'timeout', 'network', 'invalid_credential'])
+def test_repeated_provider_failure_retains_its_reason_without_new_calls(kind):
+    now = [0]
+    provider = Fake([AIError(kind)])
+    router = AIRouter([provider], retries=0, clock=lambda: now[0])
+    with pytest.raises(AIError, match=kind):
+        router.generate_structured('draft', Result)
+    now[0] = 10
+    with pytest.raises(AIError, match=kind) as failure:
+        router.generate_structured('relationships', Result)
+    assert provider.calls == 1
+    assert failure.value.retry_after == (0 if kind == 'invalid_credential' else 50)
+
+
+def test_provider_diagnostic_excludes_key_prompt_and_response_body(monkeypatch, caplog):
+    from google import genai
+    from google.genai import errors
+    from app.core.ai import GeminiProvider
+    class Client:
+        def __init__(self, **kwargs): self.models = self
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def generate_content(self, **kwargs):
+            raise errors.ClientError(404, {'error': {'code': 404, 'message': 'private-provider-body'}})
+    monkeypatch.setattr(genai, 'Client', Client)
+    router = AIRouter([GeminiProvider('test-only-private-key', 'test-model')], retries=0)
+    with pytest.raises(AIError, match='model_unavailable'):
+        router.generate_structured('private-prompt-text', Result)
+    assert '[DEBUG-s10a6] AI provider failure: slot=0 kind=model_unavailable' in caplog.text
+    assert all(value not in caplog.text for value in
+               ('test-only-private-key', 'private-prompt-text', 'private-provider-body'))
+
+
 def test_request_budget_bounds_retry_time_and_attempt_deadlines():
     now, timeouts = [0], []
     class Slow:

@@ -5,7 +5,7 @@
 Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 
 ## Active repair follow-up milestones (details in REPAIR_PLAN.md)
-- [IN_PROGRESS] S10A6 — Fix invalid prompt output suppressing the next relationship request.
+- [BLOCKED] S10A6 — Cooldown/retry fixes verified; deployed model access/quota requires Render diagnostics.
 - [DONE] S10A4 — Main-screen Schema/Privacy/Quality, settings-only right panel and replacement hero; includes pending S10A3 refinements.
 - [DONE] S10A5 — Verified Relationships sidebar workspace and clickable map of actual generated tables.
   Complete bounded frame/artifact key/link/count/cardinality inspection; 229 backend / 1 skipped,

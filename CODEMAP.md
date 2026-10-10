@@ -30,7 +30,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `api/health.py` | `/health` liveness probe |
 | **core/** | Shared utilities |
 | `core/jobs.py` | In-memory **job store** (create, update, fetch) |
-| `core/ai.py` | Gemini structured calls, deadlines, evidenced model quota/shared cooldown, retry durations and configured failover |
+| `core/ai.py` | Gemini structured calls, bounded failover/quota, request-specific output errors and preserved cooldown failure reasons |
 | `core/inference.py` | Schema inference (column types, nullable flags) |
 | `core/relationship_analysis.py` | AI-owned model planning/correction, aggregate full-row dependencies and exact rejoin verification |
 | `core/tabular_entities.py` | Retain observed upload dependencies and generate consistent repeated entities |

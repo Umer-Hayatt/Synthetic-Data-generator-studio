@@ -16,14 +16,28 @@ Do not invent requirements. Do not refactor unrelated working code. Never commit
 
 ## Slices
 
-### S10A6 — Prompt draft failure must not suppress relationship discovery — IN PROGRESS
+### S10A6 — Prompt draft failure must not suppress relationship discovery — BLOCKED
 - Owner reported the exact university prompt failing on the deployed site.
 - Reproduced invalid-output prompt fallback followed by generic unavailable
   relationship response. Lock down the shared-router two-request sequence.
 - Treat malformed structured output as request-specific: end that request but
   allow the next task to use the provider. Retain outage/quota cooldowns and all
   validation, source ownership and exact reconstruction safeguards.
+- Follow-up: repeated cooling/disabled providers must retain their safe original
+  reason and remaining delay instead of replacing it with generic unavailable.
+- Temporary [DEBUG-s10a6] provider diagnostics log only controlled error kind and
+  provider slot. Remove them after the deployed failure is resolved, before DONE.
 - Verify the regression, full backend/frontend checks and the exact live prompt.
+- Fix published at e6d2641. The two-endpoint regression now preserves all40
+  enrollments and yields10 Students /5 Courses after a malformed prompt draft.
+  230 backend passed /1 skipped,24 frontend tests and TypeScript passed.
+  Fresh deployed replay returns model_unavailable. Owner reports 3.8 Flash with
+  3.5 fallback. Both names are listed for the local key; listing does not prove
+  generation access. A process-local 3.6 fallback test produced a valid AI draft,
+  then hit rate_limited at relationship building. Render logs/access and available
+  quota are needed for live acceptance. Do not mark DONE.
+- Cached-reason follow-up:236 backend passed /1 skipped. No frontend code change;
+  the prior24 frontend tests and TypeScript checks remain current for this repair.
 
 ### S10A4 — Main-screen workspace controls and synthetic-data hero — DONE (2026-10-10)
 - Owner supersedes the pending S10A3 confirmation with two ordered slices.

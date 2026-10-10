@@ -44,7 +44,8 @@ In **Render dashboard → your service → Environment**, add:
 | Variable | Value |
 |---|---|
 | `GEMINI_API_KEYS` | your key (comma-separated if multiple) |
-| `GEMINI_MODEL` | `models/gemini-2.5-flash` (or your preferred model) |
+| `GEMINI_MODEL` | `gemini-3.8-flash` (use an exact available model identifier) |
+| `GEMINI_FALLBACK_MODELS` | Optional comma-separated alternatives, e.g. `gemini-3.6-flash` |
 | `CORS_ORIGINS` | *(leave blank for now — fill in after Vercel deploy in Step 3d)* |
 
 ### 2c. Deploy & get the backend URL
@@ -108,7 +109,8 @@ Then **Manual Deploy → Deploy latest commit** to pick up the new CORS setting.
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `GEMINI_API_KEYS` | Yes for AI | — | Comma-separated Gemini API keys |
-| `GEMINI_MODEL` | No | `models/gemini-2.5-flash` | Gemini model name |
+| `GEMINI_MODEL` | Yes for AI | — | Exact Gemini text model name, e.g. `gemini-3.8-flash` |
+| `GEMINI_FALLBACK_MODELS` | No | — | Up to two explicit alternate models, e.g. `gemini-3.6-flash` |
 | `CORS_ORIGINS` | Yes | `http://localhost:3000` | Comma-separated allowed origins |
 | `CACHE_TTL_SECONDS` | No | `900` | Artifact TTL in seconds |
 | `CACHE_MAX_BYTES` | No | `134217728` | Max artifact store size (128 MiB) |
@@ -116,6 +118,8 @@ Then **Manual Deploy → Deploy latest commit** to pick up the new CORS setting.
 | `MAX_ROWS` | No | `50000` | Max rows per generation job |
 | `MAX_COLUMNS` | No | `200` | Max columns per table |
 | `MAX_CELLS` | No | `1000000` | Max cells per generation job |
+
+Model names and account access can change. Check the [current Gemini model list](https://ai.google.dev/gemini-api/docs/models), then verify a structured generation call with the deployed credential. Being listed does not prove that a particular project can generate with that model. Model-not-found errors require checking the exact identifier, API support and project access; rate limits require available quota. The application preserves the original data when provider calls fail.
 
 ### Frontend (set in Vercel)
 

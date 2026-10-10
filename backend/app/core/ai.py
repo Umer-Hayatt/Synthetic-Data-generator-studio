@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import json
+import logging
 import os
 import random
 import re
@@ -12,6 +13,8 @@ from typing import Protocol
 import httpx
 from pydantic import BaseModel, ValidationError
 from app.core import config  # root .env loading precedes environment reads
+
+logger = logging.getLogger(__name__)
 
 
 class AIError(Exception):
@@ -120,6 +123,7 @@ class ProviderState:
     disabled: bool = False
     cooldown_until: float = 0
     failures: int = 0
+    last_error: AIError | None = field(default=None, repr=False)
 
 
 class AIRouter:
@@ -166,12 +170,18 @@ class AIRouter:
                         raise AIError('timeout')
                     with self.lock:
                         if state.disabled:
+                            if last == 'unavailable' and state.last_error:
+                                last, last_error = state.last_error.kind, state.last_error
                             break
                         if self._cooldown_until(state) > self.clock():
                             quota_wait = self._quota_until(state.provider) - self.clock()
                             if quota_wait > 0 and last in ('unavailable', 'rate_limit'):
                                 wait = min(last_error.retry_after, quota_wait) if last == 'rate_limit' else quota_wait
                                 last, last_error = 'rate_limit', AIError('rate_limit', wait)
+                            elif last == 'unavailable' and state.last_error:
+                                last = state.last_error.kind
+                                last_error = AIError(last, self._cooldown_until(state) - self.clock(),
+                                                     state.last_error.quota_scope)
                             break
                         model = getattr(state.provider, 'model', None)
                         has_alternate = model is not None and any(
@@ -185,6 +195,7 @@ class AIRouter:
                         result = schema.model_validate(value.model_dump() if isinstance(value, BaseModel) else value)
                         with self.lock:
                             state.failures = 0
+                            state.last_error = None
                         return result
                     except ValidationError:
                         error = AIError('malformed_output')
@@ -194,8 +205,12 @@ class AIRouter:
                         error = AIError('provider_error')
                     last = error.kind
                     last_error = error
+                    # Temporary S10A6 diagnostic: controlled reason and slot only.
+                    # Never emit credentials, prompt text or provider error bodies.
+                    logger.warning('[DEBUG-s10a6] AI provider failure: slot=%d kind=%s', index, last)
                     with self.lock:
                         state.failures += 1
+                        state.last_error = error
                         if last == 'invalid_credential':
                             state.disabled = True
                             break

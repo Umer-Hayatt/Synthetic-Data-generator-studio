@@ -4,10 +4,16 @@
 REPAIR — one verified vertical slice at a time. Active plan: REPAIR_PLAN.md.
 
 ## Active Task
-S10A6 — Repair deployed prompt-to-relationships failure, reported by the owner.
-Exact university prompt reproduced on Vercel/Render. A shared-router regression
-confirms invalid draft output suppresses the following relationship request via
-provider cooldown. Remove only this request-specific cooldown; verify full flow.
+S10A6 — Repair deployed prompt-to-relationships failure — BLOCKED on live provider access/quota.
+Exact university prompt reproduced on Vercel/Render. Fix e6d2641 is published:
+invalid structured output no longer suppresses another task through provider
+cooldown. Two-endpoint regression passed; 230 backend / 1 skipped, 24 frontend
+tests and TypeScript passed. Follow-up retains specific failure reasons during
+cooldown/disabled-provider retries. Live acceptance requires Render provider logs
+and available AI quota; the deployed replay now reports model_unavailable.
+Follow-up verification: 236 backend passed /1 skipped. Frontend unchanged;
+24 frontend tests and TypeScript passed in this repair. Tagged safe diagnostics
+must be removed after the deployed failure is resolved, before DONE.
 S10A4/S10A5 are DONE. S10B and S11-S12 remain PLANNED, outside this request.
 S10A3 pending refinements were included in S10A4; DNA and modal editors were
 superseded by the latest owner instructions.
@@ -70,6 +76,16 @@ superseded by the latest owner instructions.
 - Historical S9E 68/70 is a fixed live case result, not AI-wide accuracy.
 
 ## Blockers
-No blocker for these completed slices. Higgsfield remains account-plan gated;
-built-in imagegen produced the replacement hero. Prior Impeccable detector was
-unavailable; source and live browser checks were used. No unrelated work started.
+- Fresh S10A6 deployed university repro returns model_unavailable, not merely a
+  generic error. Vercel is READY at e6d2641; old snapshot has now expired or been
+  lost on restart, so it cannot establish the Render deployed commit.
+- Owner reports gemini-3.8-flash and a3.5 fallback on Render. Both exact local
+  model names are listed by Gemini; generation access must still be verified.
+- Process-local gemini-3.6-flash fallback gave a valid AI university draft, then
+  relationship building hit rate_limited. No successful live relation claim.
+- Render dashboard requires sign-in; no Render API credential/connector is
+  available. Backend logs, deployed commit and working model/quota are needed.
+- Synthetic repro and evidence: qa/repro-deployed-relationships.ps1,
+  qa/deployed-relationship-response.json and qa/relationships-deployed-failure.jpg.
+- Prior Higgsfield account-plan restriction and unavailable Impeccable detector
+  are unrelated to this repair. No S10B/S11/S12 work started.
