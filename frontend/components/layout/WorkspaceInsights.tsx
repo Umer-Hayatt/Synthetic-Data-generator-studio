@@ -1,0 +1,68 @@
+import React, { useMemo, useState } from 'react';
+import { useStudio } from '../../context/StudioContext';
+import { SchemaModal } from '../schema/SchemaModal';
+import { PrivacyModal } from '../schema/PrivacyModal';
+import { QualityChartsModal } from '../quality/QualityChartsModal';
+import { ConfigPanel } from '../configuration/ConfigPanel';
+import { getQualityLabel } from '../../services/qualityLabels';
+import styles from './Workspace.module.css';
+
+export function WorkspaceInsights() {
+  const { datasetSpec, qualityResults, isEvaluatingQuality, generatedSnapshot,
+    sensitiveColumns, inferredSchema, relationshipResult, referenceToken, triggerQualityEvaluation,
+    schemaNotice, clearSchemaNotice } = useStudio();
+  const [schemaOpen, setSchemaOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [qualityOpen, setQualityOpen] = useState(false);
+  const sensitive = useMemo(() => {
+    const names = new Set(sensitiveColumns);
+    if (Array.isArray(inferredSchema)) inferredSchema.forEach((column: { name: string; is_sensitive?: boolean }) => {
+      if (column.is_sensitive) names.add(column.name);
+    });
+    datasetSpec?.tables[0]?.columns.forEach(column => {
+      if (['person_name', 'email', 'phone', 'address'].includes(column.semantic_type) ||
+        /email|phone|ssn|credit_card/i.test(column.name)) names.add(column.name);
+    });
+    return names;
+  }, [sensitiveColumns, inferredSchema, datasetSpec]);
+  const score = qualityResults?.overall_score;
+  const measured = !!generatedSnapshot && !!referenceToken && qualityResults?.score_status === 'available' &&
+    typeof score === 'number' && Number.isFinite(score);
+  const quality = measured ? `${Math.round(score!)}%` : isEvaluatingQuality ? 'Checking…' :
+    !generatedSnapshot ? 'Not generated' : !referenceToken ? 'No reference' : 'Not measured';
+  const privacy = !generatedSnapshot ? 'Not generated' : qualityResults?.privacy?.status === 'At Risk' ? 'Needs protection' :
+    qualityResults?.privacy?.status === 'Protected' ? (referenceToken ? 'Checked' : 'Synthetic only') : 'Not evaluated';
+  const integrity = !generatedSnapshot ? 'Not generated' : relationshipResult ?
+    (relationshipResult.integrity.lossless && relationshipResult.integrity.primary_keys_unique &&
+      relationshipResult.integrity.orphan_foreign_keys === 0 ? 'Verified' : 'Failed') :
+    qualityResults?.integrity?.status || 'Not evaluated';
+
+  return <aside className={styles.insights} aria-label="Dataset quality and settings">
+    <section data-testid="quality-summary" className={styles.summary}>
+      <h2>Quality & privacy</h2>
+      <dl className={styles.metrics}>
+        <div><dt>Quality</dt><dd className={styles.score}>{quality}</dd>
+          <p>{measured ? `${getQualityLabel(Math.round(score!))} · measured against your upload` :
+            !referenceToken && generatedSnapshot ? 'Similarity needs a reference dataset.' : 'Measured after generation.'}</p></div>
+        <div><dt>Privacy</dt><dd>{privacy}</dd><p>{sensitive.size} sensitive {sensitive.size === 1 ? 'field' : 'fields'} detected</p></div>
+        <div><dt>Data checks</dt><dd>{integrity}</dd><p>{relationshipResult ?
+          `All ${relationshipResult.integrity.source_rows.toLocaleString()} source rows checked` :
+          generatedSnapshot?.storage === 'artifact' ? 'Full artifact audit is pending.' : 'Checks apply to the generated snapshot.'}</p></div>
+      </dl>
+      <div className={styles.actions}>
+        <button disabled={!generatedSnapshot || generatedSnapshot.storage !== 'frame' || isEvaluatingQuality}
+          onClick={() => { if (!qualityResults) void triggerQualityEvaluation(); setQualityOpen(true); }}>Quality details</button>
+        <button onClick={() => setPrivacyOpen(true)}>Privacy Settings</button>
+        <button onClick={() => setSchemaOpen(true)}>Edit schema</button>
+      </div>
+    </section>
+    <details className={styles.settings}><summary>Generation settings</summary><ConfigPanel embedded /></details>
+    {schemaNotice && <details className={styles.notes} open={/AI unavailable|exceeds|invalid/i.test(schemaNotice)}>
+      <summary>Generation notes</summary><p>{schemaNotice}</p>
+      <button onClick={clearSchemaNotice}>Dismiss notice</button>
+    </details>}
+    <SchemaModal isOpen={schemaOpen} onClose={() => setSchemaOpen(false)} />
+    <PrivacyModal isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} sensitiveColumns={sensitive} />
+    <QualityChartsModal isOpen={qualityOpen} onClose={() => setQualityOpen(false)} />
+  </aside>;
+}

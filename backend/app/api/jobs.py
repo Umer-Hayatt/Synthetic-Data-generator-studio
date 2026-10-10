@@ -14,6 +14,7 @@ from app.models.spec import Model
 from pydantic import Field
 from app.eval.comparison import compare
 from app.core.validation import validate_frame
+from app.core.inspection import scalar_filter
 
 router = APIRouter(prefix='/api/v1')
 artifacts = LocalArtifactStore(settings.artifact_root, settings.artifact_max_bytes, settings.artifact_ttl_seconds)
@@ -201,6 +202,50 @@ def get_artifact(artifact_id: str, preview_rows: int = Query(default=0, ge=0, le
         raise HTTPException(404, 'Artifact not found or expired.') from None
     except (ValueError,StopIteration):
         raise HTTPException(400, 'Preview unavailable for this artifact; use download.') from None
+
+
+@router.get('/artifacts/{artifact_id}/rows')
+def artifact_rows(artifact_id: str, offset: int = Query(default=0, ge=0),
+                  limit: int = Query(default=25, ge=1, le=1000),
+                  filter_column: str | None = Query(default=None, max_length=128),
+                  filter_value: str | None = Query(default=None, max_length=2000)):
+    try:
+        artifact = artifacts.get(artifact_id)
+        if artifact.format != 'jsonl':
+            raise ValueError('Paged table inspection requires a generated JSONL artifact.')
+        value = scalar_filter(filter_column, filter_value)
+        rows, columns, total, matching = [], [], 0, 0
+        with artifacts.open(artifact_id) as stream:
+            while line := stream.readline(1024**2 + 1):
+                if len(line) > 1024**2:
+                    raise ValueError('Record too large for inspection; download the complete artifact.')
+                if not line.strip():
+                    continue
+                record = json.loads(line)
+                if not isinstance(record, dict) or any(isinstance(v, (list, dict)) for v in record.values()):
+                    raise ValueError('This artifact is a document, not a flat table.')
+                total += 1
+                if total > settings.job_max_rows:
+                    raise ValueError('Table exceeds the inspection row limit; download the complete artifact.')
+                for column in record:
+                    if column not in columns:
+                        columns.append(column)
+                if filter_column is not None:
+                    if filter_column not in record:
+                        raise ValueError('Filter column is absent from this table.')
+                    if record[filter_column] != value:
+                        continue
+                if offset <= matching < offset + limit:
+                    rows.append(record)
+                matching += 1
+        if filter_column is not None and filter_column not in columns:
+            raise ValueError('Filter column is absent from this table.')
+        return {'dataset_id': artifact_id, 'row_count': matching, 'total_row_count': total,
+                'columns': columns, 'offset': offset, 'limit': limit, 'rows': rows}
+    except KeyError:
+        raise HTTPException(404, 'Artifact not found or expired; regenerate the data.') from None
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
 
 
 _MEDIA_TYPES = {

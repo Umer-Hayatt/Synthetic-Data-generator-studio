@@ -1,138 +1,32 @@
 import React from 'react';
 import { useStudio } from '../../context/StudioContext';
-import { SidebarNav } from './SidebarNav';
-import { ConfigPanel } from '../configuration/ConfigPanel';
-import { DataPreviewCanvas } from '../preview/DataPreviewCanvas';
-import { SchemaInspector } from '../schema/SchemaInspector';
-import { QualityDashboard } from '../quality/QualityDashboard';
-import { RelationalWorkspace } from '../relational/RelationalWorkspace';
+import { DataWorkspace } from '../preview/DataWorkspace';
+import { WorkspaceInsights } from './WorkspaceInsights';
 import { DocumentsWorkspace } from '../documents/DocumentsWorkspace';
-import {
-  Eye,
-  Sliders,
-  Activity,
-  Database,
-  CheckCircle2,
-  Network,
-  FileText,
-} from 'lucide-react';
-import { WorkspaceTab } from '../../types';
+import styles from './Workspace.module.css';
 
 export const Workspace: React.FC = () => {
-  const {
-    activeTab,
-    setActiveTab,
-    qualityResults,
-    datasetName,
-    datasetSpec,
-    generatedRowCount,
-    datasetRevision,
-  } = useStudio();
+  const { activeTab, setActiveTab, datasetName, datasetSpec, datasetRevision, activeSource,
+    generatedRowCount } = useStudio();
+  const hasDocuments = !!datasetSpec?.documents?.length;
+  const documentsOpen = hasDocuments && activeTab === 'documents';
+  const source = activeSource?.kind === 'prompt' ? 'AI prompt' : activeSource?.kind === 'demo' ? 'Example dataset' : 'Uploaded data';
 
-  const tabs: {
-    id: WorkspaceTab;
-    label: string;
-    icon: React.ReactNode;
-    badge?: string;
-  }[] = [
-    {
-      id: 'preview',
-      label: 'Preview Data',
-      icon: <Eye size={13} />,
-    },
-    {
-      id: 'schema',
-      label: 'Schema & Privacy',
-      icon: <Sliders size={13} />,
-    },
-    {
-      id: 'quality',
-      label: 'Synthetic Quality',
-      icon: <Activity size={13} />,
-      badge:
-        qualityResults?.overall_score !== null &&
-        qualityResults?.overall_score !== undefined
-          ? `${Math.round(qualityResults.overall_score)}%`
-          : undefined,
-    },
-    {
-      id: 'relational',
-      label: 'Relational',
-      icon: <Network size={13} />,
-      badge:
-        datasetSpec?.tables && datasetSpec.tables.length > 1
-          ? `${datasetSpec.tables.length} tables`
-          : undefined,
-    },
-    {
-      id: 'documents',
-      label: 'Documents',
-      icon: <FileText size={13} />,
-      badge:
-        datasetSpec?.documents && datasetSpec.documents.length > 0
-          ? `${datasetSpec.documents.length}`
-          : undefined,
-    },
-  ];
-
-
-  return (
-    <div className="workspace-layout">
-      {/* Column 1: Left Sidebar (240px) */}
-      <SidebarNav />
-
-      {/* Column 2: Center Canvas (Flexible / Largest region) */}
-      <main className="center-canvas">
-        {/* Canvas Header: Name, Status, and Tab Navigation */}
-        <div className="canvas-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-              {datasetName || 'customer_churn'}
-            </span>
-            <span className="badge badge-synth" style={{ fontSize: '9px' }}>
-              {generatedRowCount > 0 ? `Synthesized (${generatedRowCount} rows)` : 'Not generated'}
-            </span>
-          </div>
-
-          <nav className="tab-nav">
-            {tabs.map((tab) => {
-              const isSelected = activeTab === tab.id;
-
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`tab-btn ${isSelected ? 'active' : ''}`}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                  {tab.badge && (
-                    <span
-                      className={`badge ${isSelected ? 'badge-blue' : 'badge-slate'}`}
-                      style={{ fontSize: '9px', padding: '1px 5px' }}
-                    >
-                      {tab.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Canvas Body: Active Tab Content */}
-        <div className="canvas-body">
-          {activeTab === 'preview' && <DataPreviewCanvas />}
-          {activeTab === 'schema' && <SchemaInspector />}
-          {activeTab === 'quality' && <QualityDashboard />}
-          {activeTab === 'relational' && <RelationalWorkspace key={datasetRevision} />}
-          {activeTab === 'documents' && <DocumentsWorkspace key={datasetRevision} />}
-        </div>
-
-      </main>
-
-      {/* Column 3: Right Sidebar (300px) */}
-      <ConfigPanel />
-    </div>
-  );
+  return <div className={`${styles.workspace} ${styles.side}`}>
+    <header className={styles.header}>
+      <div><h1>{datasetName || 'Your dataset'}</h1>
+        <p>{source} · {generatedRowCount ? `${generatedRowCount.toLocaleString()} generated rows` : 'Ready to generate'}</p></div>
+      {hasDocuments && <nav aria-label="Workspace view">
+        <button className={documentsOpen ? '' : styles.selected} aria-pressed={!documentsOpen}
+          onClick={() => setActiveTab('preview')}>Data</button>
+        <button className={documentsOpen ? styles.selected : ''} aria-pressed={documentsOpen}
+          onClick={() => setActiveTab('documents')}>Documents</button>
+      </nav>}
+    </header>
+    {documentsOpen ? <main className={styles.documentBody}><DocumentsWorkspace key={datasetRevision} /></main> :
+      <div className={styles.body}>
+        <main className={styles.dataRegion}><DataWorkspace key={datasetRevision} /></main>
+        <WorkspaceInsights key={datasetRevision} />
+      </div>}
+  </div>;
 };

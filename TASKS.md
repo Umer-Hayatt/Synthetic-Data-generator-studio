@@ -40,7 +40,13 @@ Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
   regressions; one candidate retained, all full-data gates passed. Backend 218/1
   and retained-version browser verification; frontend unchanged from S9D.
   Amount-range failures remain. Owner then prioritized a simpler data workspace.
-- S10-S12 are PLANNED after S9E in REPAIR_PLAN.md. Historical tasks remain superseded.
+- [DONE] S10A — Unified data inspection and adjacent quality/privacy (2026-10-10).
+  Frozen six-task navigation score 10 -> 5 in both layouts; beside-table layout
+  retained by owner preference and confirmed. Complete pages/downloads, linked
+  records, conditional options and truthful unavailable/stale metrics.
+  Verified: 221 backend / 1 skipped, 17 React tests, type check/production build.
+- S10B complete artifact/business-rule audit and S11-S12 remain PLANNED in
+  REPAIR_PLAN.md. Historical tasks remain superseded.
 
 ---
 

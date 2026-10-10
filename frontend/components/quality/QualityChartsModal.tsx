@@ -95,6 +95,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
             </div>
           </div>
           <button
+            aria-label="Close quality details"
             onClick={onClose}
             className="btn-ghost"
             style={{

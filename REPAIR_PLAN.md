@@ -76,7 +76,7 @@ Quality: NN% <label>      Privacy: Protected      Integrity: Passed
 - Verification: Pytest passes (159 passed, 1 skipped), frontend tsc passes with 0 errors.
 
 ## Status log
-S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S9C DONE | S9D DONE | S9E DONE | S10-S12 PLANNED
+S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S9C DONE | S9D DONE | S9E DONE | S10A DONE | S10B-S12 PLANNED
 
 ## Input-driven follow-up repair — planned, 2026-10-08
 
@@ -86,7 +86,7 @@ working end to end, Documents must assess whether that same data supports a
 document and render it without substituting or regenerating unrelated entities.
 S1-S7 remain completed historical milestones. This extends this active plan;
 it does not resume the superseded V2 work order. Product choices are recorded
-below. S8-S9D are complete locally; S10 is next. Remote push awaits owner approval.
+below. S8-S10A are complete locally; S10B is next. Remote push awaits owner approval.
 
 ### Confirmed causes and baseline
 - `backend/app/api/intelligence.py` truncates multi-table AI drafts to the first
@@ -352,7 +352,34 @@ relationships or silently modify source values to make a proposed model pass.
   browser with the 40-enrollment request. Ledger/logs/full output in
   qa/autoresearch/2026-10-10-ai-output/ (local only).
 
-### S10 — Compact relational inspection with truthful results — PLANNED
+### S10 — Compact relational inspection with truthful results — IN_PROGRESS
+- Owner clarification (2026-10-10): remove separate quality/privacy/relational tabs;
+  combine tabular and relational data in one workspace, keep real quality/privacy
+  beside the table and show conditional choices. Use bounded layout experiments.
+- Execute as S10A (unified inspection/metrics/full pagination/linked records) then
+  S10B (complete artifact PK/FK/cardinality/business-rule audit). Do not mark all
+  of S10 DONE until S10B passes. No static artifact-integrity claims in S10A.
+- S10A experiment: unchanged baseline plus at most two layout candidates and one
+  confirmation, fixed frontend/benchmarks/workspace.cjs tasks, 120-second trial
+  limit. Primary metric: total actions to inspect data/quality/privacy/schema/
+  related table/full export; lower is better, all task assertions must pass.
+  Minimum gain: one fewer action. Preserve data/source revisions and full exports.
+  One batched desktop/mobile visual inspection plus at most one confirmation.
+- S10A DONE: both the above-table strip and beside-table layout score 5 vs
+  baseline 10 actions. Beside-table retained on the tie per owner's preference;
+  final fixed-task confirmation also scores 5. This is scripted navigation cost,
+  not a subjective usability or data-quality percentage.
+- Unified data view now supports complete frame/artifact pages, selected full
+  downloads, exact parent-record lookup and actual normalized integrity results.
+  Single tables have no selector; unmapped documents have no view button.
+  Quality/privacy editors are adjacent; detailed settings/links are collapsed.
+  Removed eight obsolete panels/styles and duplicate export dialog/API helper.
+- Verification: 221 backend passed / 1 skipped; 17 real React tests; type check
+  and production build passed. Live university upload: measured 88%, 40/10/5
+  tables, final page through row 40 and filtered student 3. Experiment ledger,
+  snapshots and proof: qa/autoresearch/2026-10-10-workspace/ (local only).
+- S10B PLANNED: full artifact PK/FK/cardinality/business-rule auditing remains
+  pending. Artifact summary explicitly says Not evaluated and audit pending.
 - Default: a short source/model summary, table selector and paged data preview.
   Put relationship details and schema editing behind explicit secondary views.
 - Show actual connected column names and parent/child cardinality direction.

@@ -2,21 +2,14 @@ import React from 'react';
 import { useStudio } from '../../context/StudioContext';
 import {
   Database,
-  Download,
   Plus,
   CheckCircle2,
   AlertTriangle,
 } from 'lucide-react';
 
-interface HeaderProps {
-  onOpenExport: () => void;
-}
-
-export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
+export const Header: React.FC = () => {
   const {
     datasetSpec,
-    generatedToken,
-    generatedSnapshot,
     backendOnline,
     clearSession,
   } = useStudio();
@@ -70,16 +63,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenExport }) => {
         {/* Action Buttons */}
         {datasetSpec && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={onOpenExport}
-              disabled={!generatedToken || generatedSnapshot?.storage !== 'frame'}
-              className="btn btn-synth btn-sm"
-              title="Download synthetic data as CSV or JSON"
-            >
-              <Download size={13} />
-              <span>Export</span>
-            </button>
-
             <button
               onClick={clearSession}
               className="btn btn-secondary btn-sm"

@@ -157,18 +157,39 @@ export const api = {
   async fetchPreview(
     datasetId: string,
     offset: number = 0,
-    limit: number = 20
+    limit: number = 20,
+    filter?: { column: string; value: unknown }
   ): Promise<PreviewResponse> {
     const url = new URL(`${API_BASE_URL}/api/v1/preview`);
     url.searchParams.set('dataset_id', datasetId);
     url.searchParams.set('offset', String(offset));
     url.searchParams.set('limit', String(limit));
+    if (filter) {
+      url.searchParams.set('filter_column', filter.column);
+      url.searchParams.set('filter_value', JSON.stringify(filter.value));
+    }
 
     const res = await fetch(url.toString(), {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
     return await handleResponse<PreviewResponse>(res);
+  },
+
+  async getArtifactPage(datasetId: string, offset = 0, limit = 25,
+    filter?: { column: string; value: unknown }): Promise<PreviewResponse> {
+    const url = new URL(`${API_BASE_URL}/api/v1/artifacts/${encodeURIComponent(datasetId)}/rows`);
+    url.searchParams.set('offset', String(offset));
+    url.searchParams.set('limit', String(limit));
+    if (filter) {
+      url.searchParams.set('filter_column', filter.column);
+      url.searchParams.set('filter_value', JSON.stringify(filter.value));
+    }
+    return handleResponse<PreviewResponse>(await fetch(url.toString()));
+  },
+
+  getArtifactExportUrl(format: 'csv' | 'jsonl', datasetId: string): string {
+    return `${API_BASE_URL}/api/v1/artifacts/${encodeURIComponent(datasetId)}/download?format=${format}`;
   },
 
   async evaluateQuality(
@@ -192,12 +213,6 @@ export const api = {
     return `${API_BASE_URL}/api/v1/export/${format}?dataset_id=${encodeURIComponent(
       datasetId
     )}`;
-  },
-
-  async downloadData(format: 'csv' | 'json', datasetId: string): Promise<Blob> {
-    const res = await fetch(api.getExportUrl(format, datasetId));
-    if (!res.ok) await handleResponse<never>(res);
-    return res.blob();
   },
 
   async submitGenerationJob(plan: {

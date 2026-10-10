@@ -64,7 +64,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
               </span>
             </div>
           </div>
-          <button onClick={onClose} className="btn-ghost" style={{ padding: '4px', cursor: 'pointer', border: 'none', background: 'transparent', color: 'var(--text-muted)' }}>
+          <button aria-label="Close privacy settings" onClick={onClose} className="btn-ghost" style={{ padding: '4px', cursor: 'pointer', border: 'none', background: 'transparent', color: 'var(--text-muted)' }}>
             <X size={16} />
           </button>
         </div>

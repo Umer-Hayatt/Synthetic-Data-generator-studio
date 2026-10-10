@@ -1,0 +1,64 @@
+.workspace { flex: 1; min-width: 0; height: calc(100dvh - 52px); display: flex; flex-direction: column; color: var(--text-primary); }
+.header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding: 24px 28px; border-bottom: 1px solid var(--border-subtle); background: var(--surface); }
+.header h1 { font-size: 22px; font-weight: 650; line-height: 1.3; margin: 0; overflow-wrap: anywhere; }
+.header p { font-size: 13px; color: var(--text-muted); margin: 6px 0 0; }
+.header nav { display: flex; gap: 6px; }
+.body { flex: 1; min-height: 0; overflow: auto; }
+.side .body { display: grid; grid-template-columns: minmax(0, 1fr) 280px; }
+.side .insights { border-left: 1px solid var(--border-subtle); }
+.dataRegion { min-width: 0; padding: 24px 28px; }
+.insights { min-width: 0; padding: 24px; background: var(--surface); }
+.summary h2, .tableToolbar h2 { margin: 0; font-size: 16px; font-weight: 650; }
+.metrics { margin: 22px 0; display: grid; gap: 22px; }
+.metrics dt { color: var(--text-muted); font-size: 12px; margin-bottom: 6px; }
+.metrics dd { font-size: 15px; font-weight: 600; margin: 0; }
+.metrics .score { font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.metrics p, .notes p { font-size: 12px; color: var(--text-muted); line-height: 1.6; margin: 6px 0 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.workspace button { font: inherit; font-size: 12px; padding: 8px 11px; border-radius: 6px; border: 1px solid var(--border-medium); background: var(--surface); color: var(--text-primary); cursor: pointer; }
+.workspace button:hover:not(:disabled) { background: var(--surface-muted); }
+.workspace button:disabled { opacity: .45; cursor: default; }
+.workspace button.selected { background: var(--text-primary); color: var(--surface); border-color: var(--text-primary); }
+.workspace button.selected:hover { background: var(--primary-btn-hover); }
+.workspace button:focus-visible, .workspace a:focus-visible, .workspace summary:focus-visible, .tableScroll:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; }
+.workspace summary { cursor: pointer; font-size: 13px; font-weight: 550; padding: 12px 0; }
+.settings, .notes { margin-top: 24px; border-top: 1px solid var(--border-subtle); }
+.notes button { margin-top: 12px; }
+.tableSection { min-width: 0; }
+.tableToolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 20px; }
+.tableChoices { display: flex; flex-wrap: wrap; gap: 6px; }
+.downloads { display: flex; flex-wrap: wrap; gap: 14px; }
+.downloads a { font-size: 12px; color: var(--text-primary); text-underline-offset: 4px; }
+.tableScroll { width: 100%; overflow-x: auto; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 8px; }
+.table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; font-variant-numeric: tabular-nums; }
+.table th { font-weight: 600; font-size: 12px; background: var(--surface-muted); padding: 12px 14px; white-space: nowrap; }
+.table td { padding: 11px 14px; border-top: 1px solid var(--border-subtle); white-space: nowrap; }
+.table tbody tr:hover { background: var(--background); }
+.table .keyLink { border: 0; padding: 0; border-radius: 0; color: #1d4ed8; text-decoration: underline; text-underline-offset: 4px; }
+.null { color: var(--text-muted); }
+.pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--text-muted); padding: 16px 0; }
+.pagination > div { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.relationshipDetails { border-top: 1px solid var(--border-subtle); margin-top: 16px; }
+.relationshipDetails p { font-size: 13px; line-height: 1.6; margin: 10px 0; max-width: 70ch; overflow-wrap: anywhere; }
+.relationshipDetails button { margin: 10px 0; }
+.modelStatus { font-size: 12px; color: var(--text-muted); margin: -6px 0 16px; }
+.notice { padding: 14px 0; color: var(--error); font-size: 13px; line-height: 1.6; }
+.notice p { margin-bottom: 10px; }
+.empty { padding: 48px 16px; color: var(--text-muted); text-align: center; font-size: 14px; }
+.filterStatus { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; font-size: 13px; }
+.documentBody { padding: 24px 28px; overflow: auto; }
+.workspace ::selection { color: var(--surface); background: var(--text-primary); }
+.workspace input { caret-color: var(--text-primary); }
+.tableScroll { scrollbar-color: var(--border-medium) var(--surface-muted); }
+@media (max-width: 900px) {
+  .header { padding: 20px; }
+  .side .body { display: flex; flex-direction: column; }
+  .side .insights { order: -1; border-left: 0; border-bottom: 1px solid var(--border-subtle); }
+  .metrics { grid-template-columns: 1.2fr 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .metrics dd { overflow-wrap: anywhere; }
+  .metrics .score { font-size: 24px; }
+  .settings, .notes { margin-top: 16px; }
+  .dataRegion, .insights, .documentBody { padding: 20px; }
+}
+@media (prefers-reduced-motion: no-preference) { .tableSection { animation: appear .2s cubic-bezier(.16,1,.3,1); } }
+@keyframes appear { from { clip-path: inset(0 0 8px 0); } to { clip-path: inset(0); } }

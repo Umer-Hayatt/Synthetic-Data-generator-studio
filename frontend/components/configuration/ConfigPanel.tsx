@@ -6,7 +6,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
-export const ConfigPanel: React.FC = () => {
+export const ConfigPanel: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const {
     datasetSpec,
     updateGlobalConfig,
@@ -27,8 +27,9 @@ export const ConfigPanel: React.FC = () => {
     updateGlobalConfig({ seed: Math.floor(Math.random() * 90000) + 1000 });
   };
 
+  const Container = embedded ? 'div' : 'aside';
   return (
-    <aside className="sidebar-right">
+    <Container className={embedded ? 'generation-settings' : 'sidebar-right'}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
@@ -46,7 +47,7 @@ export const ConfigPanel: React.FC = () => {
         {/* Setting 1: Row Count */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label style={{ fontSize: '11px', color: 'var(--text-body)', fontWeight: 500 }}>
+            <label htmlFor="generation-row-count" style={{ fontSize: '11px', color: 'var(--text-body)', fontWeight: 500 }}>
               Synthetic Rows
             </label>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -54,6 +55,7 @@ export const ConfigPanel: React.FC = () => {
             </span>
           </div>
           <input
+            id="generation-row-count"
             type="range"
             min={1}
             max={Math.max(50000, rowCount)}
@@ -72,7 +74,7 @@ export const ConfigPanel: React.FC = () => {
         {/* Setting 2: Random Seed */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label style={{ fontSize: '11px', color: 'var(--text-body)', fontWeight: 500 }}>
+            <label htmlFor="generation-seed" style={{ fontSize: '11px', color: 'var(--text-body)', fontWeight: 500 }}>
               Deterministic Seed
             </label>
             <button
@@ -86,6 +88,7 @@ export const ConfigPanel: React.FC = () => {
             </button>
           </div>
           <input
+            id="generation-seed"
             type="number"
             value={seed}
             onChange={(e) => updateGlobalConfig({ seed: Number(e.target.value) })}
@@ -108,6 +111,6 @@ export const ConfigPanel: React.FC = () => {
           <span>{isGenerating ? 'Synthesizing...' : (generatedRowCount > 0 ? 'Regenerate Dataset' : 'Generate Dataset')}</span>
         </button>
       </div>
-    </aside>
+    </Container>
   );
 };

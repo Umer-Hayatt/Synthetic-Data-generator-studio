@@ -21,6 +21,9 @@ const spec = (name) => ({ name, version: '1.0', locale: 'en_US', seed: 42,
 });
 const generated = (name) => ({ dataset_id: `generated-${name}`, row_count: 3,
   columns: ['id', 'value'], preview: [{ id: 1, value: name }] });
+const visibleText = node => typeof node === 'string' || typeof node === 'number' ? String(node) :
+  Array.isArray(node) ? node.map(visibleText).join('') : node?.children ? node.children.map(visibleText).join('') : '';
+const findButton = (h, name) => h.renderer.root.findAllByType('button').find(button => visibleText(button) === name);
 
 // Load real TSX components with real React hooks. Only backend transports and
 // unrelated UI panels are substituted, so requests can finish in any order.
@@ -38,6 +41,8 @@ async function mount(t, overrides = {}) {
     getArtifact: async (id) => ({ preview: artifactRows.get(id) || [] }),
     getDocumentUrl: () => '/documents/export',
     fetchPreview: async () => ({ rows: [], row_count: 0 }),
+    getArtifactPage: async id => ({ rows: artifactRows.get(id) || [], row_count: (artifactRows.get(id) || []).length }),
+    getArtifactExportUrl: (format, id) => `/artifacts/${id}/download?format=${format}`,
     buildRelationships: async body => ({ source_dataset_id: body.dataset_id, result: null,
       proposal: { source_dataset_id: body.dataset_id, status: 'unavailable', ai_status: 'no_key',
         explanation: 'AI is unavailable.', entities: [], questions: [] } }),
@@ -75,19 +80,15 @@ async function mount(t, overrides = {}) {
   global.fetch = overrides.fetch || (async (url) => ({ ok: true,
     json: async () => cache.get(url.split('/').at(-2)) }));
   const mocks = new Map([
-    [path.join(root, 'components/relational/RelationshipPlanner.module.css'), { default: { planner: 'planner' }, __esModule: true }],
     [path.join(root, 'services/api.ts'), { api }],
     [path.join(root, 'services/v2.ts'), v2],
   ]);
   for (const [file, name] of [
-    ['components/layout/SidebarNav.tsx', 'SidebarNav'],
     ['components/configuration/ConfigPanel.tsx', 'ConfigPanel'],
-    ['components/preview/DataPreviewCanvas.tsx', 'DataPreviewCanvas'],
-    ['components/schema/SchemaInspector.tsx', 'SchemaInspector'],
-    ['components/quality/QualityDashboard.tsx', 'QualityDashboard'],
   ]) mocks.set(path.join(root, file), { [name]: () => null });
   function load(filename) {
     if (mocks.has(filename)) return mocks.get(filename);
+    if (filename.endsWith('.css')) return { __esModule: true, default: new Proxy({}, { get: (_, key) => String(key) }) };
     if (cache.has(filename)) return cache.get(filename);
     if (filename.endsWith('.json')) return JSON.parse(fs.readFileSync(filename, 'utf8').replace(/^\uFEFF/, ''));
     const module = { exports: {} };
@@ -115,6 +116,55 @@ async function mount(t, overrides = {}) {
   t.after(async () => { await act(async () => renderer.unmount()); global.fetch = nativeFetch; });
   return { get state() { return state; }, renderer, api, plans };
 }
+
+test('one table keeps settings beside data and never invents reference quality', async t => {
+  const h = await mount(t, { api: {
+    fetchPreview: async () => ({ rows: [{id: 1, value: 'Current'}], row_count: 3 }),
+    evaluateQuality: async () => ({ overall_score: 99, score_status: 'available' }),
+  } });
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); });
+  assert.match(visibleText(h.renderer.toJSON()), /No reference/);
+  assert.doesNotMatch(visibleText(h.renderer.toJSON()), /99%/);
+  assert.equal(h.renderer.root.findAll(node => node.props['aria-label'] === 'Generated tables').length, 0);
+  assert.equal(findButton(h, 'Documents'), undefined);
+  await act(async () => findButton(h, 'Privacy Settings').props.onClick());
+  assert.ok(h.renderer.root.findAllByType('h3').some(node => visibleText(node).includes('Privacy Settings')));
+  assert.ok(h.renderer.root.findAllByType('td').some(node => visibleText(node) === 'Current'));
+  act(() => h.state.updateGlobalConfig({seed: 90}));
+  assert.match(visibleText(h.renderer.toJSON()), /Not generated/);
+  assert.equal(h.renderer.root.findAllByType('a').length, 0);
+});
+
+test('linked records filter complete parent data and ignore superseded page responses', async t => {
+  const requests = [], late = deferred();
+  let firstParents = true;
+  const child = {...spec('Orders').tables[0], row_count: 70, foreign_keys: [
+    {column:'value',reference_table:'Customers',reference_column:'id',cardinality:'1:N'}]};
+  const parent = spec('Customers').tables[0];
+  const h = await mount(t, { api: {
+    buildRelationships: async body => ({source_dataset_id:body.dataset_id,
+      proposal:{source_dataset_id:body.dataset_id,status:'built',ai_status:'available'},
+      result:{source_dataset_id:body.dataset_id,tables:[{...child,dataset_id:'children'},
+        {...parent,dataset_id:'parents'}],integrity:{lossless:true,source_rows:70,primary_keys_unique:true,orphan_foreign_keys:0}}}),
+    fetchPreview: async (id,offset,limit,filter) => {
+      requests.push({id,offset,limit,filter});
+      if (id === 'parents' && !filter && firstParents) {firstParents=false; return late.promise;}
+      return {rows:[{id:offset+1,value:id==='children'?3:'Parent 3'}],row_count:filter?1:70,total_row_count:70};
+    },
+  } });
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); });
+  await act(async () => findButton(h, 'Next').props.onClick());
+  assert.ok(requests.some(request => request.id==='children' && request.offset===25));
+  await act(async () => findButton(h, 'Customers (3)').props.onClick());
+  await act(async () => findButton(h, 'Orders (70)').props.onClick());
+  const link=h.renderer.root.findAllByType('button').find(node=>node.props['aria-label']==='Open Customers record for value 3');
+  await act(async () => link.props.onClick());
+  assert.deepEqual(requests.at(-1).filter,{column:'id',value:3,from:'Orders'});
+  assert.match(visibleText(h.renderer.toJSON()), /1 matching rows/);
+  assert.ok(h.renderer.root.findAllByType('a').some(node=>node.props.href==='/export/csv/parents'));
+  await act(async () => late.resolve({rows:[{id:999,value:'STALE'}],row_count:70}));
+  assert.doesNotMatch(visibleText(h.renderer.toJSON()), /STALE/);
+});
 
 test('new prompt clears demo artifacts immediately and retains its prompt and snapshot identity', async (t) => {
   const h = await mount(t);
@@ -145,7 +195,8 @@ test('relationship normalization uses the retained full snapshot and keeps origi
   const requests = [];
   const h = await mount(t, { api: {
     analyzeRelationships: async body => { requests.push(body); return { source_dataset_id: body.dataset_id, entities: [], questions: [] }; },
-    normalizeRelationships: async body => { requests.push(body); return { source_dataset_id: body.dataset_id, tables: [], integrity: { lossless: true }, spec: spec('Normalized') }; },
+    normalizeRelationships: async body => { requests.push(body); return { source_dataset_id: body.dataset_id, tables: [],
+      integrity: { lossless: true, source_rows: 3, orphan_foreign_keys: 0, primary_keys_unique: true }, spec: spec('Normalized') }; },
   } });
   await act(async () => { await h.state.loadFromAiPrompt('Current'); });
   const originalSpec = h.state.datasetSpec, snapshot = h.state.generatedSnapshot;
@@ -179,7 +230,7 @@ test('superseded relationship analysis and normalization cannot publish stale ou
   await act(async () => { await h.state.loadFromAiPrompt('New'); });
   await act(async () => { normalized.resolve({ source_dataset_id: 'generated-Current' }); assert.equal(await pending, false); });
   assert.equal(h.state.relationshipResult, null);
-  assert.equal(h.state.relationshipProposal, null);
+  assert.equal(h.state.relationshipProposal?.source_dataset_id, 'generated-New');
   assert.equal(h.state.generatedToken, 'generated-New');
 });
 
@@ -187,7 +238,7 @@ test('opening relational builds with AI once, keeps the source and does not requ
   let calls = 0;
   const previews = [];
   const h = await mount(t, { api: {
-    fetchPreview: async (token, offset) => { previews.push([token, offset]); return { rows: [{ id: 1, value: 'Current' }] }; },
+    fetchPreview: async (token, offset) => { previews.push([token, offset]); return { row_count: 30, rows: [{ id: 1, value: 'Current' }] }; },
     buildRelationships: async body => {
       calls++;
       assert.equal(body.dataset_id, 'generated-Current');
@@ -242,7 +293,7 @@ test('AI failure remains a retryable failure and does not loop or ask for mappin
   assert.equal(h.state.relationshipResult, null);
   assert.equal(h.renderer.root.findAllByType('textarea').length, 0);
   assert.match(JSON.stringify(h.renderer.toJSON()), /provider rejected the model request/);
-  await act(async () => h.renderer.root.findAllByType('button').find(b => b.props.children === 'Build again').props.onClick());
+  await act(async () => h.renderer.root.findAllByType('button').find(b => b.props.children === 'Retry relationships').props.onClick());
   assert.equal(calls, 2);
 });
 
@@ -309,9 +360,7 @@ test('ordinary document/relational actions keep the uploaded dataset and submit 
   assert.equal(h.state.datasetName, 'sensors');
   assert.deepEqual(h.state.generatedSnapshot, before);
   act(() => h.state.setActiveTab('documents'));
-  const generate = h.renderer.root.findAllByType('button').find((button) =>
-    button.findAllByType('span').some((span) => span.props.children === 'Generate Invoices from Current Dataset'));
-  assert.equal(generate.props.disabled, true);
+  assert.equal(h.renderer.root.findAllByType('button').some(button => button.props.children === 'Documents'), false);
 });
 
 test('model edits clear mounted document previews and downloads before a late preview finishes', async (t) => {
@@ -362,4 +411,5 @@ test('a cancelled generation never publishes a manifest or a success snapshot', 
   assert.equal(h.state.generatedSnapshot, null);
   assert.equal(h.state.documentManifestId, null);
   assert.deepEqual(h.state.tableArtifactMap, {});
+  assert.doesNotMatch(visibleText(h.renderer.toJSON()), /Accounts \(\d+\)/);
 });

@@ -5,6 +5,7 @@ from app.models.spec import DatasetSpec, Model
 from app.engines.tabular import generate
 from app.core.config import settings
 from app.core.store import store
+from app.core.inspection import scalar_filter
 
 router = APIRouter(prefix='/api/v1')
 
@@ -40,10 +41,22 @@ def generate_dataset(request: GenerationRequest):
 
 
 @router.get('/preview')
-def preview(dataset_id: str, offset: int = Query(default=0, ge=0), limit: int = Query(default=20, ge=1, le=1000)):
+def preview(dataset_id: str, offset: int = Query(default=0, ge=0), limit: int = Query(default=20, ge=1, le=1000),
+            filter_column: str | None = Query(default=None, max_length=128),
+            filter_value: str | None = Query(default=None, max_length=2000)):
     try:
         frame = store.get(dataset_id)
     except KeyError as exc:
         raise HTTPException(404, exc.args[0]) from None
-    return {'dataset_id': dataset_id, 'row_count': len(frame), 'columns': list(frame.columns),
-            'offset': offset, 'limit': limit, 'rows': records(frame.iloc[offset:offset+limit])}
+    total = len(frame)
+    try:
+        value = scalar_filter(filter_column, filter_value)
+        if filter_column is not None:
+            if filter_column not in frame:
+                raise ValueError('Filter column is absent from this table.')
+            frame = frame[frame[filter_column].isna() if value is None else frame[filter_column].eq(value)]
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return {'dataset_id': dataset_id, 'row_count': len(frame), 'total_row_count': total,
+            'columns': list(frame.columns), 'offset': offset, 'limit': limit,
+            'rows': records(frame.iloc[offset:offset+limit])}

@@ -380,12 +380,12 @@ export const EntryScreen: React.FC = () => {
             {isSubmittingPrompt ? (
               <>
                 <Loader2 size={14} className="animate-spin" />
-                <span>Drafting Specification...</span>
+                <span>Generating data…</span>
               </>
             ) : (
               <>
                 <Sparkles size={14} />
-                <span>Draft Specification</span>
+                <span>Generate data</span>
                 <ArrowRight size={14} />
               </>
             )}

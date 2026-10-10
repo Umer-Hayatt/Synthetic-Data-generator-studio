@@ -185,6 +185,7 @@ export interface GenerateResponse {
 export interface PreviewResponse {
   dataset_id: string;
   row_count: number;
+  total_row_count?: number;
   columns: string[];
   offset: number;
   limit: number;

@@ -1,86 +1,58 @@
 # PROJECT_STATE.md
 
 ## Current Phase
-REPAIR — fixing the product one vertical slice at a time. Plan: `REPAIR_PLAN.md`.
+REPAIR — one verified vertical slice at a time. Active plan: REPAIR_PLAN.md.
 
 ## Active Task
-S9E DONE: bounded live AI output experiments requested by owner.
-- Fixed university/retail/banking checks improved 60/70 -> 68/70 (+8, no regressions).
-  One candidate retained; live AI/schema/exact rejoin/unique key gates passed.
-  Numeric amount ranges still fail. Single live batch, without confirmation repeat.
-- Backend 218/1; frontend unchanged from S9D checks; retained browser flow verified.
-  Ledger and full outputs: qa/autoresearch/2026-10-10-ai-output/ (local only).
-- Owner now prioritizes S10: combine tabular/relational in one Data workspace,
-  quality/privacy beside the table, fewer tabs, conditional table choices.
-- S9D DONE: explicit AI generation count now precedes related entity counts.
-- Browser/parser repro requested 40 university enrollments with 10 students and
-  5 courses but generated 10 rows. Generation-count precedence and the qualified
-  enrollment fallback now preserve 40/10/5, including offline drafts.
-- Verified: 218 backend / 1 skipped; 15 React tests; type check/build. Live AI
-  browser counts, full JSON exact rejoin, CSV completeness and final page passed.
-  All keys unique, zero orphans. Proof: qa/debug/S9D_RESULTS.md (local only).
-- S9A-S9E are complete locally; remote push awaits explicit owner approval.
-  S10 and document suitability/rendering (S11-S12) remain pending.
-- AI owns discovering, selecting and applying the model from generated snapshot
-  metadata, prompt intent and full-row dependency counts. No manual map is required.
-- Validation rejects conflicting/missing fields and cycles, provides AI correction
-  feedback, then checks exact reconstruction before atomic publication.
-- Valid single-table data gets an AI explanation. Provider failure is retryable,
-  never a successful no-relation verdict or a fabricated model.
-- Current input identity, revision, original prompt and snapshot ownership remain
-  guarded against stale responses. New input/model edits/regeneration clear outputs.
-- Original generated rows remain authoritative. Relations never independently
-  regenerate values or silently load a fixed demo. Explicit entry demos remain.
-- Normalized tables support full exports and actual pagination; detailed links
-  and data checks are collapsed. Document repairs remain pending.
-- Local AI: gemini-3.8-flash with verified gemini-3.5-flash failover, low thinking,
-  120-second attempt limit and 180-second total budget (including retries/queue).
-  SDK 504 is classified as timeout; overload/timeouts prefer the alternate model.
-  Shared/project and evidenced model cooldowns and strict output validation remain.
-- Verification: 213 backend passed / 1 skipped; 15 real React lifecycle tests;
-  frontend type check/build passed. Live 5,000-student upload and actual AI prompt
-  both returned AI available/single_table, exact full export equality and zero
-  orphans. Requests took 6.6s/10.8s; prompt used no fallback. Proof in
-  qa/debug/STUDENT_QUOTA_RESULTS.md. Restarted backend; old snapshots need regeneration.
-- S9B browser baseline: original five-entity prompt
-  -> real AI draft without fallback -> 120 LineItems, 20 Orders, 8 Customers,
-  12 Products, 4 Categories. Four nested FKs, unique keys, zero orphans and exact
-  reconstruction of all 120 exported source rows; all table previews verified.
-- S9A browser baseline: commerce exact rejoin/export/pagination/narrow layout;
-  students explained as one table without mapping.
-- Local services running: backend 127.0.0.1:8000; production frontend localhost:3000.
-  Existing Python interpreter requires sandbox escalation; environment unchanged.
-- Proof artifacts are local in qa/debug/ (synthetic data; not committed).
+S10A DONE locally (2026-10-10); S10B is the next planned slice.
+- Owner's UI direction: one Data workspace for tabular/relational output, actual
+  quality/privacy beside the table, conditional table/document choices.
+- Frozen six-task navigation benchmark: baseline 10 actions, both candidates 5,
+  retained beside-table layout and final confirmation 5. Scripted action count
+  does not establish general usability or data quality.
+- Full frame/artifact pagination and selected-table downloads, clickable foreign
+  keys with exact parent filtering, collapsed details/settings and real metrics.
+- Prompt-only: No reference; edits clear outputs/scores/downloads; artifact audits
+  remain Not evaluated, pending S10B. No fabricated percentages or passed badges.
+- Verified: 221 backend passed / 1 skipped, 17 React lifecycle tests, type check
+  and production build. Browser university upload: real 88% quality, 40/10/5
+  tables, last page ends at row 40, student link matches exactly one parent.
+- Local experiment logs/proof: qa/autoresearch/2026-10-10-workspace/.
+- Stop after the verified S10A commit. S10B and S11-S12 remain planned.
 
-## Last Completed Milestone
-S9E complete (2026-10-10): live output benchmark improved from 60/70 to 68/70;
-explicit user field/key names retained. Scope then redirected to the simpler UI.
-
-## Baseline
-- Backend: 218 passed, 1 skipped, 0 failures.
-- Frontend: 15 React lifecycle tests, type check and production build pass.
-- Repo: https://github.com/Umer-Hayatt/Synthetic-Data-generator-studio (main).
+## Last Completed Milestones
+- S9E: fixed live university/retail/banking checks 60/70 -> 68/70; one retained
+  AI instruction candidate, no passing check regressed. No confirmation repeat;
+  owner redirected priority to UI. Not an AI-wide quality percentage.
+- S9D: explicit enrollment count fixed; original browser request now 40/10/5.
+- Full slice details and older verification records live in REPAIR_PLAN.md.
 
 ## Decisions
-- Work in vertical slices; finish, verify and commit one before starting the next.
-- Owner's 2026-10-09 decision supersedes the earlier manual relational review flow.
-- TSTR is removed; measured statistical quality evaluation remains.
-- Classic studio is the single workspace. AI prompting never requires a file.
-- Honor requested main-entity counts and retain transaction grain.
-- Support current single-table uploads/prompts first. Documents: invoices and
-  statements, same snapshot values, required missing fields reviewed (S11-S12).
+- Original generated snapshot is authoritative; preserve exact values and counts.
+- AI owns relational discovery/build from current source, prompt and full-row
+  dependency metadata, with validation, bounded correction and exact rejoin.
+- Single-table outcomes need an AI explanation; provider errors remain retryable.
+- Source identity, model/generation revisions and snapshot ownership guard stale
+  responses. Input/model edits/regeneration invalidate downstream outputs.
+- One classic studio. No implicit demo replacement; explicit entry demos remain.
+- Statistical quality needs a reference. TSTR removed. Document suitability and
+  same-snapshot rendering are S11-S12; no fresh generation to format documents.
+- Local AI uses configured primary/verified alternate, low thinking, 120-second
+  attempt and 180-second total budgets; evidenced model/shared quota cooldowns.
 
-## Known open issues
-- Unconstrained course_name values can be generic sentences; explicit course
-  categories passed all live checks. Numeric range requests still failed in two
-  AI benchmark cases. Structural fidelity does not establish semantic realism.
-- S0 deploy repair remains deferred: missing app.models.relational_rules on Render
-  and Python 3.14.3 rather than 3.12.10. No deployment changes in S9A.
-- Unrelated untracked scratch files and qa/ remain outside this slice.
-- Current in-app browser works and verifies local browser/API/data flows.
+## Known Open Issues
+- S10B: complete artifact PK/FK/cardinality/business-rule audit remains pending.
+- AI amount ranges failed two fixed S9E cases; generic course titles may be
+  sentences unless constrained. Structural fidelity does not prove realism.
+- S0 deployment repair deferred (Render import/runtime); no deployment changed.
+- Commerce & Invoices entry demo failed with "Derived value violates upper bound"
+  during S10A browser checks. Banking artifact paging/link/export passed. Demo
+  generation constraints need a later scoped repair; no fabricated demo output.
+- Existing Python venv needs sandbox escalation; environment unchanged.
+- Local backend: 127.0.0.1:8000. Production frontend: localhost:3000.
+- Unrelated scratch files, qa/ and preexisting tsconfig.tsbuildinfo excluded.
 
 ## Blockers
-Current enrollment AI flow passes; provider availability remains quota-dependent.
-Automatic approval review previously rejected
-pushing to origin/main because source/docs egress needs explicit authorization.
-Local repairs are complete; await owner approval to push. No workaround attempted.
+No current local repair blocker. Remote push awaits explicit owner authorization:
+automatic approval review previously rejected source/docs egress to origin/main.
+Do not push or work around that rejection without the owner's authorization.
