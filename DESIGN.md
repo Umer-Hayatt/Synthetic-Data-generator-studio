@@ -288,6 +288,14 @@ focus to its trigger. Prompt/upload tabs support arrow-key switching.
 
 ### Data inspection
 
+Data, Schema, Privacy and Quality use the main workspace canvas. Generation
+settings are the only contents of the right panel, stacking after content on
+small screens. Relationships adds a scrollable map of generated tables with
+keyboard-operable nodes; selecting a node opens that exact table in Data.
+Solid arrows show checked links; failed checks use dashed red paths and explicit
+labels. Actual counts, observed cardinality and complete-table key/link evidence
+come from the inspection endpoint. No preview-based integrity claims are made.
+
 Sticky field headers, subtle alternating rows, tabular numerals and underlined
 slate-blue links support scanning. Related-record links perform actual lookups.
 Pagination and full-table downloads preserve the generated snapshot. Keep quality

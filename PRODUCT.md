@@ -19,8 +19,12 @@ settings invalidates dependent output. Dataset history/accounts are not implemen
 CSV/XLSX/JSON upload; AI prompt generation; explicit sample datasets; schema and
 privacy editors; row count/seed settings; complete paging and CSV/JSON exports;
 AI-built links and exact parent inspection; existing mapped document workflows.
-Statistical quality requires a reference. Full artifact audit and same-snapshot
-document suitability work remain planned in REPAIR_PLAN.md.
+Relationships displays a clickable map of actual generated tables, checked counts,
+key links and observed cardinalities. Bounded complete-table inspection reports
+duplicate/missing keys, orphan rows and configured cardinality failures. AI proposes
+flat-data models; deterministic dependency and exact reconstruction checks apply.
+Statistical quality requires a reference. Additional business-rule/large-artifact
+audits and same-snapshot document suitability remain planned in REPAIR_PLAN.md.
 
 ## Brand Commitments
 Use the Data Mine identity with the owner's geometric logo reference, its arrow

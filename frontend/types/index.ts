@@ -150,6 +150,23 @@ export interface RelationshipInput {
   prompt?: string; clarification?: string; entities?: EntityMapping[];
 }
 
+export interface RelationshipInspectionInput {
+  source_dataset_id: string;
+  source_storage: 'frame' | 'artifact';
+  storage: 'frame' | 'artifact';
+  manifest_id?: string;
+  tables: { name: string; dataset_id: string; primary_key?: string | null; foreign_keys?: ForeignKeySpec[] }[];
+}
+export interface RelationshipInspectionResult {
+  source_dataset_id: string;
+  tables: { name: string; row_count: number; primary_key: string | null; primary_key_unique: boolean | null }[];
+  links: { parent_table: string; parent_column: string; child_table: string; child_column: string;
+    cardinality: string | null; declared_cardinality: string; matched_rows: number; orphan_rows: number;
+    null_rows: number; parent_key_unique: boolean; min_children: number | null; max_children: number | null; verified: boolean }[];
+  keys_verified: boolean;
+  links_verified: boolean;
+}
+
 export interface PromptSpecResponse {
   status: 'review_required' | 'ok' | 'unavailable';
   spec?: DatasetSpec;

@@ -30,13 +30,25 @@ Do not invent requirements. Do not refactor unrelated working code. Never commit
   Replaced dead modal modules with editors/charts; removed unused focus hook and
   old hero assets. Historical frozen benchmarks remain as prior-slice evidence.
 
-### S10A5 — Verified Relationships workspace — PLANNED (2026-10-10)
+### S10A5 — Verified Relationships workspace — DONE (2026-10-10)
 - After S10A4, add sidebar Relationships with clickable table nodes, actual counts,
   key connections, observed cardinality and integrity evidence from generated data.
 - Reuse existing AI discovery plus full-row deterministic validation/exact rejoin.
-  Never invent edges or label declared artifact relations as fully audited.
+  Never invent edges. Audit complete bounded generated frames/artifacts for
+  keys, links, actual counts and observed cardinality; keep business-rule S10B separate.
 - Cover unavailable AI, single-table outcomes, stale output and table navigation;
   verify, update state and commit as the second slice. S10B remains separate.
+- Full-data /relationships/inspect checks bounded frames/artifacts, typed IDs,
+  actual counts, unique/non-null keys, orphan rows and observed/configured bounds.
+  Artifact manifests reject mixed snapshots; total cells/memory are bounded.
+- Sidebar map nodes open exact tables in Data, preserving full paging/downloads.
+  AI discovery/explanation/retry uses the current generated source. Source edits
+  invalidate maps and late inspection results cannot restore them.
+- Verified 229 backend passed / 1 skipped; 24 frontend tests and TypeScript/build.
+  Live banking map 10 Accounts / 50 Transactions, zero orphan/missing links,
+  observed 1:N and 3–9 children per account. Full CSV independently confirms counts.
+  Desktop1440/mobile390 layouts and map scrolling passed without page overflow.
+  Tab switches reset the main scroll; settings remain on the right on desktop.
 
 ### S10A3 — Data Mine wording, identity and motion refinement — SUPERSEDED BY S10A4 (2026-10-10)
 - Owner requests consistent Title Case labels and sentence-case helper prose,
@@ -184,7 +196,7 @@ Quality: NN% <label>      Privacy: Protected      Integrity: Passed
 - Verification: Pytest passes (159 passed, 1 skipped), frontend tsc passes with 0 errors.
 
 ## Status log
-S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S9C DONE | S9D DONE | S9E DONE | S10A DONE | S10A1 DONE | S10B-S12 PLANNED
+S0 SKIPPED | S1 DONE | S2 DONE | S3 DONE | S4 DONE | S5 DONE | S6+S7 DONE | S8 DONE | S9 DONE | S9A DONE | S9B DONE | S9C DONE | S9D DONE | S9E DONE | S10A DONE | S10A1 DONE | S10A4 DONE | S10A5 DONE | S10B-S12 PLANNED
 
 ## Input-driven follow-up repair — planned, 2026-10-08
 

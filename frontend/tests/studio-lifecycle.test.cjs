@@ -43,6 +43,9 @@ async function mount(t, overrides = {}) {
     fetchPreview: async () => ({ rows: [], row_count: 0 }),
     getArtifactPage: async id => ({ rows: artifactRows.get(id) || [], row_count: (artifactRows.get(id) || []).length }),
     getArtifactExportUrl: (format, id) => `/artifacts/${id}/download?format=${format}`,
+    inspectRelationships: async body => ({ source_dataset_id: body.source_dataset_id,
+      tables: body.tables.map(t => ({ name: t.name, row_count: 3, primary_key: t.primary_key || null,
+        primary_key_unique: t.primary_key ? true : null })), links: [], keys_verified: true, links_verified: true }),
     buildRelationships: async body => ({ source_dataset_id: body.dataset_id, result: null,
       proposal: { source_dataset_id: body.dataset_id, status: 'unavailable', ai_status: 'no_key',
         explanation: 'AI is unavailable.', entities: [], questions: [] } }),
@@ -304,6 +307,8 @@ test('opening relational builds with AI once, keeps the source and does not requ
   assert.equal(h.state.generatedSnapshot, snapshot);
   assert.equal(h.renderer.root.findAllByType('textarea').length, 0);
   assert.equal(h.renderer.root.findAllByType('input').filter(i => i.props.type === 'checkbox').length, 0);
+  await act(async () => h.renderer.root.findByProps({ 'aria-label': 'Inspect Current; 3 rows' }).props.onClick());
+  assert.equal(h.state.activeTab, 'preview');
   await act(async () => { h.renderer.root.findAllByType('button').find(b => b.props.children === 'Next').props.onClick(); });
   assert.deepEqual(previews.at(-1), ['normalized-current', 25]);
   await act(async () => h.state.setActiveTab('preview'));
@@ -482,6 +487,69 @@ test('readable labels preserve raw field keys, selector values and complete expo
   assert.ok(h.renderer.root.findAllByType('a').some(node => node.props.href === '/export/csv/generated-hospital_patients_dataset'));
 });
 
+
+test('relationship map uses checked artifact counts and opens the exact table without regenerating', async t => {
+  let inspected;
+  const requested = [];
+  const h = await mount(t, { api: {
+    inspectRelationships: async body => {
+      inspected = body;
+      return { source_dataset_id: body.source_dataset_id, keys_verified: true, links_verified: true,
+        tables: [{ name: 'Accounts', row_count: 10, primary_key: 'id', primary_key_unique: true },
+          { name: 'Transactions', row_count: 50, primary_key: 'id', primary_key_unique: true }],
+        links: [{ parent_table: 'Accounts', parent_column: 'id', child_table: 'Transactions', child_column: 'account_id',
+          cardinality: '1:N', declared_cardinality: '1:N', matched_rows: 50, orphan_rows: 0, null_rows: 0,
+          parent_key_unique: true, min_children: 1, max_children: 9, verified: true }] };
+    },
+    getArtifactPage: async (id, offset) => { requested.push([id, offset]); return { row_count: 50, rows: [{ id: 9, account_id: 1 }] }; },
+  } });
+  await act(async () => { await h.state.loadBankingRelational(); h.state.setActiveTab('relational'); });
+  const snapshot = h.state.generatedSnapshot;
+  assert.equal(inspected.storage, 'artifact');
+  assert.equal(inspected.manifest_id, h.state.documentManifestId);
+  assert.equal(inspected.source_dataset_id, snapshot.datasetId);
+  assert.match(visibleText(h.renderer.toJSON()), /1:N observed|50 linked rows|Links verified/);
+  assert.equal(findButton(h, 'Relationships').props['aria-current'], 'page');
+  await act(async () => h.renderer.root.findByProps({ 'aria-label': 'Inspect Transactions; 50 rows' }).props.onClick());
+  assert.equal(h.state.activeTab, 'preview');
+  assert.deepEqual(requested.at(-1), [h.state.tableArtifactMap.Transactions, 0]);
+  assert.ok(h.renderer.root.findAllByType('a').some(a => a.props.href === `/artifacts/${h.state.tableArtifactMap.Transactions}/download?format=csv`));
+  assert.equal(h.state.generatedSnapshot, snapshot);
+  assert.equal(h.plans.length, 1);
+});
+
+test('late relationship checks cannot restore a map after model edits', async t => {
+  const checked = deferred();
+  let input;
+  const h = await mount(t, { api: { inspectRelationships: body => { input = body; return checked.promise; } } });
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); h.state.setActiveTab('relational'); });
+  assert.match(visibleText(h.renderer.toJSON()), /Checking complete generated tables/);
+  const source = h.state.activeSource;
+  await act(async () => h.state.updateGlobalConfig({ seed: 67 }));
+  await act(async () => checked.resolve({ source_dataset_id: input.source_dataset_id, keys_verified: true, links_verified: true,
+    tables: [{ name: 'Stale Table', row_count: 123, primary_key: 'id', primary_key_unique: true }], links: [] }));
+  assert.equal(h.state.generatedSnapshot, null);
+  assert.equal(h.state.activeSource, source);
+  assert.doesNotMatch(visibleText(h.renderer.toJSON()), /Stale Table|123 rows/);
+  assert.match(visibleText(h.renderer.toJSON()), /Generate data to explore/);
+});
+
+test('failed relationship checks show no invented graph and retry without replacing data', async t => {
+  let attempts = 0;
+  const h = await mount(t, { api: { inspectRelationships: async body => {
+    if (++attempts === 1) throw new Error('Complete table check failed');
+    return { source_dataset_id: body.source_dataset_id, keys_verified: true, links_verified: true,
+      tables: [{ name: 'Current', row_count: 3, primary_key: 'id', primary_key_unique: true }], links: [] };
+  } } });
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); h.state.setActiveTab('relational'); });
+  const snapshot = h.state.generatedSnapshot;
+  assert.match(visibleText(h.renderer.toJSON()), /Complete table check failed/);
+  assert.equal(h.renderer.root.findAll(node => node.props['aria-label']?.startsWith('Inspect Current')).length, 0);
+  await act(async () => findButton(h, 'Retry Checks').props.onClick());
+  assert.equal(h.renderer.root.findAllByProps({ 'aria-label': 'Inspect Current; 3 rows' }).length, 1);
+  assert.match(visibleText(h.renderer.toJSON()), /0 relationships/);
+  assert.equal(h.state.generatedSnapshot, snapshot);
+});
 
 test('readable connection errors allow preview retry without replacing the dataset', async t => {
   let attempts = 0;

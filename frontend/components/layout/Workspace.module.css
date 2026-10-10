@@ -10,6 +10,17 @@
 .dataRegion { min-width: 0; padding: 22px 32px; }
 .insights { min-width: 0; padding: 24px 20px; background: var(--surface); }
 .settingsHeading { margin: 0 0 24px; font-size: 14px; font-weight: 650; }
+.relationIntro { color: var(--text-muted); font-size: 12px; line-height: 1.7; margin: 10px 0 18px; max-width: 80ch; }
+.tableToolbar h2 { display: flex; align-items: center; gap: 8px; }
+.relationChecks { display: flex; flex-wrap: wrap; gap: 10px 20px; padding: 12px 0; font-size: 11px; color: var(--text-body); }
+.relationshipMap { overflow: auto; max-height: 520px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--background); margin: 12px 0 24px; scrollbar-color: var(--border-medium) var(--surface-muted); }
+.relationshipMap:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.graphCanvas { position: relative; }
+.graphCanvas > svg { position: absolute; inset: 0; }
+.workspace .graphNode { position: absolute; width: 200px; min-height: 76px; padding: 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; background: var(--surface); border-color: #cbd9e2; text-align: left; box-shadow: 0 4px 14px #41657b08; }
+.graphNode strong { display: flex; width: 100%; justify-content: space-between; gap: 8px; font-size: 13px; overflow-wrap: anywhere; }
+.graphNode span { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.edgeLabel { font: 11px var(--font-sans); fill: var(--text-body); paint-order: stroke; stroke: var(--background); stroke-width: 5px; stroke-linejoin: round; }
 .summary h2, .tableToolbar h2 { margin: 0; font-size: 16px; font-weight: 650; }
 .metrics { margin: 22px 0; display: grid; gap: 22px; }
 .metrics dt { color: var(--text-muted); font-size: 12px; margin-bottom: 6px; }

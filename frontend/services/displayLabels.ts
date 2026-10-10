@@ -22,3 +22,12 @@ export function displayMessage(message: string): string {
   }
   return message;
 }
+export function relationshipStatusMessage(status: string, explanation?: string): string {
+  const failures: Record<string, string> = {
+    no_key: 'AI is not configured.', auth_failed: 'AI authentication failed.', rate_limited: 'AI has reached its request limit.',
+    timeout: 'AI took too long to respond.', network_error: 'The server could not reach AI.',
+    invalid_output: 'AI could not return a valid model.', model_unavailable: 'The AI model is unavailable.',
+    invalid_request: 'The AI provider rejected the model request.',
+  };
+  return failures[status] || explanation || 'The relationship model could not be built.';
+}

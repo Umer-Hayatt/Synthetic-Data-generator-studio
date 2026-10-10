@@ -21,6 +21,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `api/generate.py` | Classic studio **generate**: dispatches tabular/relational/document job |
 | `api/intelligence.py` | **AI generator**: validates non-empty provider drafts, preserves prompt entity counts and flattens specs for tabular generation |
 | `api/relationships.py` | Automatic AI build plus compatible analysis/normalization; atomic lossless tables from the snapshot |
+| `core/relationship_inspection.py` | Deterministic complete-table key/link/count/cardinality inspection without inventing relations |
 | `api/evaluate.py` | Classic studio **quality**: triggers statistical evaluation |
 | `api/export.py` | Classic studio **export**: returns CSV/JSON of generated rows |
 | `api/documents.py` | **Document engine** routes: invoices, bank statements |
@@ -79,6 +80,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `components/schema/SchemaEditor.tsx` | Inline schema type/semantic editor preserving raw field keys |
 | `components/schema/PrivacyEditor.tsx` | Inline privacy controls and sensitive-field detection |
 | `components/preview/DataWorkspace.tsx` | Unified single/multiple table inspection, full paging/exports, AI model explanation and linked-record lookup |
+| `components/preview/RelationshipsWorkspace.tsx` | Sidebar relationship map, full-row evidence, AI discovery/retry and exact table navigation |
 | `components/layout/Workspace.tsx` | One Data workspace; Documents view only for mapped document specs |
 | `components/layout/GenerationSettings.tsx` | Settings-only right panel containing the existing row/seed/generate controls |
 | `components/layout/Workspace.module.css` | Responsive unified table and insights layout |
@@ -100,7 +102,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 
 ## Product and design context
 
-- `PROJECT_STATE.md` is the current handoff: S10A4 done / S10A5 next, completed checks,
+- `PROJECT_STATE.md` is the current handoff: S10A4/S10A5 done, completed checks,
   remaining final confirmation/publication and Git/runtime state.
 - `REPAIR_PLAN.md` owns slice scope, verification records and ordered follow-ups;
   `TASKS.md` provides its concise status index over the historical V2 plan.
@@ -112,6 +114,7 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | Path | What it does |
 |---|---|
 | `test_relationship_analysis.py` | Hybrid proposals, full-data conflicts, lossless joins, source ownership, exports and prompt/upload dependencies |
+| `test_relationship_inspection.py` | Full frame/artifact relation checks beyond previews, typed IDs, bounds, manifest ownership and resource limits |
 | `test_intelligence.py` | Prompt schema validation/failover, usable draft repair, entity count preservation and explicit offline fallback |
 | `test_ai.py` | Provider failover/deadlines, quota scope and retry parsing, shared-key cooldown and cached quota errors |
 | `test_inspection.py` | Complete frame/artifact paging and scalar linked-record filters, full CSV export, expired/document artifacts |

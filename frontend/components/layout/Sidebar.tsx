@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Database, Table2, FileText, Braces, Shield, ChartNoAxesColumn,
+import { Database, Table2, FileText, Braces, Shield, ChartNoAxesColumn, GitBranch,
   Plus, Menu, X, CircleHelp, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useStudio } from '../../context/StudioContext';
 import styles from './Workspace.module.css';
@@ -51,8 +51,10 @@ export function Sidebar() {
       <button className={styles.newDataset} onClick={() => act(clearSession)}><Plus size={15} /> New Dataset</button>
       <nav id="studio-navigation" aria-label="Studio Navigation">
         <div className={styles.navGroup}><span className={styles.navLabel}>Workspace</span>
-          <button className={activeTab === 'preview' || activeTab === 'relational' ? styles.navActive : ''} aria-current={activeTab === 'preview' || activeTab === 'relational' ? 'page' : undefined}
+          <button className={activeTab === 'preview' ? styles.navActive : ''} aria-current={activeTab === 'preview' ? 'page' : undefined}
             onClick={() => act(() => setActiveTab('preview'))}><Table2 size={16} />Data<span className={styles.navCount}>{tableCount}</span></button>
+          <button className={activeTab === 'relational' ? styles.navActive : ''} aria-current={activeTab === 'relational' ? 'page' : undefined}
+            onClick={() => act(() => setActiveTab('relational'))}><GitBranch size={16} />Relationships</button>
           {hasDocuments && <button className={documents ? styles.navActive : ''} aria-current={documents ? 'page' : undefined}
             onClick={() => act(() => setActiveTab('documents'))}><FileText size={16} />Documents</button>}
         </div>
@@ -66,7 +68,7 @@ export function Sidebar() {
         </div>
       </nav>
       <div className={styles.sidebarFoot}><details className={styles.guide}><summary><CircleHelp size={15} />Workspace Guide</summary>
-        <p>Choose Data to inspect tables. Click a linked ID to see its related record. Downloads include the whole selected table.</p>
+        <p>Choose Data to inspect tables, or Relationships to see verified table links. Click a linked ID to see its related record. Downloads include the whole selected table.</p>
         <p>Changing schema or settings clears previous results. Generate again to use your changes.</p></details>
         <div className={styles.connection} role="status">{backendOnline === true ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}<span>{backendOnline === true ? 'API connected' : backendOnline === false ? 'API unavailable' : 'Connecting to API…'}</span></div>
       </div>

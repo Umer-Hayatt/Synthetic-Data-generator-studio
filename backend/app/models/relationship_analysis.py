@@ -2,6 +2,7 @@
 from typing import Literal
 from pydantic import Field, model_validator
 from app.models.spec import Model
+from app.models.spec import ForeignKey
 
 
 class EntityMapping(Model):
@@ -27,6 +28,29 @@ class AnalysisRequest(Model):
 
 class NormalizeRequest(AnalysisRequest):
     accepted: bool = False
+
+
+class InspectionTable(Model):
+    name: str = Field(min_length=1, max_length=128)
+    dataset_id: str = Field(min_length=1, max_length=128)
+    primary_key: str | None = None
+    foreign_keys: list[ForeignKey] = Field(default_factory=list, max_length=200)
+
+
+class RelationshipInspection(Model):
+    source_dataset_id: str = Field(min_length=1, max_length=128)
+    storage: Literal['frame', 'artifact'] = 'frame'
+    source_storage: Literal['frame', 'artifact'] | None = None
+    manifest_id: str | None = None
+    tables: list[InspectionTable] = Field(min_length=1, max_length=20)
+
+    @model_validator(mode='after')
+    def distinct_tables(self):
+        if len({t.name for t in self.tables}) != len(self.tables):
+            raise ValueError('Inspection table names must be distinct.')
+        if self.storage == 'artifact' and len(self.tables) > 1 and not self.manifest_id:
+            raise ValueError('Multi-table artifact inspection requires its generated manifest.')
+        return self
 
 
 class EntitySuggestions(Model):

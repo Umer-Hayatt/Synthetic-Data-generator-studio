@@ -2,23 +2,17 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStudio } from '../../context/StudioContext';
 import { api } from '../../services/api';
 import { TableSpec } from '../../types';
-import { displayLabel, displayType, displayMessage } from '../../services/displayLabels';
+import { displayLabel, displayType, displayMessage, relationshipStatusMessage } from '../../services/displayLabels';
 import styles from '../layout/Workspace.module.css';
 
 type ViewTable = TableSpec & { dataset_id?: string; storage: 'frame' | 'artifact' };
-const failures: Record<string, string> = {
-  no_key: 'AI is not configured.', auth_failed: 'AI authentication failed.', rate_limited: 'AI has reached its request limit.',
-  timeout: 'AI took too long to respond.', network_error: 'The server could not reach AI.',
-  invalid_output: 'AI could not return a valid model.', model_unavailable: 'The AI model is unavailable.',
-  invalid_request: 'The AI provider rejected the model request.',
-};
 
-export function DataWorkspace() {
+export function DataWorkspace({ initialTable = '' }: { initialTable?: string }) {
   const { datasetSpec, generatedSnapshot, generatedRowCount, activeSource, tableArtifactMap,
     relationshipResult: result, relationshipProposal: proposal, isAnalyzingRelationships: busy,
     buildRelationships, isGenerating, referencePreview, referenceRowCount, error } = useStudio();
   const attempted = useRef<string | null>(null);
-  const [tableName, setTableName] = useState('');
+  const [tableName, setTableName] = useState(initialTable);
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [total, setTotal] = useState(0);
@@ -44,7 +38,7 @@ export function DataWorkspace() {
     attempted.current = generatedSnapshot.datasetId;
     void buildRelationships();
   }, [generatedSnapshot, datasetSpec, activeSource, result, proposal, busy, buildRelationships]);
-  useEffect(() => { setTableName(''); setPage(0); setFilter(undefined); }, [result, useOriginal]);
+  useEffect(() => { setTableName(initialTable); setPage(0); setFilter(undefined); }, [result, useOriginal, initialTable]);
   useEffect(() => {
     setRows([]); setTotal(0); setPreviewError(''); setLoading(false);
     if (!table?.dataset_id) return;
@@ -95,7 +89,7 @@ export function DataWorkspace() {
     </section>}
     {busy && <p className={styles.modelStatus} role="status">Checking for linked tables… Your generated rows are ready below.</p>}
     {proposal && !result && <div className={styles.notice} role="alert">
-      <p>{failures[proposal.ai_status] || proposal.explanation || 'The relationship model could not be built.'} Your generated data is retained.</p>
+      <p>{relationshipStatusMessage(proposal.ai_status, proposal.explanation)} Your generated data is retained.</p>
       <button disabled={busy} onClick={() => void buildRelationships()}>Retry Relationships</button>
     </div>}
     {generatedSnapshot && !busy && !proposal && !result && error && <div className={styles.notice} role="alert">

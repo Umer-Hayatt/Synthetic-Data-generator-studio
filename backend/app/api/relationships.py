@@ -7,9 +7,41 @@ from app.api.jobs import artifacts
 from app.core.config import settings
 from app.core.store import store
 from app.core.relationship_analysis import analyze, normalize, check_frame, build
-from app.models.relationship_analysis import AnalysisRequest, NormalizeRequest
+from app.core.relationship_inspection import inspect_relationships
+from app.models.relationship_analysis import AnalysisRequest, NormalizeRequest, RelationshipInspection
 
 router = APIRouter(prefix='/api/v1/relationships')
+
+
+@router.post('/inspect')
+def inspect_generated_relationships(request: RelationshipInspection):
+    try:
+        if request.storage == 'artifact' and request.manifest_id:
+            manifest = artifacts.get(request.manifest_id)
+            if manifest.format != 'json' or manifest.size > 1024**2:
+                raise ValueError('Inspection requires the generated table manifest.')
+            with artifacts.open(request.manifest_id) as stream:
+                mappings = json.load(stream).get('tables', {})
+            if any(mappings.get(t.name) != t.dataset_id for t in request.tables):
+                raise ValueError('Inspection tables do not belong to the generated manifest.')
+            if request.source_dataset_id not in mappings.values():
+                raise ValueError('The active generated snapshot does not belong to this manifest.')
+        else:
+            source(AnalysisRequest(dataset_id=request.source_dataset_id, storage=request.source_storage or request.storage))
+        frames, cells, size = {}, 0, 0
+        for table in request.tables:
+            frame = source(AnalysisRequest(dataset_id=table.dataset_id, storage=request.storage))
+            check_frame(frame)
+            cells += frame.size
+            size += int(frame.memory_usage(index=True, deep=True).sum())
+            if cells > settings.max_cells or size > settings.cache_max_bytes:
+                raise ValueError('Relationship inspection exceeds the local total cell/memory limit.')
+            frames[table.name] = frame
+        return {'source_dataset_id': request.source_dataset_id, **inspect_relationships(frames, request.tables)}
+    except KeyError:
+        raise HTTPException(404, 'Generated tables are missing or expired; regenerate before inspecting relationships.') from None
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise HTTPException(400, str(exc)) from None
 
 
 def materialize(dataset_id, output):
