@@ -212,7 +212,12 @@ class AIRouter:
                         if has_alternate and last in ('timeout', 'network', 'provider_error', 'model_unavailable'):
                             state.cooldown_until = self.clock() + max(self.cooldown, error.retry_after)
                             break
-                        if last == 'malformed_output' or attempt == self.retries:
+                        if last == 'malformed_output':
+                            # Invalid structured output belongs to this request/schema.
+                            # Do not block another task (for example relationship
+                            # discovery immediately after a fallback prompt draft).
+                            break
+                        if attempt == self.retries:
                             state.cooldown_until = self.clock() + max(self.cooldown, error.retry_after)
                             break
                     delay = max(error.retry_after, min(2**attempt + self.jitter(), self.timeout))

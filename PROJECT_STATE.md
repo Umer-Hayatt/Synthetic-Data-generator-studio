@@ -4,8 +4,11 @@
 REPAIR — one verified vertical slice at a time. Active plan: REPAIR_PLAN.md.
 
 ## Active Task
-No active implementation. The owner's two requested slices S10A4 and S10A5 are
-DONE. Stop here. S10B and S11-S12 remain PLANNED, outside this request.
+S10A6 — Repair deployed prompt-to-relationships failure, reported by the owner.
+Exact university prompt reproduced on Vercel/Render. A shared-router regression
+confirms invalid draft output suppresses the following relationship request via
+provider cooldown. Remove only this request-specific cooldown; verify full flow.
+S10A4/S10A5 are DONE. S10B and S11-S12 remain PLANNED, outside this request.
 S10A3 pending refinements were included in S10A4; DNA and modal editors were
 superseded by the latest owner instructions.
 

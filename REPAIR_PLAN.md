@@ -16,6 +16,15 @@ Do not invent requirements. Do not refactor unrelated working code. Never commit
 
 ## Slices
 
+### S10A6 — Prompt draft failure must not suppress relationship discovery — IN PROGRESS
+- Owner reported the exact university prompt failing on the deployed site.
+- Reproduced invalid-output prompt fallback followed by generic unavailable
+  relationship response. Lock down the shared-router two-request sequence.
+- Treat malformed structured output as request-specific: end that request but
+  allow the next task to use the provider. Retain outage/quota cooldowns and all
+  validation, source ownership and exact reconstruction safeguards.
+- Verify the regression, full backend/frontend checks and the exact live prompt.
+
 ### S10A4 — Main-screen workspace controls and synthetic-data hero — DONE (2026-10-10)
 - Owner supersedes the pending S10A3 confirmation with two ordered slices.
 - Carry forward the existing uncommitted S10A3 refinements; show Data, Schema,

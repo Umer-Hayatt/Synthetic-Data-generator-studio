@@ -256,6 +256,35 @@ def test_offline_enrollment_prompt_has_input_specific_relations(monkeypatch):
     assert all(e['valid'] for e in proposed['entities'])
 
 
+def test_invalid_prompt_draft_does_not_block_following_relationship_build(monkeypatch):
+    prompt = ('Generate 40 university enrollments with 10 students and 5 courses, '
+              'including student names, course titles, grades and enrollment dates')
+    provider = Fake([AIError('malformed_output'), {
+        'entities': [
+            {'name': 'Students', 'key': 'student_id', 'columns': ['student_name']},
+            {'name': 'Courses', 'key': 'course_id', 'columns': ['course_name']}],
+        'explanation': 'Students and courses repeat with consistent attributes.'}])
+    shared_router = AIRouter([provider], clock=lambda: 0, retries=0)
+    monkeypatch.setattr(intelligence, 'get_router', lambda: shared_router)
+    monkeypatch.setattr(relationships, 'get_router', lambda: shared_router)
+    storage = FrameStore()
+    monkeypatch.setattr(relationships, 'store', storage)
+    client = TestClient(app)
+    draft = client.post('/api/v1/ai/spec', json={'prompt': prompt}).json()
+    assert draft['fallback_used'] and draft['reason'] == 'invalid_output'
+    spec = DatasetSpec.model_validate(draft['spec'])
+    frame = generate(spec)
+    token = storage.put(frame, 'generated')
+    built = client.post('/api/v1/relationships/build', json={
+        'dataset_id': token, 'source_table': spec.tables[0].name, 'prompt': prompt}).json()
+    assert built['result'] is not None, built['proposal']
+    assert provider.calls == 2
+    assert {t['name']: t['row_count'] for t in built['result']['tables']} == {
+        spec.tables[0].name: 40, 'Students': 10, 'Courses': 5}
+    assert built['result']['integrity']['lossless']
+    assert_frame_equal(storage.get(token, 'generated'), frame)
+
+
 def test_commerce_upload_preserves_evidenced_dependencies_then_splits_generated_rows(monkeypatch):
     monkeypatch.setattr(relationships, 'get_router', lambda: AIRouter([]))
     client = TestClient(app)
