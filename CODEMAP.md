@@ -2,6 +2,15 @@
 
 Keep this updated whenever a slice adds, moves, or deletes files.
 
+## Repository hygiene
+
+- `.gitignore` excludes environment files/templates, TypeScript build caches,
+  local `qa/` evidence, historical `backend/tools/`, `dummy_orders.csv`, and stale
+  `PROJECT_CONTEXT.md`. These remain local and are not application dependencies.
+- `.env.example` and `frontend/tsconfig.tsbuildinfo` are local-only, untracked files.
+- Production runtime configuration uses environment variables; backend local
+  configuration can load the ignored repository-root `.env`.
+
 ## backend/app
 
 | Path | What it does |

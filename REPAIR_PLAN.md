@@ -20,6 +20,24 @@ Do not invent requirements. Do not refactor unrelated working code. Never commit
 Not part of the current run. Known pending items, do NOT work on them unless asked:
 missing-file deploy crash (app.models.relational_rules), scratch files, Python pin on Render.
 
+### S0A — Owner-requested repository cleanup and GitHub sync — DONE locally (2026-10-10)
+- Owner paused the frontend redesign and explicitly authorized pushing the current
+  verified code to GitHub, with cleanup of files that do not belong in Git.
+- Untrack `.env.example` and `frontend/tsconfig.tsbuildinfo`; retain local copies.
+  The environment example contains placeholders, not credentials, but the owner
+  requested repository cleanup and an earlier cleanup had already removed it.
+- Ignore all environment variants, TypeScript build caches and local-only QA,
+  historical audit tools, sample upload and stale project-context notes.
+- Preserve application code, tests, fixtures, dependency locks and active plans.
+  Deployment repair remains deferred; redesign and S10B do not start in this slice.
+- Verify tracked/unpushed files for recognizable secrets, ignore coverage, frontend
+  regression/type/build checks and backend tests; commit cleanup, then push normally.
+- Verified: 221 backend passed / 1 skipped, 17 frontend tests, TypeScript and
+  production build passed. Secret-pattern scan of 173 distinct text blobs from
+  tracked files and all six pending commits found no recognizable credentials.
+  Local template/cache retained, ignore coverage passed, no runtime code changed.
+  Owner authorized publication by normal fast-forward push; stop after sync.
+
 ### S1 — Remove TSTR completely
 - Remove the backend TSTR module, endpoints, schemas and tests; remove the frontend
   TSTR card, target selector, API calls and types. Remove TSTR wording from UI and docs
@@ -86,7 +104,8 @@ working end to end, Documents must assess whether that same data supports a
 document and render it without substituting or regenerating unrelated entities.
 S1-S7 remain completed historical milestones. This extends this active plan;
 it does not resume the superseded V2 work order. Product choices are recorded
-below. S8-S10A1 are complete locally; S10B is next. Remote push awaits owner approval.
+below. S8-S10A1 are complete locally; S10B is next. Owner authorized remote push
+on 2026-10-10; S0A performs repository cleanup and sync first.
 
 ### Confirmed causes and baseline
 - `backend/app/api/intelligence.py` truncates multi-table AI drafts to the first

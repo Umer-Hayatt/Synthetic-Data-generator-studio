@@ -5,6 +5,10 @@
 Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 
 ## Active repair follow-up milestones (details in REPAIR_PLAN.md)
+- [DONE] S0A — Owner-requested repository cleanup, verified locally (2026-10-10).
+  Untracked local template/build cache and ignored scratch/evidence files.
+  Verified 221 backend / 1 skipped, 17 frontend tests, type/build and secret scan.
+  Owner authorized GitHub sync of the completed repairs; frontend redesign paused.
 - [DONE] S8 — One active input and consistent output lifecycle (2026-10-08).
   Source/prompt identity, revisions, snapshot ownership, stale-response guards and
   tab preview invalidation; normal actions no longer substitute demos.

@@ -4,6 +4,16 @@
 REPAIR — one verified vertical slice at a time. Active plan: REPAIR_PLAN.md.
 
 ## Active Task
+S0A repository cleanup DONE locally; GitHub sync authorized (2026-10-10).
+- Owner authorized remote push and paused the frontend redesign until sync.
+- Untrack environment template/build cache while preserving local copies; exclude
+  QA evidence, historical audit tools, sample upload and stale context from Git.
+- Application behavior is unchanged; deployment repair remains deferred.
+- Verified: 221 backend passed / 1 skipped, 17 frontend tests, type check and
+  production build; secret-pattern scan of 173 tracked/unpushed text blobs clear.
+- Ignore coverage and retained local files verified. Normal fast-forward push
+  publishes the six completed repair commits plus this cleanup commit.
+
 S10A1 DONE locally (2026-10-10); S10B is the next planned slice.
 - Prompt-only output hides reference quality and its details control; uploads
   retain actual scores. Privacy and data checks remain beside the data.
@@ -51,9 +61,8 @@ S10A1 DONE locally (2026-10-10); S10B is the next planned slice.
   generation constraints need a later scoped repair; no fabricated demo output.
 - Existing Python venv needs sandbox escalation; environment unchanged.
 - Local backend: 127.0.0.1:8000. Production frontend: localhost:3000.
-- Unrelated scratch files, qa/ and preexisting tsconfig.tsbuildinfo excluded.
+- Local-only scratch files and QA evidence excluded; build cache/template untracked.
 
 ## Blockers
-No current local repair blocker. Remote push awaits explicit owner authorization:
-automatic approval review previously rejected source/docs egress to origin/main.
-Do not push or work around that rejection without the owner's authorization.
+No current local repair blocker. Owner explicitly authorized GitHub push on
+2026-10-10; prior source/docs egress rejection no longer lacks owner authorization.
