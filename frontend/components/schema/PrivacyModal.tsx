@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDialogFocus } from '../common/useDialogFocus';
 import { useStudio } from '../../context/StudioContext';
 import { Shield, ShieldAlert, ShieldCheck, X } from 'lucide-react';
 import { ColumnSpec } from '../../types';
@@ -11,6 +12,8 @@ interface PrivacyModalProps {
 
 export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sensitiveColumns }) => {
   const { datasetSpec, updateColumnConfig } = useStudio();
+
+  const dialog = useDialogFocus(isOpen && !!datasetSpec?.tables.length, onClose);
 
   if (!isOpen || !datasetSpec || !datasetSpec.tables.length) return null;
 
@@ -48,7 +51,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-dialog" style={{ maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+      <div ref={dialog} role="dialog" aria-modal="true" aria-label="Privacy settings" tabIndex={-1} className="modal-dialog dataset-editor" style={{ maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -74,6 +77,8 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
           <div
             style={{
               marginBottom: '12px',
+              flexWrap: 'wrap',
+              gap: '10px',
               padding: '10px 12px',
               borderRadius: 'var(--radius-sm)',
               background: 'var(--surface-muted)',
@@ -110,6 +115,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
             return (
               <div
                 key={col.name}
+                className="editor-row"
                 style={{
                   background: isSensitive ? 'var(--surface-muted)' : 'var(--surface)',
                   border: isSensitive ? '1px solid var(--border-medium)' : '1px solid var(--border-subtle)',
@@ -122,7 +128,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
                 }}
               >
                 {/* Column details */}
-                <div style={{ minWidth: '220px' }}>
+                <div className="editor-identity" style={{ minWidth: '220px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
                       {col.name}
@@ -143,7 +149,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
                 </div>
 
                 {/* Privacy control */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="editor-controls" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span title={privacyVal !== 'none' ? 'Protection enabled' : 'No protection'}>
                     {privacyVal !== 'none' ? (
                       <ShieldCheck size={16} style={{ color: 'var(--success)' }} />
@@ -152,6 +158,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, sen
                     )}
                   </span>
                   <select
+                    aria-label={`${col.name} privacy method`}
                     value={privacyVal}
                     onChange={(e) => handlePrivacyChange(col.name, e.target.value)}
                     className="select-box font-mono"

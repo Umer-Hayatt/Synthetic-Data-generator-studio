@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStudio } from '../../context/StudioContext';
 import { SchemaModal } from '../schema/SchemaModal';
 import { PrivacyModal } from '../schema/PrivacyModal';
@@ -6,14 +6,32 @@ import { QualityChartsModal } from '../quality/QualityChartsModal';
 import { ConfigPanel } from '../configuration/ConfigPanel';
 import { getQualityLabel } from '../../services/qualityLabels';
 import styles from './Workspace.module.css';
+import type { WorkspaceTool } from './Sidebar';
 
-export function WorkspaceInsights() {
+export function WorkspaceInsights({ tool, onToolHandled }: { tool?: WorkspaceTool | null; onToolHandled?: () => void }) {
   const { datasetSpec, qualityResults, isEvaluatingQuality, generatedSnapshot,
     sensitiveColumns, inferredSchema, relationshipResult, referenceToken, triggerQualityEvaluation,
     schemaNotice, clearSchemaNotice } = useStudio();
   const [schemaOpen, setSchemaOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [qualityOpen, setQualityOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settings = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (!tool) return;
+    if (tool === 'schema') setSchemaOpen(true);
+    if (tool === 'privacy') setPrivacyOpen(true);
+    if (tool === 'quality' && referenceToken) {
+      if (!qualityResults && generatedSnapshot?.storage === 'frame') void triggerQualityEvaluation();
+      setQualityOpen(true);
+    }
+    if (tool === 'settings') {
+      setSettingsOpen(true);
+      settings.current?.querySelector<HTMLElement>('summary')?.focus();
+      settings.current?.scrollIntoView?.({ block: 'nearest' });
+    }
+    onToolHandled?.();
+  }, [tool, onToolHandled, referenceToken, qualityResults, generatedSnapshot, triggerQualityEvaluation]);
   const sensitive = useMemo(() => {
     const names = new Set(sensitiveColumns);
     if (Array.isArray(inferredSchema)) inferredSchema.forEach((column: { name: string; is_sensitive?: boolean }) => {
@@ -56,7 +74,7 @@ export function WorkspaceInsights() {
         <button onClick={() => setSchemaOpen(true)}>Edit schema</button>
       </div>
     </section>
-    <details className={styles.settings}><summary>Generation settings</summary><ConfigPanel embedded /></details>
+    <details ref={settings} className={styles.settings} open={settingsOpen} onToggle={e => setSettingsOpen(e.currentTarget.open)}><summary>Generation settings</summary><ConfigPanel embedded /></details>
     {schemaNotice && <details className={styles.notes} open={/AI unavailable|exceeds|invalid/i.test(schemaNotice)}>
       <summary>Generation notes</summary><p>{schemaNotice}</p>
       <button onClick={clearSchemaNotice}>Dismiss notice</button>

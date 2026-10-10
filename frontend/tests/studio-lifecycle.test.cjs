@@ -135,6 +135,42 @@ test('one table keeps settings beside data and never invents reference quality',
   assert.equal(h.renderer.root.findAllByType('a').length, 0);
 });
 
+test('sidebar editors preserve the snapshot and new dataset clears the active source', async t => {
+  const h = await mount(t);
+  await act(async () => { await h.state.loadFromAiPrompt('Current'); });
+  const snapshot = h.state.generatedSnapshot;
+  const source = h.state.activeSource;
+  const nav = () => h.renderer.root.findByProps({'aria-label': 'Studio navigation'});
+  const navButton = name => nav().findAllByType('button').find(node => visibleText(node) === name);
+  await act(async () => navButton('Schema').props.onClick());
+  assert.ok(h.renderer.root.findAllByType('h3').some(node => visibleText(node).startsWith('Dataset Schema')));
+  await act(async () => h.renderer.root.findByProps({'aria-label': 'Close schema'}).props.onClick());
+  await act(async () => navButton('Privacy').props.onClick());
+  assert.ok(h.renderer.root.findAllByType('h3').some(node => visibleText(node) === 'Privacy Settings'));
+  assert.equal(h.state.generatedSnapshot, snapshot);
+  assert.equal(h.state.activeSource, source);
+  assert.equal(navButton('Quality details'), undefined);
+  await act(async () => h.renderer.root.findAllByType('button').find(node => visibleText(node).trim() === 'New dataset').props.onClick());
+  assert.equal(h.state.generatedSnapshot, null);
+  assert.equal(h.state.datasetSpec, null);
+  assert.equal(h.state.activeSource, null);
+});
+
+test('sidebar document and data navigation keeps the generated artifact ownership', async t => {
+  const h = await mount(t);
+  await act(async () => { await h.state.loadBankingRelational(); });
+  const snapshot = h.state.generatedSnapshot;
+  const manifest = h.state.documentManifestId;
+  const nav = () => h.renderer.root.findByProps({'aria-label': 'Studio navigation'});
+  await act(async () => nav().findAllByType('button').find(node => visibleText(node) === 'Documents').props.onClick());
+  assert.equal(h.state.activeTab, 'documents');
+  await act(async () => nav().findAllByType('button').find(node => visibleText(node).startsWith('Data')).props.onClick());
+  assert.equal(h.state.activeTab, 'preview');
+  assert.equal(h.state.generatedSnapshot, snapshot);
+  assert.equal(h.state.documentManifestId, manifest);
+  assert.equal(h.plans.length, 1);
+});
+
 test('linked records filter complete parent data and ignore superseded page responses', async t => {
   const requests = [], late = deferred();
   let firstParents = true;

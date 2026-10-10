@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDialogFocus } from '../common/useDialogFocus';
 import { useStudio } from '../../context/StudioContext';
 import {
   X,
@@ -13,6 +14,8 @@ interface QualityChartsModalProps {
 
 export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, onClose }) => {
   const { qualityResults } = useStudio();
+
+  const dialog = useDialogFocus(isOpen && !!qualityResults, onClose);
 
   const columns = qualityResults?.columns || [];
   const numericCols = columns.filter((c) => c.kind === 'numeric' && c.histogram);
@@ -51,7 +54,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
   return (
     <div className="modal-backdrop">
       <div
-        className="modal-dialog"
+        ref={dialog} role="dialog" aria-modal="true" aria-label="Synthetic quality details" tabIndex={-1} className="modal-dialog dataset-editor"
         style={{
           maxWidth: '840px',
           maxHeight: '88vh',
@@ -213,7 +216,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
           </div>
 
           {/* 3. Visualizations: Numeric Distribution Overlay + Categorical Frequency Bars */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="quality-comparison-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             {/* Numeric Histogram Comparison */}
             {activeNumericCol && activeNumericCol.histogram ? (
               <div className="chart-box">
@@ -227,6 +230,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <select
+                      aria-label="Numeric comparison column"
                       value={activeNumericCol.name}
                       onChange={(e) => setSelectedNumericCol(e.target.value)}
                       className="select-box font-mono"
@@ -324,6 +328,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <select
+                      aria-label="Categorical comparison column"
                       value={activeCatCol.name}
                       onChange={(e) => setSelectedCatCol(e.target.value)}
                       className="select-box font-mono"
@@ -449,7 +454,7 @@ export const QualityChartsModal: React.FC<QualityChartsModalProps> = ({ isOpen, 
                     fontFamily: 'var(--font-mono)',
                   }}
                 >
-                  Frobenius Distance: {correlation.frobenius_distance?.toFixed(3) || '0.226'}
+                  Frobenius Distance: {correlation.frobenius_distance?.toFixed(3) ?? 'Not available'}
                 </span>
               </div>
 

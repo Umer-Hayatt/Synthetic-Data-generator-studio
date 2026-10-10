@@ -1,9 +1,10 @@
 import type { AppProps } from 'next/app';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Manrope, JetBrains_Mono } from 'next/font/google';
 import { StudioProvider } from '../context/StudioContext';
 import '../styles/globals.css';
+import '../styles/landing.css';
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
@@ -17,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <div className={`${inter.variable} ${jetbrainsMono.variable} ${inter.className}`}>
+    <div className={`${manrope.variable} ${jetbrainsMono.variable} ${manrope.className}`}>
       <StudioProvider>
         <Component {...pageProps} />
       </StudioProvider>

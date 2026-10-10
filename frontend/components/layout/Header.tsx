@@ -1,79 +1,16 @@
 import React from 'react';
-import { useStudio } from '../../context/StudioContext';
-import {
-  Database,
-  Plus,
-  CheckCircle2,
-  AlertTriangle,
-} from 'lucide-react';
+import { Database, ArrowUpRight } from 'lucide-react';
 
-export const Header: React.FC = () => {
-  const {
-    datasetSpec,
-    backendOnline,
-    clearSession,
-  } = useStudio();
-
-  return (
-    <header className="top-bar">
-      {/* Left: Branding & Dataset Name */}
-      <div className="top-bar-left">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '6px',
-              background: 'var(--primary-btn-bg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-            }}
-          >
-            <Database size={16} />
-          </div>
-          <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-            Synthetic Data Studio
-          </span>
-        </div>
-      </div>
-
-      {/* Right: Health, Actions */}
-      <div className="top-bar-right">
-        {/* Backend health status badge */}
-        <div
-          className={`badge ${
-            backendOnline === true
-              ? 'badge-synth'
-              : backendOnline === false
-              ? 'badge-rose'
-              : 'badge-slate'
-          }`}
-          style={{ textTransform: 'none', fontWeight: 500, fontSize: '11px', padding: '4px 8px' }}
-        >
-          {backendOnline === true ? (
-            <CheckCircle2 size={12} />
-          ) : (
-            <AlertTriangle size={12} />
-          )}
-          <span>{backendOnline === true ? 'Backend Online' : 'Backend Offline'}</span>
-        </div>
-
-        {/* Action Buttons */}
-        {datasetSpec && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={clearSession}
-              className="btn btn-secondary btn-sm"
-              title="Load new dataset"
-            >
-              <Plus size={13} />
-              <span>New</span>
-            </button>
-          </div>
-        )}
-      </div>
-    </header>
-  );
-};
+export const Header: React.FC = () => (
+  <header className="landing-header">
+    <a className="brand" href="#top" aria-label="Synthetic Data Studio home">
+      <span className="brand-mark"><Database size={19} strokeWidth={1.7} /></span>
+      <span>Synthetic Data Studio</span>
+    </a>
+    <nav aria-label="Main navigation">
+      <a href="#workflow">How it works</a>
+      <a href="#examples">Examples</a>
+      <a href="#create" className="btn btn-primary">Start creating <ArrowUpRight size={15} /></a>
+    </nav>
+  </header>
+);

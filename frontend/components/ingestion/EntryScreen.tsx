@@ -1,397 +1,114 @@
-import React, { useRef, useState } from 'react';
+'use client';
+
+import Image from 'next/image';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowRight, ArrowUpRight, Upload, FileSpreadsheet, Database, Check, AlertCircle } from 'lucide-react';
 import { useStudio } from '../../context/StudioContext';
 import { SAMPLE_DATASETS } from '../../services/samples';
-import {
-  UploadCloud,
-  FileSpreadsheet,
-  ArrowRight,
-  Sparkles,
-  Loader2,
-  AlertCircle,
-} from 'lucide-react';
+
+const EXAMPLE_PROMPT = 'Generate 40 university enrollments with 10 students and 5 courses, including student names, course titles, grades and enrollment dates';
 
 export const EntryScreen: React.FC = () => {
-  const {
-    handleFileUpload,
-    loadSampleDataset,
-    loadFromAiPrompt,
-    loadCommerceRelational,
-    loadBankingRelational,
-    isIngesting,
-    error,
-    dismissError,
-  } = useStudio();
-  const [dragActive, setDragActive] = useState(false);
-  const [promptText, setPromptText] = useState('');
-  const [isSubmittingPrompt, setIsSubmittingPrompt] = useState(false);
-  const [promptLocalError, setPromptLocalError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { handleFileUpload, loadSampleDataset, loadFromAiPrompt, loadCommerceRelational,
+    loadBankingRelational, isIngesting, error, dismissError } = useStudio();
+  const [mode, setMode] = useState<'prompt' | 'upload'>('prompt');
+  const [prompt, setPrompt] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [localError, setLocalError] = useState('');
+  const [dragging, setDragging] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const busy = submitting || isIngesting;
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
+  useEffect(() => {
+    if (!root.current || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.setAttribute('data-visible', 'true');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    root.current.querySelectorAll('[data-reveal]').forEach(element => observer.observe(element));
+    return () => observer.disconnect();
+  }, []);
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileUpload(e.dataTransfer.files[0]);
-    }
-  };
+  async function submit(event?: React.FormEvent) {
+    event?.preventDefault();
+    if (busy || !prompt.trim()) return;
+    setSubmitting(true); setLocalError(''); dismissError();
+    try { await loadFromAiPrompt(prompt.trim()); }
+    catch (reason: unknown) { setLocalError(reason instanceof Error ? reason.message : 'Generation failed. Please try again.'); }
+    finally { setSubmitting(false); }
+  }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e.target.files[0]);
-    }
-  };
+  function upload(file?: File) {
+    if (!file || busy) return;
+    setLocalError(''); dismissError(); void handleFileUpload(file);
+  }
 
-  const handleDraftFromPrompt = async () => {
-    const trimmed = promptText.trim();
-    if (!trimmed) return;
-    setIsSubmittingPrompt(true);
-    setPromptLocalError(null);
-    dismissError();
-    try {
-      await loadFromAiPrompt(trimmed);
-    } catch (err: any) {
-      setPromptLocalError(err.message || 'Failed to generate specification from prompt.');
-    } finally {
-      setIsSubmittingPrompt(false);
-    }
-  };
+  return <main className="landing-content" ref={root} id="main-content">
+    <section className="landing-hero" aria-labelledby="hero-title">
+      <div className="hero-art"><Image src="/media/data-hero.png" alt="" width={2055} height={765} sizes="(max-width: 768px) 100vw, 760px" priority /></div>
+      <h1 id="hero-title">Your next dataset.<br /><span>Built from your brief.</span></h1>
+      <p>Turn a prompt or sample into structured synthetic data you can inspect, shape, and export.</p>
+      <div className="hero-actions"><a href="#create" className="btn btn-primary">Start creating <ArrowUpRight size={16} /></a>
+        <a href="#examples" className="hero-secondary">Explore examples <ArrowRight size={15} /></a></div>
+    </section>
 
-  return (
-    <div className="entry-container">
-      {/* Primary Heading */}
-      <div className="entry-hero">
-        <h1 className="entry-title">Create synthetic data</h1>
-        <p className="entry-desc">
-          Upload an existing structured file, describe what you need with an AI prompt, or explore pre-built reference benchmarks to generate privacy-safe synthetic tabular datasets.
-        </p>
+    <section className="creation-section" id="create" aria-labelledby="create-title" data-reveal="form">
+      <div className="section-heading"><h2 id="create-title">What would you like to create?</h2><p>Start with an idea. Or bring a sample of your own.</p></div>
+      <div className="input-studio" aria-busy={busy}>
+        <div className="input-tabs" role="tablist" aria-label="Dataset input">
+          <button id="prompt-tab" role="tab" aria-selected={mode === 'prompt'} aria-controls="prompt-panel" tabIndex={mode === 'prompt' ? 0 : -1}
+            onClick={() => setMode('prompt')} onKeyDown={e => { if (e.key === 'ArrowRight') { setMode('upload'); document.getElementById('upload-tab')?.focus(); } }}>
+            <Database size={15} /> Describe your data</button>
+          <button id="upload-tab" role="tab" aria-selected={mode === 'upload'} aria-controls="upload-panel" tabIndex={mode === 'upload' ? 0 : -1}
+            onClick={() => setMode('upload')} onKeyDown={e => { if (e.key === 'ArrowLeft') { setMode('prompt'); document.getElementById('prompt-tab')?.focus(); } }}>
+            <Upload size={15} /> Upload a sample</button>
+        </div>
+        {(localError || (error && !error.isSessionExpired)) && <div className="entry-error" role="alert"><AlertCircle size={17} /><span>{localError || error?.message}</span></div>}
+        <form id="prompt-panel" role="tabpanel" aria-labelledby="prompt-tab" hidden={mode !== 'prompt'} onSubmit={submit}>
+          <label htmlFor="dataset-prompt" className="sr-only">Describe your dataset</label>
+          <textarea id="dataset-prompt" value={prompt} disabled={busy} rows={3}
+            placeholder="Describe your dataset, the fields you need, and how many records to create…"
+            onChange={e => { setPrompt(e.target.value); setLocalError(''); if (error) dismissError(); }}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void submit(); } }} />
+          <div className="prompt-toolbar"><button className="example-prompt" type="button" disabled={busy}
+            onClick={() => { setPrompt(EXAMPLE_PROMPT); setLocalError(''); dismissError(); }}>Try a university dataset <ArrowUpRight size={13} /></button>
+            <button type="submit" className="btn btn-primary" disabled={busy || !prompt.trim()}>{submitting ? 'Generating data…' : 'Generate data'}<ArrowRight size={15} /></button></div>
+        </form>
+        <div id="upload-panel" role="tabpanel" aria-labelledby="upload-tab" hidden={mode !== 'upload'}>
+          <label className={`upload-target ${dragging ? 'is-dragging' : ''}`} htmlFor="dataset-file"
+            onDragOver={e => { e.preventDefault(); if (!busy) setDragging(true); }} onDragLeave={() => setDragging(false)}
+            onDrop={e => { e.preventDefault(); setDragging(false); upload(e.dataTransfer.files[0]); }}>
+            <span className="upload-symbol"><Upload size={24} /></span>
+            <strong>{isIngesting ? 'Reading your sample…' : 'Drop your sample here'}</strong>
+            <span>or choose a file from your computer</span><small>CSV, XLSX or JSON · up to 15 MB</small>
+            <input id="dataset-file" type="file" accept=".csv,.xlsx,.json" disabled={busy}
+              onChange={e => { upload(e.target.files?.[0]); e.target.value = ''; }} /></label>
+        </div>
+        <div className="input-footnote"><Check size={13} /> Review your schema and privacy settings in the workspace.</div>
       </div>
+    </section>
 
-      {/* Application Options Grid */}
-      <div className="entry-grid">
-        {/* Option 1: Upload Dataset (Primary/Usable) */}
-        <div className="entry-card">
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <UploadCloud size={16} style={{ color: 'var(--text-primary)' }} />
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Upload Dataset
-                </h3>
-              </div>
-              <span className="badge badge-slate" style={{ fontSize: '9px' }}>
-                CSV / XLSX / JSON
-              </span>
-            </div>
+    <section className="workflow-section" id="workflow" aria-labelledby="workflow-title" data-reveal="workflow">
+      <div className="workflow-intro"><h2 id="workflow-title">From an idea<br />to usable records.</h2><p>One workspace for the whole process. Your source, your settings, your generated data.</p><a href="#create">Start creating <ArrowUpRight size={16} /></a></div>
+      <ol className="workflow-list">
+        <li><span className="workflow-number">1</span><div><h3>Describe it. Or upload it.</h3><p>Specify the fields and record count you need, or infer a schema from a sample.</p></div></li>
+        <li><span className="workflow-number">2</span><div><h3>Make the data yours.</h3><p>Adjust column types, privacy rules and generation settings. Inspect connected records in their tables.</p></div></li>
+        <li><span className="workflow-number">3</span><div><h3>Take the full dataset.</h3><p>Page through the results and export every record as CSV or JSON. Compare quality when a reference is available.</p></div></li>
+      </ol>
+    </section>
 
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Infer statistical distributions, category sets, and correlation matrices directly from your sample file.
-            </p>
-
-            <div
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className="entry-card-dropzone"
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,.xlsx,.json"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-              />
-              <UploadCloud size={24} style={{ color: 'var(--text-primary)', marginBottom: '8px' }} />
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {isIngesting ? 'Analyzing Dataset...' : 'Click to select or drag and drop'}
-              </span>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Max 15MB • Automatic schema inference
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Option 2: Try Sample Dataset (Primary/Usable) */}
-        <div className="entry-card">
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FileSpreadsheet size={16} style={{ color: 'var(--text-primary)' }} />
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Try Sample Dataset
-                </h3>
-              </div>
-              <span className="badge badge-synth" style={{ fontSize: '9px' }}>
-                Ready to Demo
-              </span>
-            </div>
-
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Load benchmark datasets pre-configured for instant generation and quality scoring.
-            </p>
-
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {SAMPLE_DATASETS.map((sample) => (
-                <button
-                  key={sample.id}
-                  onClick={() => loadSampleDataset(sample.id)}
-                  disabled={isIngesting}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 12px',
-                    background: 'var(--surface)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 'var(--radius-xs)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-medium)';
-                    e.currentTarget.style.background = 'var(--surface-muted)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                    e.currentTarget.style.background = 'var(--surface)';
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {sample.name}
-                      </span>
-                      <span className="badge badge-slate" style={{ fontSize: '9px', padding: '1px 5px' }}>
-                        {sample.badge}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
-                      {sample.rowCount} records • {sample.columnsCount} features
-                    </span>
-                  </div>
-
-                  <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
-                </button>
-              ))}
-
-              <button
-                onClick={loadCommerceRelational}
-                disabled={isIngesting}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 12px',
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-xs)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-medium)';
-                  e.currentTarget.style.background = 'var(--surface-muted)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                  e.currentTarget.style.background = 'var(--surface)';
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      Commerce & Invoices
-                    </span>
-                    <span className="badge badge-synth" style={{ fontSize: '9px', padding: '1px 5px' }}>
-                      Relational & Docs
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
-                    5 relational tables • Reconciled PDF/ZIP invoices
-                  </span>
-                </div>
-
-                <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
-              </button>
-
-              <button
-                onClick={loadBankingRelational}
-                disabled={isIngesting}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 12px',
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-xs)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-medium)';
-                  e.currentTarget.style.background = 'var(--surface-muted)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                  e.currentTarget.style.background = 'var(--surface)';
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      Banking & Statements
-                    </span>
-                    <span className="badge badge-synth" style={{ fontSize: '9px', padding: '1px 5px' }}>
-                      Relational & Docs
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
-                    Accounts & transactions • Continuous bank statements
-                  </span>
-                </div>
-
-                <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
-              </button>
-            </div>
-          </div>
-        </div>
+    <section className="examples-section" id="examples" aria-labelledby="examples-title" data-reveal="examples">
+      <div className="section-heading"><h2 id="examples-title">A starting point, already set up.</h2><p>Explore an example, then adjust it to your needs.</p></div>
+      <div className="sample-list">{SAMPLE_DATASETS.map(sample => <button key={sample.id} disabled={busy} onClick={() => void loadSampleDataset(sample.id)}>
+        <FileSpreadsheet size={21} strokeWidth={1.5} /><span><strong>{sample.name}</strong><small>{sample.rowCount} reference rows · {sample.columnsCount} fields</small></span><ArrowUpRight size={18} /></button>)}
+        <button disabled={busy} onClick={() => void loadCommerceRelational()}><Database size={21} strokeWidth={1.5} /><span><strong>Commerce & Invoices</strong><small>Linked tables and invoice documents</small></span><ArrowUpRight size={18} /></button>
+        <button disabled={busy} onClick={() => void loadBankingRelational()}><Database size={21} strokeWidth={1.5} /><span><strong>Banking & Statements</strong><small>Accounts, transactions and statements</small></span><ArrowUpRight size={18} /></button>
       </div>
-
-      {/* Option 3: AI Prompt Generator (Below Upload/Paste Area) */}
-      <div
-        className="card"
-        style={{
-          marginTop: '20px',
-          background: 'var(--surface)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-md)',
-          padding: '24px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '14px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={16} style={{ color: 'var(--text-primary)' }} />
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              Generate from AI Prompt
-            </h3>
-          </div>
-          <span className="badge badge-synth" style={{ fontSize: '9px' }}>
-            Prompt Only • No File Required
-          </span>
-        </div>
-
-        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
-          Describe your tabular dataset and features. The AI engine drafts a complete schema specification with sensible data types, constraints, and privacy protections without needing any uploaded file.
-        </p>
-
-        {(promptLocalError || (error && !error.isSessionExpired)) && (
-          <div
-            style={{
-              padding: '10px 14px',
-              background: 'var(--error-bg)',
-              border: '1px solid var(--error-border)',
-              borderRadius: 'var(--radius-xs)',
-              fontSize: '12px',
-              color: 'var(--error)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <AlertCircle size={15} style={{ flexShrink: 0 }} />
-            <span>{promptLocalError || error?.message}</span>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <textarea
-            value={promptText}
-            onChange={(e) => {
-              setPromptText(e.target.value);
-              if (promptLocalError) setPromptLocalError(null);
-              if (error) dismissError();
-            }}
-            placeholder="5000 university students with GPA, semester, attendance and fee status"
-            rows={3}
-            disabled={isSubmittingPrompt}
-            className="input-text"
-            style={{
-              width: '100%',
-              resize: 'vertical',
-              fontFamily: 'inherit',
-              lineHeight: 1.5,
-              fontSize: '13px',
-              padding: '10px 12px',
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                handleDraftFromPrompt();
-              }
-            }}
-          />
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
-            <span>Example:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setPromptText('5000 university students with GPA, semester, attendance and fee status');
-                if (promptLocalError) setPromptLocalError(null);
-                if (error) dismissError();
-              }}
-              className="btn btn-ghost btn-sm"
-              style={{ fontSize: '11px', padding: '3px 8px', color: 'var(--text-primary)', textDecoration: 'underline' }}
-            >
-              5000 university students with GPA, semester, attendance and fee status
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleDraftFromPrompt}
-            disabled={isSubmittingPrompt || !promptText.trim()}
-            className="btn btn-synth"
-            style={{ padding: '8px 18px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-          >
-            {isSubmittingPrompt ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                <span>Generating data…</span>
-              </>
-            ) : (
-              <>
-                <Sparkles size={14} />
-                <span>Generate data</span>
-                <ArrowRight size={14} />
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+    </section>
+    <footer className="landing-footer"><span>Synthetic Data Studio</span><span>Built for working with data.</span><a href="#top">Back to top <ArrowUpRight size={14} /></a></footer>
+  </main>;
 };

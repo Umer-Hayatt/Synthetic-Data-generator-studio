@@ -5,10 +5,13 @@
 Task Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`
 
 ## Active repair follow-up milestones (details in REPAIR_PLAN.md)
+- [DONE] S10A2 — Owner-requested landing, sidebar and motion redesign.
+  Verified 19 frontend tests, types/build, 221 backend / 1 skipped; live prompt,
+  sample, desktop/mobile and independent design review. Higgsfield asset plan-blocked.
 - [DONE] S0A — Owner-requested repository cleanup, verified locally (2026-10-10).
   Untracked local template/build cache and ignored scratch/evidence files.
   Verified 221 backend / 1 skipped, 17 frontend tests, type/build and secret scan.
-  Owner authorized GitHub sync of the completed repairs; frontend redesign paused.
+  Published cleanup and prior repairs to GitHub main at bbb002b.
 - [DONE] S8 — One active input and consistent output lifecycle (2026-10-08).
   Source/prompt identity, revisions, snapshot ownership, stale-response guards and
   tab preview invalidation; normal actions no longer substitute demos.

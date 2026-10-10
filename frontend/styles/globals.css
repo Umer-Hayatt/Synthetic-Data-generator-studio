@@ -1,27 +1,18 @@
 :root {
   /* ==========================================================================
-     Slate Monochromatic Color Palette Specification
+     Neutral surfaces for the landing and data workspace
      ========================================================================== */
-  --background: #f8fafc;
-  /* slate-50  - Page / Canvas Background */
+  --background: #fafafa;
   --surface: #ffffff;
   /* white     - Cards, Panels & Surfaces */
-  --surface-muted: #f1f5f9;
-  /* slate-100 - Subtle Surfaces / Headers */
-  --border-subtle: #e2e8f0;
-  /* slate-200 - Borders & Dividers */
-  --border-medium: #cbd5e1;
-  /* slate-300 - Hover / Active Borders */
-  --text-primary: #0f172a;
-  /* slate-900 - Primary Text & Headings */
-  --text-body: #1e293b;
-  /* slate-800 - Body Text */
-  --text-muted: #64748b;
-  /* slate-500 - Muted Text & Labels */
-  --primary-btn-bg: #0f172a;
-  /* slate-900 - Primary Buttons / Actions */
-  --primary-btn-hover: #020617;
-  /* slate-950 - Button Hover State */
+  --surface-muted: #f5f5f5;
+  --border-subtle: #e8e8e8;
+  --border-medium: #d1d1d1;
+  --text-primary: #191919;
+  --text-body: #333333;
+  --text-muted: #656565;
+  --primary-btn-bg: #191919;
+  --primary-btn-hover: #333333;
 
   /* ==========================================================================
      Status Badges (Desaturated & Subtle)
@@ -47,13 +38,16 @@
   --bg-0: var(--background);
   --bg-1: var(--surface);
   --bg-2: var(--surface-muted);
-  --bg-3: #e2e8f0;
+  --bg-3: #e8e8e8;
   --bg-hover: var(--surface-muted);
   --bg-card: var(--surface);
 
   --border-default: var(--border-medium);
-  --border-strong: #94a3b8;
-  --border-focus: var(--text-primary);
+  --border-strong: #a3a3a3;
+  --border-focus: #2858cb;
+  --accent: #2858cb;
+  --accent-soft: #eef3ff;
+  --motion-ease: cubic-bezier(.16, 1, .3, 1);
 
   --text-title: var(--text-primary);
   --text-faint: var(--text-muted);
@@ -89,7 +83,7 @@
   --radius-xl: 18px;
 
   /* Typography Scale */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   --text-page-title: 20px;
@@ -131,8 +125,8 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  height: 100vh;
-  width: 100vw;
+  height: 100dvh;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -165,34 +159,10 @@ pre {
 .app-shell {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  width: 100vw;
+  height: 100dvh;
+  width: 100%;
   overflow: hidden;
   background: var(--background);
-}
-
-.top-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 52px;
-  padding: 0 20px;
-  background: var(--surface-muted);
-  border-bottom: 1px solid var(--border-subtle);
-  flex-shrink: 0;
-  z-index: 40;
-}
-
-.top-bar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.top-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 /* Workspace 3-Column Layout */
@@ -635,80 +605,6 @@ pre {
   border-radius: 2px 2px 0 0;
   min-height: 2px;
   transition: height 0.2s ease;
-}
-
-/* Entry Screen Layout */
-.entry-container {
-
-  max-width: 860px;
-  margin: 40px auto;
-  padding: 0 24px;
-}
-
-.entry-hero {
-  text-align: center;
-  margin-bottom: 36px;
-}
-
-.entry-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.5px;
-  margin-bottom: 8px;
-}
-
-.entry-desc {
-  font-size: 13px;
-  color: var(--text-muted);
-  max-width: 580px;
-  margin: 0 auto;
-}
-
-.entry-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-@media (max-width: 768px) {
-  .entry-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.entry-card {
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: all 0.15s ease;
-}
-
-.entry-card:hover {
-  border-color: var(--border-medium);
-}
-
-.entry-card-dropzone {
-  border: 2px dashed var(--border-medium);
-  background: var(--surface-muted);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 32px 24px;
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all 0.15s ease;
-}
-
-.entry-card-dropzone:hover {
-  border-color: var(--text-primary);
-  background: var(--surface);
 }
 
 /* Inputs & Form Controls */

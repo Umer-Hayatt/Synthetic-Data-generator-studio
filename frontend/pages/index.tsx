@@ -22,19 +22,16 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
-      <div className="app-shell">
-        <Header />
-
-        {/* Dynamic Display: Entry Screen if no active dataset; Studio Workspace once ingested */}
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className={`app-shell ${!referenceToken && !datasetSpec ? 'landing-shell' : 'studio-shell'}`} id="top">
+        <a className="skip-link" href="#main-content">Skip to content</a>
           {!referenceToken && !datasetSpec ? (
-            <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div className="landing-scroll">
+              <Header />
               <EntryScreen />
             </div>
           ) : (
             <Workspace />
           )}
-        </div>
 
         {/* Global Modals & Notifications */}
         <SessionExpiredModal />

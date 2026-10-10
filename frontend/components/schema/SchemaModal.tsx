@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDialogFocus } from '../common/useDialogFocus';
 import { useStudio } from '../../context/StudioContext';
 import { Key, X, Sliders } from 'lucide-react';
 import { ColumnDType, SemanticType } from '../../types';
@@ -24,13 +25,15 @@ const AVAILABLE_SEMANTICS: SemanticType[] = [
 export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => {
   const { datasetSpec, updateColumnConfig } = useStudio();
 
+  const dialog = useDialogFocus(isOpen && !!datasetSpec?.tables.length, onClose);
+
   if (!isOpen || !datasetSpec || !datasetSpec.tables.length) return null;
 
   const table = datasetSpec.tables[0];
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-dialog" style={{ maxWidth: '720px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+      <div ref={dialog} role="dialog" aria-modal="true" aria-label="Dataset schema" tabIndex={-1} className="modal-dialog dataset-editor" style={{ maxWidth: '720px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -60,6 +63,7 @@ export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => 
             return (
               <div
                 key={col.name}
+                className="editor-row"
                 style={{
                   background: 'var(--surface-muted)',
                   border: '1px solid var(--border-subtle)',
@@ -72,7 +76,7 @@ export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => 
                 }}
               >
                 {/* Column identity */}
-                <div style={{ minWidth: '180px' }}>
+                <div className="editor-identity" style={{ minWidth: '180px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {col.constraints?.unique && (
                       <span title="Unique Key">
@@ -133,8 +137,9 @@ export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => 
                 </div>
 
                 {/* Edit Select Controls */}
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="editor-controls" style={{ display: 'flex', gap: '8px' }}>
                   <select
+                    aria-label={`${col.name} data type`}
                     value={col.dtype}
                     onChange={(e) => updateColumnConfig(col.name, { dtype: e.target.value as ColumnDType })}
                     className="select-box font-mono"
@@ -147,6 +152,7 @@ export const SchemaModal: React.FC<SchemaModalProps> = ({ isOpen, onClose }) => 
                     ))}
                   </select>
                   <select
+                    aria-label={`${col.name} semantic type`}
                     value={col.semantic_type}
                     onChange={(e) => updateColumnConfig(col.name, { semantic_type: e.target.value as SemanticType })}
                     className="select-box font-mono"

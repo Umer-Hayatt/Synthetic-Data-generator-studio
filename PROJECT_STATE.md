@@ -4,32 +4,21 @@
 REPAIR — one verified vertical slice at a time. Active plan: REPAIR_PLAN.md.
 
 ## Active Task
-S0A repository cleanup DONE locally; GitHub sync authorized (2026-10-10).
-- Owner authorized remote push and paused the frontend redesign until sync.
-- Untrack environment template/build cache while preserving local copies; exclude
-  QA evidence, historical audit tools, sample upload and stale context from Git.
-- Application behavior is unchanged; deployment repair remains deferred.
-- Verified: 221 backend passed / 1 skipped, 17 frontend tests, type check and
-  production build; secret-pattern scan of 173 tracked/unpushed text blobs clear.
-- Ignore coverage and retained local files verified. Normal fast-forward push
-  publishes the six completed repair commits plus this cleanup commit.
-
-S10A1 DONE locally (2026-10-10); S10B is the next planned slice.
-- Prompt-only output hides reference quality and its details control; uploads
-  retain actual scores. Privacy and data checks remain beside the data.
-- Plain-language links above the selected table; technical model details are
-  secondary. Compact scrollable rows, sticky headers and field/key labels.
-- Frozen seven-task benchmark: baseline 6 actions, candidates and confirmation
-  5; irrelevant quality items 2 -> 0. Shorter candidate retained with simpler
-  copy. Scripted actions do not establish human comprehension or data quality.
-- Verified: 17 React tests, type check and production build; live prompt 40/10/5,
-  last page ends at 40, full CSV has 40 rows, student 3 matches one parent;
-  reference-backed sample retains real 85% and working quality details.
-- Mobile verification incomplete: browser viewport override had no effect
-  (actual 1280x720). Do not present the desktop capture as mobile evidence.
-- Logs/proof: qa/autoresearch/2026-10-10-inspection/. No backend changes;
-  prior S10A verification was 221 backend passed / 1 skipped.
-- Stop after the verified S10A1 commit. S10B and S11-S12 remain planned.
+S10A2 frontend redesign complete and verified (2026-10-10); publish, then stop.
+- CoreShift-inspired light landing; compact sidebar/table workspace with real
+  schema, privacy, settings, conditional quality and document controls.
+- Native scroll/entrance/workspace transitions, reduced-motion support,
+  responsive Next Image hero, accessible mobile drawer and editor focus handling.
+- Verified: 19 frontend lifecycle tests, TypeScript and production build;
+  221 backend passed / 1 skipped. No backend code or contracts changed.
+- Live prompt: 40 enrollments / 10 students / 5 courses; full CSV has 40 rows,
+  final page ends at 40 and linked student lookup retains the source snapshot.
+- Live reference sample: 200 generated rows and actual 94% quality; full desktop
+  and mobile captures plus Schema/Privacy/Quality keyboard checks inspected.
+- Bounded independent design review completed after focused accessibility,
+  responsive-editor and image-delivery corrections. Product/design context saved.
+- QA evidence remains local in qa/redesign/. S10B and S11-S12 stay planned.
+- S0A cleanup and prior repairs were published at bbb002b on GitHub main.
 
 ## Last Completed Milestones
 - S9E: fixed live university/retail/banking checks 60/70 -> 68/70; one retained
@@ -61,8 +50,15 @@ S10A1 DONE locally (2026-10-10); S10B is the next planned slice.
   generation constraints need a later scoped repair; no fabricated demo output.
 - Existing Python venv needs sandbox escalation; environment unchanged.
 - Local backend: 127.0.0.1:8000. Production frontend: localhost:3000.
+- During redesign checks, some local sample preview requests returned "Failed to
+  fetch" while generated rows were retained; successful runs and quality retry
+  were verified. Cause is unresolved; no speculative backend repair in S10A2.
 - Local-only scratch files and QA evidence excluded; build cache/template untracked.
 
 ## Blockers
+Higgsfield image generation requires Basic plan or higher; no job was submitted.
+This blocks Higgsfield asset production only. Existing generated hero and native
+frontend animations can proceed; no deployment or plan change is attempted.
+
 No current local repair blocker. Owner explicitly authorized GitHub push on
 2026-10-10; prior source/docs egress rejection no longer lacks owner authorization.

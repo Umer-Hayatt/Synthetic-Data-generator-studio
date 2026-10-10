@@ -16,6 +16,29 @@ Do not invent requirements. Do not refactor unrelated working code. Never commit
 
 ## Slices
 
+### S10A2 — Owner-requested frontend redesign — DONE (2026-10-10)
+- Owner resumed the redesign after S0A publication. Use the CoreShift landing
+  reference and supplied compact sidebar/table screenshot as the visual brief.
+- Replace the entry page and app shell; provide real sidebar access to data,
+  schema, privacy, generation settings, conditional quality and documents.
+- Preserve source/snapshot lifecycle, backend contracts, exact full exports,
+  linked-record inspection, measured reference quality and all existing demos.
+- Add purposeful entrance, scroll and entry-to-workspace transitions with reduced
+  motion support, responsive navigation and keyboard-operable controls.
+- Use both requested design skills. Higgsfield image generation was attempted
+  but requires Basic plan or higher; no job submitted. Existing generated hero
+  asset is available; native frontend motion has no Higgsfield dependency.
+- Verified 19 frontend tests, TypeScript and production build; backend 221 passed /
+  1 skipped. Live prompt 40/10/5, full CSV40 and linked lookup; sample200/94%.
+- Desktop1440x900/mobile390x844 evidence, lower landing sections, responsive hero,
+  drawer and editor Tab/Escape/return-focus checked. Bounded independent review
+  resolved dialog/drawer access, mobile editor composition and invented metric fallback.
+- PRODUCT.md, DESIGN.md and .impeccable/design.json capture confirmed context.
+  Obsolete entry/header styles removed; all new modules/assets are referenced.
+- Intermittent local sample-preview connection errors retain generated data;
+  successful sample/quality retries evidenced. Backend cause remains unresolved.
+- Commit and push this verified frontend slice, then stop.
+
 ### S0 — Repo hygiene and deploy fix — SKIPPED (deferred by owner)
 Not part of the current run. Known pending items, do NOT work on them unless asked:
 missing-file deploy crash (app.models.relational_rules), scratch files, Python pin on Render.
@@ -104,8 +127,8 @@ working end to end, Documents must assess whether that same data supports a
 document and render it without substituting or regenerating unrelated entities.
 S1-S7 remain completed historical milestones. This extends this active plan;
 it does not resume the superseded V2 work order. Product choices are recorded
-below. S8-S10A1 are complete locally; S10B is next. Owner authorized remote push
-on 2026-10-10; S0A performs repository cleanup and sync first.
+below. S8-S10A2 are complete; S10B remains planned. Owner authorized remote push
+on 2026-10-10; S0A cleanup and prior repairs were published at bbb002b.
 
 ### Confirmed causes and baseline
 - `backend/app/api/intelligence.py` truncates multi-table AI drafts to the first

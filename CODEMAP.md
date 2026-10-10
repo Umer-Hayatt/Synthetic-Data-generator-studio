@@ -62,7 +62,14 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | Path | What it does |
 |---|---|
 | `pages/index.tsx` | **Classic studio** root page (single workspace: tabular, relational, documents) |
-| `pages/_app.tsx` | Next.js app wrapper; global styles |
+| `pages/_app.tsx` | Next.js app wrapper; bundled Manrope/JetBrains Mono and global styles |
+| `components/ingestion/EntryScreen.tsx` | CoreShift-inspired landing; real prompt/upload/sample entry and native scroll reveals |
+| `components/layout/Header.tsx` | Compact landing navigation and entry anchors |
+| `components/layout/Sidebar.tsx` | Actual dataset controls, conditional documents/quality and accessible mobile navigation |
+| `components/common/useDialogFocus.ts` | Editor keyboard containment, Escape and return focus |
+| `styles/landing.css` | Landing composition, responsive editor layout, native motion and reduced-motion support |
+| `public/media/data-hero.png` | Decorative hero illustration delivered through responsive Next Image |
+| `public/media/data-hero.prompt.md` | Exact illustration prompt and provenance |
 | **components/ingestion/** | File upload, demo dataset selector & AI prompt generator (classic studio step 1) |
 | **components/configuration/** | Schema/privacy editors (classic studio step 2) |
 | **components/preview/** | Generated-data table preview (classic studio step 3) |
@@ -87,6 +94,11 @@ Keep this updated whenever a slice adds, moves, or deletes files.
 | `tests/studio-lifecycle.test.cjs` | Real React lifecycle tests for source replacement, stale jobs/results and tab preview invalidation |
 | `benchmarks/workspace.cjs` | Frozen six-task React navigation experiment with complete selected-table export guards |
 | `benchmarks/inspection.cjs` | Frozen seven-task S10A1 benchmark with relationship-disclosure cost and reference-free score guards |
+
+## Product and design context
+
+- `PRODUCT.md` records confirmed capabilities, constraints and owner references.
+- `DESIGN.md` and `.impeccable/design.json` record implemented design tokens and motion.
 
 ## backend/tests
 
